@@ -1,12 +1,14 @@
 import { writeFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { stats, createCache, calc } from './index.js';
+import { serve } from './server.js';
 import { loadConfig, starterConfig } from './config.js';
-import type { PackageStats, StatsOptions, Config } from './types.js';
+import type { PackageStats, StatsOptions, Config, ComparisonResult } from './types.js';
 
 function usage() {
   console.log(`
 Usage: registry-stats [package] [options]
+       registry-stats serve [--port 3000]
 
   If no package is given, reads from registry-stats.config.json.
 
@@ -15,14 +17,21 @@ Options:
                   Omit to query all registries
   --range         Date range for time series (e.g. 2025-01-01:2025-06-30)
                   Only npm and pypi support this
-  --json          Output raw JSON
+  --compare       Compare package across registries side-by-side
+  --format        Output format: table (default), json, csv, chart
   --init          Create a starter registry-stats.config.json
   --help, -h      Show this help
+
+Subcommands:
+  serve           Start a REST API server
+    --port        Port to listen on (default: 3000)
 
 Examples:
   registry-stats express
   registry-stats express -r npm
-  registry-stats requests -r pypi --range 2025-01-01:2025-06-30
+  registry-stats express --compare
+  registry-stats express -r npm --range 2025-01-01:2025-06-30 --format csv
+  registry-stats serve --port 8080
   registry-stats --init
   registry-stats                   # fetches all packages from config
 `);
@@ -62,6 +71,39 @@ function printStats(s: PackageStats) {
   console.log(parts.join('\n'));
 }
 
+function printComparison(result: ComparisonResult) {
+  const regs = Object.entries(result.registries);
+  if (regs.length === 0) {
+    console.error(`Package "${result.package}" not found on any registry`);
+    process.exit(1);
+  }
+
+  console.log(`\n  ${result.package} — comparison\n`);
+
+  // Header
+  const cols = regs.map(([r]) => r.padEnd(12));
+  console.log(`  ${'Metric'.padEnd(14)}${cols.join('')}`);
+  console.log(`  ${'─'.repeat(14 + cols.length * 12)}`);
+
+  // Rows
+  const metrics = ['total', 'lastMonth', 'lastWeek', 'lastDay'] as const;
+  const labels: Record<string, string> = {
+    total: 'Total',
+    lastMonth: 'Month',
+    lastWeek: 'Week',
+    lastDay: 'Day',
+  };
+
+  for (const m of metrics) {
+    const values = regs.map(([, s]) => {
+      const v = s.downloads[m];
+      return (v !== undefined ? formatNumber(v) : '-').padEnd(12);
+    });
+    console.log(`  ${labels[m].padEnd(14)}${values.join('')}`);
+  }
+  console.log();
+}
+
 function buildOptions(config: Config | null): StatsOptions {
   const opts: StatsOptions = {};
   if (!config) return opts;
@@ -75,7 +117,7 @@ function buildOptions(config: Config | null): StatsOptions {
   return opts;
 }
 
-async function runConfigPackages(config: Config, json: boolean) {
+async function runConfigPackages(config: Config, format: string) {
   const packages = config.packages;
   if (!packages || Object.keys(packages).length === 0) {
     console.error('No packages defined in config. Add packages to registry-stats.config.json.');
@@ -101,7 +143,7 @@ async function runConfigPackages(config: Config, json: boolean) {
     if (results.length > 0) allResults[displayName] = results;
   }
 
-  if (json) {
+  if (format === 'json') {
     console.log(JSON.stringify(allResults, null, 2));
     return;
   }
@@ -141,19 +183,36 @@ async function main() {
     process.exit(0);
   }
 
+  // serve subcommand
+  if (args[0] === 'serve') {
+    let port = 3000;
+    for (let i = 1; i < args.length; i++) {
+      if (args[i] === '--port' && args[i + 1]) {
+        port = parseInt(args[++i], 10);
+      }
+    }
+    serve({ port });
+    return;
+  }
+
   // Parse flags
   let pkg: string | undefined;
   let registry: string | undefined;
   let range: string | undefined;
-  let json = false;
+  let format = 'table';
+  let compare = false;
 
   for (let i = 0; i < args.length; i++) {
     if ((args[i] === '--registry' || args[i] === '-r') && args[i + 1]) {
       registry = args[++i];
     } else if (args[i] === '--range' && args[i + 1]) {
       range = args[++i];
+    } else if (args[i] === '--format' && args[i + 1]) {
+      format = args[++i];
     } else if (args[i] === '--json') {
-      json = true;
+      format = 'json';
+    } else if (args[i] === '--compare') {
+      compare = true;
     } else if (!args[i].startsWith('-') && !pkg) {
       pkg = args[i];
     }
@@ -167,7 +226,7 @@ async function main() {
       usage();
       process.exit(0);
     }
-    await runConfigPackages(config, json);
+    await runConfigPackages(config, format);
     return;
   }
 
@@ -175,6 +234,20 @@ async function main() {
   const opts = buildOptions(config);
 
   try {
+    // Comparison mode
+    if (compare) {
+      const registries = registry ? [registry] : undefined;
+      const result = await stats.compare(pkg, registries, opts);
+
+      if (format === 'json') {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        printComparison(result);
+      }
+      return;
+    }
+
+    // Range mode
     if (range) {
       const reg = registry ?? 'npm';
       const [start, end] = range.split(':');
@@ -185,8 +258,12 @@ async function main() {
 
       const data = await stats.range(reg, pkg, start, end, opts);
 
-      if (json) {
+      if (format === 'json') {
         console.log(JSON.stringify(data, null, 2));
+      } else if (format === 'csv') {
+        console.log(calc.toCSV(data));
+      } else if (format === 'chart') {
+        console.log(JSON.stringify(calc.toChartData(data, `${pkg} (${reg})`), null, 2));
       } else {
         const monthly = calc.groupTotals(calc.monthly(data));
         const t = calc.trend(data);
@@ -203,7 +280,7 @@ async function main() {
         console.error(`Package "${pkg}" not found on ${registry}`);
         process.exit(1);
       }
-      if (json) {
+      if (format === 'json') {
         console.log(JSON.stringify(result, null, 2));
       } else {
         console.log();
@@ -215,7 +292,7 @@ async function main() {
         console.error(`Package "${pkg}" not found on any registry`);
         process.exit(1);
       }
-      if (json) {
+      if (format === 'json') {
         console.log(JSON.stringify(results, null, 2));
       } else {
         console.log();

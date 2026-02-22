@@ -69,6 +69,17 @@ export interface Config {
   dockerToken?: string;
 }
 
+export interface ComparisonResult {
+  package: string;
+  registries: Record<string, PackageStats>;
+  fetchedAt: string;
+}
+
+export interface ChartData {
+  labels: string[];
+  datasets: { label: string; data: number[] }[];
+}
+
 export class RegistryError extends Error {
   constructor(
     public registry: RegistryName,

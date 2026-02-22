@@ -44,6 +44,24 @@ registry-stats --init
 
 # Run with config — fetches all tracked packages
 registry-stats
+
+# Compare across registries
+registry-stats express --compare
+#  express — comparison
+#
+#  Metric        npm         pypi
+#  ─────────────────────────────────
+#  Total         -           -
+#  Month         283,472     47,201
+#  Week          67,367      11,800
+#  Day           11,566      1,686
+
+# Export as CSV or chart-friendly JSON
+registry-stats express -r npm --range 2025-01-01:2025-06-30 --format csv
+registry-stats express -r npm --range 2025-01-01:2025-06-30 --format chart
+
+# Start a REST API server
+registry-stats serve --port 3000
 ```
 
 ## Config File
@@ -110,6 +128,15 @@ calc.trend(daily);                         // { direction: 'up', changePercent: 
 calc.movingAvg(daily, 7);                  // 7-day moving average
 calc.popularity(daily);                    // 0-100 log-scale score
 
+// Export formats
+calc.toCSV(daily);                         // "date,downloads\n2025-01-01,1234\n..."
+calc.toChartData(daily, 'express');        // { labels: [...], datasets: [{ label, data }] }
+
+// Comparison — same package across registries
+const comparison = await stats.compare('express');
+// → { package: 'express', registries: { npm: {...}, pypi: {...} }, fetchedAt: '...' }
+await stats.compare('express', ['npm', 'pypi']);  // specific registries only
+
 // Caching (5 min TTL, in-memory)
 const cache = createCache();
 await stats('npm', 'express', { cache });  // fetches
@@ -132,6 +159,36 @@ await stats('npm', 'express', { cache });  // cache hit
 - Respects `Retry-After` headers
 - Concurrency limiting for bulk requests
 - Optional TTL cache (pluggable — bring your own Redis/file backend via `StatsCache` interface)
+
+## REST API Server
+
+Run as a microservice or embed in your own server:
+
+```bash
+# CLI
+registry-stats serve --port 3000
+```
+
+```
+GET /stats/:package              # all registries
+GET /stats/:registry/:package    # single registry
+GET /compare/:package?registries=npm,pypi
+GET /range/:registry/:package?start=YYYY-MM-DD&end=YYYY-MM-DD&format=json|csv|chart
+```
+
+Programmatic usage for custom servers or serverless:
+
+```typescript
+import { createHandler, serve } from '@mcptoolshop/registry-stats';
+
+// Option 1: Quick start
+serve({ port: 3000 });
+
+// Option 2: Bring your own server
+import { createServer } from 'node:http';
+const handler = createHandler();
+createServer(handler).listen(3000);
+```
 
 ## Custom Registries
 

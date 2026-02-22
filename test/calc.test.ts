@@ -185,4 +185,43 @@ describe('calc', () => {
       expect(calc.popularity(data)).toBeLessThanOrEqual(100);
     });
   });
+
+  describe('toCSV', () => {
+    it('generates CSV with header and sorted rows', () => {
+      const data: DailyDownloads[] = [
+        { date: '2025-01-03', downloads: 30 },
+        { date: '2025-01-01', downloads: 10 },
+        { date: '2025-01-02', downloads: 20 },
+      ];
+      const csv = calc.toCSV(data);
+      const lines = csv.split('\n');
+      expect(lines[0]).toBe('date,downloads');
+      expect(lines[1]).toBe('2025-01-01,10');
+      expect(lines[2]).toBe('2025-01-02,20');
+      expect(lines[3]).toBe('2025-01-03,30');
+    });
+
+    it('returns header only for empty data', () => {
+      expect(calc.toCSV([])).toBe('date,downloads');
+    });
+  });
+
+  describe('toChartData', () => {
+    it('returns labels and datasets in sorted order', () => {
+      const data: DailyDownloads[] = [
+        { date: '2025-01-02', downloads: 20 },
+        { date: '2025-01-01', downloads: 10 },
+      ];
+      const chart = calc.toChartData(data, 'test');
+      expect(chart.labels).toEqual(['2025-01-01', '2025-01-02']);
+      expect(chart.datasets).toHaveLength(1);
+      expect(chart.datasets[0].label).toBe('test');
+      expect(chart.datasets[0].data).toEqual([10, 20]);
+    });
+
+    it('uses default label', () => {
+      const chart = calc.toChartData([{ date: '2025-01-01', downloads: 5 }]);
+      expect(chart.datasets[0].label).toBe('downloads');
+    });
+  });
 });

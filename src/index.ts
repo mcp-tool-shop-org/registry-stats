@@ -1,4 +1,4 @@
-import type { RegistryName, PackageStats, DailyDownloads, StatsOptions, StatsCache, RegistryProvider } from './types.js';
+import type { RegistryName, PackageStats, DailyDownloads, StatsOptions, StatsCache, RegistryProvider, ComparisonResult } from './types.js';
 import { RegistryError } from './types.js';
 import { npm } from './providers/npm.js';
 import { pypi } from './providers/pypi.js';
@@ -7,9 +7,11 @@ import { vscode } from './providers/vscode.js';
 import { docker } from './providers/docker.js';
 
 export { calc } from './calc.js';
-export type { RegistryName, PackageStats, DailyDownloads, StatsOptions, StatsCache, RegistryProvider, RateLimitConfig, Config, PackageConfig } from './types.js';
+export type { RegistryName, PackageStats, DailyDownloads, StatsOptions, StatsCache, RegistryProvider, RateLimitConfig, Config, PackageConfig, ComparisonResult, ChartData } from './types.js';
 export { RegistryError } from './types.js';
 export { loadConfig, defaultConfig, starterConfig } from './config.js';
+export { createHandler, serve } from './server.js';
+export type { ServerOptions } from './server.js';
 
 // --- Built-in TTL cache ---
 
@@ -155,6 +157,33 @@ stats.range = async function range(
   }
 
   return provider.getRange(pkg, start, end);
+};
+
+stats.compare = async function compare(
+  pkg: string,
+  registries?: string[],
+  options?: StatsOptions,
+): Promise<ComparisonResult> {
+  const regs = registries ?? Object.keys(providers);
+  const results = await Promise.allSettled(
+    regs.map(async (reg) => {
+      const result = await stats(reg, pkg, options);
+      return result ? { reg, result } : null;
+    }),
+  );
+
+  const registryMap: Record<string, PackageStats> = {};
+  for (const r of results) {
+    if (r.status === 'fulfilled' && r.value) {
+      registryMap[r.value.reg] = r.value.result;
+    }
+  }
+
+  return {
+    package: pkg,
+    registries: registryMap,
+    fetchedAt: new Date().toISOString(),
+  };
 };
 
 export { stats, registerProvider };

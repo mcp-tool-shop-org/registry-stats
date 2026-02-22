@@ -1,4 +1,4 @@
-import type { DailyDownloads } from './types.js';
+import type { DailyDownloads, ChartData } from './types.js';
 
 export const calc = {
   total(records: DailyDownloads[]): number {
@@ -101,5 +101,22 @@ export const calc = {
     // Log scale: 0 at 1 download/day, 100 at 1M downloads/day
     const score = Math.max(0, Math.min(100, (Math.log10(Math.max(1, avgDaily)) / 6) * 100));
     return Math.round(score * 10) / 10;
+  },
+
+  toCSV(records: DailyDownloads[]): string {
+    const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date));
+    const lines = ['date,downloads'];
+    for (const r of sorted) {
+      lines.push(`${r.date},${r.downloads}`);
+    }
+    return lines.join('\n');
+  },
+
+  toChartData(records: DailyDownloads[], label = 'downloads'): ChartData {
+    const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date));
+    return {
+      labels: sorted.map((r) => r.date),
+      datasets: [{ label, data: sorted.map((r) => r.downloads) }],
+    };
   },
 };
