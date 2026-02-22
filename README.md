@@ -1,6 +1,27 @@
-# registry-stats
+<p align="center">
+  <strong>English</strong> | <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português</a>
+</p>
 
-One command. Five registries. All your download stats.
+<p align="center">
+  <img src="assets/logo.png" alt="registry-stats logo" width="280" />
+</p>
+
+<h1 align="center">@mcptoolshop/registry-stats</h1>
+
+<p align="center">
+  One command. Five registries. All your download stats.
+</p>
+
+<p align="center">
+  <a href="#install">Install</a> &middot;
+  <a href="#cli">CLI</a> &middot;
+  <a href="#config-file">Config</a> &middot;
+  <a href="#programmatic-api">API</a> &middot;
+  <a href="#rest-api-server">REST Server</a> &middot;
+  <a href="#license">License</a>
+</p>
+
+---
 
 If you publish to npm, PyPI, NuGet, VS Code Marketplace, or Docker Hub, you currently need five different APIs to answer "how many downloads did I get this month?" This library gives you one interface for all of them — as a CLI or programmatic API.
 
