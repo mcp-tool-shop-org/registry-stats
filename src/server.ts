@@ -1,6 +1,7 @@
 import { createServer as httpCreateServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { stats, createCache, calc } from './index.js';
 import type { StatsOptions } from './types.js';
+import { RegistryError } from './types.js';
 
 export interface ServerOptions {
   port?: number;
@@ -136,7 +137,16 @@ export function createHandler(opts?: StatsOptions): Handler {
 
       error(res, 'Not found', 404);
     } catch (e: any) {
-      error(res, e.message, 500);
+      if (e instanceof RegistryError) {
+        // Map registry errors: 429 → 429, 404 → 404, others → 502 (bad gateway)
+        const status = e.statusCode === 429 ? 429
+          : e.statusCode === 404 ? 404
+          : e.statusCode >= 500 ? 502
+          : 500;
+        error(res, e.message, status);
+      } else {
+        error(res, e.message, 500);
+      }
     }
   };
 }

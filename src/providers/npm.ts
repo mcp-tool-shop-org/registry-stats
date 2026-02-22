@@ -1,5 +1,5 @@
 import type { RegistryProvider, PackageStats, DailyDownloads } from '../types.js';
-import { fetchWithRetry } from '../fetch.js';
+import { fetchWithRetry, fetchDirect } from '../fetch.js';
 
 const API = 'https://api.npmjs.org/downloads';
 
@@ -8,6 +8,10 @@ interface PointResponse {
   start: string;
   end: string;
   package: string;
+}
+
+interface BulkPointResponse {
+  [pkg: string]: PointResponse | null;
 }
 
 interface RangeResponse {
@@ -21,22 +25,26 @@ export const npm: RegistryProvider = {
   name: 'npm',
 
   async getStats(pkg: string): Promise<PackageStats | null> {
-    const [day, week, month] = await Promise.all([
-      fetchWithRetry<PointResponse>(`${API}/point/last-day/${pkg}`, 'npm'),
-      fetchWithRetry<PointResponse>(`${API}/point/last-week/${pkg}`, 'npm'),
-      fetchWithRetry<PointResponse>(`${API}/point/last-month/${pkg}`, 'npm'),
-    ]);
+    // Single range call for last-month daily data — then derive day/week/month
+    const end = new Date();
+    const start = new Date(end);
+    start.setDate(start.getDate() - 30);
 
-    if (!day && !week && !month) return null;
+    const data = await fetchWithRetry<RangeResponse>(
+      `${API}/range/${fmt(start)}:${fmt(end)}/${pkg}`, 'npm',
+    );
+
+    if (!data || !data.downloads || data.downloads.length === 0) return null;
+
+    const days = data.downloads;
+    const lastDay = days[days.length - 1]?.downloads ?? 0;
+    const lastWeek = days.slice(-7).reduce((s, d) => s + d.downloads, 0);
+    const lastMonth = days.reduce((s, d) => s + d.downloads, 0);
 
     return {
       registry: 'npm',
       package: pkg,
-      downloads: {
-        lastDay: day?.downloads,
-        lastWeek: week?.downloads,
-        lastMonth: month?.downloads,
-      },
+      downloads: { lastDay, lastWeek, lastMonth },
       fetchedAt: new Date().toISOString(),
     };
   },
@@ -70,6 +78,40 @@ export const npm: RegistryProvider = {
     return chunks;
   },
 };
+
+/**
+ * Bulk-fetch last-month stats for multiple unscoped packages in a single API call.
+ * npm's bulk endpoint doesn't support scoped packages, so this only works for
+ * packages without an @ prefix.
+ */
+export async function npmBulkPoint(
+  packages: string[],
+  period: 'last-day' | 'last-week' | 'last-month' = 'last-month',
+): Promise<Map<string, number>> {
+  const result = new Map<string, number>();
+  if (packages.length === 0) return result;
+
+  // npm bulk API supports up to 128 comma-separated package names
+  const BATCH_SIZE = 128;
+  for (let i = 0; i < packages.length; i += BATCH_SIZE) {
+    const batch = packages.slice(i, i + BATCH_SIZE);
+    const joined = batch.join(',');
+
+    const data = await fetchDirect<BulkPointResponse>(
+      `${API}/point/${period}/${joined}`, 'npm',
+    );
+
+    if (data) {
+      for (const [name, entry] of Object.entries(data)) {
+        if (entry && typeof entry.downloads === 'number') {
+          result.set(name, entry.downloads);
+        }
+      }
+    }
+  }
+
+  return result;
+}
 
 function fmt(d: Date): string {
   return d.toISOString().slice(0, 10);

@@ -15,6 +15,8 @@ Usage: registry-stats [package] [options]
 Options:
   --registry, -r  Registry to query (npm, pypi, nuget, vscode, docker)
                   Omit to query all registries
+  --mine          Discover and show stats for all npm packages by a maintainer
+                  e.g. registry-stats --mine mikefrilot
   --range         Date range for time series (e.g. 2025-01-01:2025-06-30)
                   Only npm and pypi support this
   --compare       Compare package across registries side-by-side
@@ -30,6 +32,8 @@ Examples:
   registry-stats express
   registry-stats express -r npm
   registry-stats express --compare
+  registry-stats --mine mikefrilot
+  registry-stats --mine mikefrilot --format json
   registry-stats express -r npm --range 2025-01-01:2025-06-30 --format csv
   registry-stats serve --port 8080
   registry-stats --init
@@ -104,6 +108,46 @@ function printComparison(result: ComparisonResult) {
   console.log();
 }
 
+function printMineTable(results: PackageStats[], maintainer: string) {
+  const withDownloads = results.filter((r) => (r.downloads.lastMonth ?? 0) > 0);
+  const noData = results.filter((r) => (r.downloads.lastMonth ?? 0) === 0);
+
+  const totalMonth = results.reduce((s, r) => s + (r.downloads.lastMonth ?? 0), 0);
+  const totalWeek = results.reduce((s, r) => s + (r.downloads.lastWeek ?? 0), 0);
+  const totalDay = results.reduce((s, r) => s + (r.downloads.lastDay ?? 0), 0);
+
+  // Column widths
+  const nameWidth = Math.max(7, ...results.map((r) => r.package.length)) + 2;
+  const numWidth = 10;
+
+  console.log(`\n  ${maintainer} — ${results.length} npm packages\n`);
+
+  // Header
+  console.log(
+    `  ${'Package'.padEnd(nameWidth)}${'Month'.padStart(numWidth)}${'Week'.padStart(numWidth)}${'Day'.padStart(numWidth)}`,
+  );
+  console.log(`  ${'─'.repeat(nameWidth + numWidth * 3)}`);
+
+  // Rows with downloads
+  for (const r of withDownloads) {
+    console.log(
+      `  ${r.package.padEnd(nameWidth)}${formatNumber(r.downloads.lastMonth).padStart(numWidth)}${formatNumber(r.downloads.lastWeek).padStart(numWidth)}${formatNumber(r.downloads.lastDay).padStart(numWidth)}`,
+    );
+  }
+
+  // Summary separator
+  console.log(`  ${'─'.repeat(nameWidth + numWidth * 3)}`);
+  console.log(
+    `  ${'TOTAL'.padEnd(nameWidth)}${formatNumber(totalMonth).padStart(numWidth)}${formatNumber(totalWeek).padStart(numWidth)}${formatNumber(totalDay).padStart(numWidth)}`,
+  );
+
+  if (noData.length > 0) {
+    console.log(`\n  ${noData.length} package(s) with no download data yet:`);
+    console.log(`  ${noData.map((r) => r.package).join(', ')}`);
+  }
+  console.log();
+}
+
 function buildOptions(config: Config | null): StatsOptions {
   const opts: StatsOptions = {};
   if (!config) return opts;
@@ -163,6 +207,34 @@ async function runConfigPackages(config: Config, format: string) {
   console.log();
 }
 
+async function runMine(maintainer: string, format: string, config: Config | null) {
+  const opts = buildOptions(config);
+
+  process.stderr.write(`  Discovering packages for ${maintainer}...`);
+
+  const results = await stats.mine(maintainer, {
+    ...opts,
+    onProgress(done, total, pkg) {
+      // Clear line and show progress
+      process.stderr.write(`\r  Fetching stats... ${done}/${total} (${pkg})${''.padEnd(20)}`);
+    },
+  });
+
+  // Clear progress line
+  process.stderr.write('\r' + ' '.repeat(80) + '\r');
+
+  if (results.length === 0) {
+    console.error(`No packages found for maintainer "${maintainer}".`);
+    process.exit(1);
+  }
+
+  if (format === 'json') {
+    console.log(JSON.stringify(results, null, 2));
+  } else {
+    printMineTable(results, maintainer);
+  }
+}
+
 async function main() {
   const args = process.argv.slice(2);
 
@@ -201,6 +273,7 @@ async function main() {
   let range: string | undefined;
   let format = 'table';
   let compare = false;
+  let mineUser: string | undefined;
 
   for (let i = 0; i < args.length; i++) {
     if ((args[i] === '--registry' || args[i] === '-r') && args[i + 1]) {
@@ -213,12 +286,20 @@ async function main() {
       format = 'json';
     } else if (args[i] === '--compare') {
       compare = true;
+    } else if (args[i] === '--mine' && args[i + 1]) {
+      mineUser = args[++i];
     } else if (!args[i].startsWith('-') && !pkg) {
       pkg = args[i];
     }
   }
 
   const config = loadConfig();
+
+  // --mine mode: discover and show all packages by maintainer
+  if (mineUser) {
+    await runMine(mineUser, format, config);
+    return;
+  }
 
   // No package arg — run from config
   if (!pkg) {
