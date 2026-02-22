@@ -1,16 +1,7 @@
-import type { RegistryProvider, PackageStats, DailyDownloads, StatsOptions } from '../types.js';
-import { RegistryError } from '../types.js';
+import type { RegistryProvider, PackageStats, DailyDownloads } from '../types.js';
+import { fetchWithRetry } from '../fetch.js';
 
 const API = 'https://api.npmjs.org/downloads';
-
-async function fetchJson<T>(url: string): Promise<T | null> {
-  const res = await fetch(url);
-  if (res.status === 404) return null;
-  if (!res.ok) {
-    throw new RegistryError('npm', res.status, `${res.statusText}: ${url}`);
-  }
-  return res.json() as Promise<T>;
-}
 
 interface PointResponse {
   downloads: number;
@@ -31,9 +22,9 @@ export const npm: RegistryProvider = {
 
   async getStats(pkg: string): Promise<PackageStats | null> {
     const [day, week, month] = await Promise.all([
-      fetchJson<PointResponse>(`${API}/point/last-day/${pkg}`),
-      fetchJson<PointResponse>(`${API}/point/last-week/${pkg}`),
-      fetchJson<PointResponse>(`${API}/point/last-month/${pkg}`),
+      fetchWithRetry<PointResponse>(`${API}/point/last-day/${pkg}`, 'npm'),
+      fetchWithRetry<PointResponse>(`${API}/point/last-week/${pkg}`, 'npm'),
+      fetchWithRetry<PointResponse>(`${API}/point/last-month/${pkg}`, 'npm'),
     ]);
 
     if (!day && !week && !month) return null;
@@ -64,7 +55,7 @@ export const npm: RegistryProvider = {
 
       const s = fmt(cursor);
       const e = fmt(actualEnd);
-      const data = await fetchJson<RangeResponse>(`${API}/range/${s}:${e}/${pkg}`);
+      const data = await fetchWithRetry<RangeResponse>(`${API}/range/${s}:${e}/${pkg}`, 'npm');
 
       if (data) {
         for (const d of data.downloads) {

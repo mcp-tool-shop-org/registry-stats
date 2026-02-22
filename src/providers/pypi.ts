@@ -1,22 +1,7 @@
 import type { RegistryProvider, PackageStats, DailyDownloads } from '../types.js';
-import { RegistryError } from '../types.js';
+import { fetchWithRetry } from '../fetch.js';
 
 const API = 'https://pypistats.org/api';
-
-async function fetchJson<T>(url: string): Promise<T | null> {
-  const res = await fetch(url);
-  if (res.status === 404) return null;
-  if (!res.ok) {
-    const retryAfter = res.headers.get('retry-after');
-    throw new RegistryError(
-      'pypi',
-      res.status,
-      `${res.statusText}: ${url}`,
-      retryAfter ? parseInt(retryAfter, 10) : undefined,
-    );
-  }
-  return res.json() as Promise<T>;
-}
 
 interface RecentResponse {
   data: {
@@ -44,8 +29,8 @@ export const pypi: RegistryProvider = {
 
   async getStats(pkg: string): Promise<PackageStats | null> {
     const [recent, overall] = await Promise.all([
-      fetchJson<RecentResponse>(`${API}/packages/${pkg}/recent`),
-      fetchJson<OverallResponse>(`${API}/packages/${pkg}/overall?mirrors=false`),
+      fetchWithRetry<RecentResponse>(`${API}/packages/${pkg}/recent`, 'pypi'),
+      fetchWithRetry<OverallResponse>(`${API}/packages/${pkg}/overall?mirrors=false`, 'pypi'),
     ]);
 
     if (!recent && !overall) return null;
@@ -68,8 +53,8 @@ export const pypi: RegistryProvider = {
   },
 
   async getRange(pkg: string, start: string, end: string): Promise<DailyDownloads[]> {
-    const data = await fetchJson<OverallResponse>(
-      `${API}/packages/${pkg}/overall?mirrors=false`,
+    const data = await fetchWithRetry<OverallResponse>(
+      `${API}/packages/${pkg}/overall?mirrors=false`, 'pypi',
     );
 
     if (!data) return [];

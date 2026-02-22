@@ -1,5 +1,5 @@
 import type { RegistryProvider, PackageStats, StatsOptions } from '../types.js';
-import { RegistryError } from '../types.js';
+import { fetchWithRetry } from '../fetch.js';
 
 const API = 'https://hub.docker.com/v2/repositories';
 
@@ -13,26 +13,15 @@ export const docker: RegistryProvider = {
       headers['Authorization'] = `Bearer ${options.dockerToken}`;
     }
 
-    const res = await fetch(`${API}/${pkg}`, { headers });
-
-    if (res.status === 404) return null;
-    if (!res.ok) {
-      const retryAfter = res.headers.get('retry-after');
-      throw new RegistryError(
-        'docker',
-        res.status,
-        `${res.statusText}`,
-        retryAfter ? parseInt(retryAfter, 10) : undefined,
-      );
-    }
-
-    const json = (await res.json()) as {
+    const json = await fetchWithRetry<{
       name: string;
       namespace: string;
       pull_count: number;
       star_count: number;
       last_updated: string;
-    };
+    }>(`${API}/${pkg}`, 'docker', { headers });
+
+    if (!json) return null;
 
     return {
       registry: 'docker',

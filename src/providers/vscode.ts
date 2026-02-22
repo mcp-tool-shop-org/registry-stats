@@ -1,5 +1,5 @@
 import type { RegistryProvider, PackageStats } from '../types.js';
-import { RegistryError } from '../types.js';
+import { fetchWithRetry } from '../fetch.js';
 
 const API = 'https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery';
 
@@ -25,7 +25,7 @@ export const vscode: RegistryProvider = {
   name: 'vscode',
 
   async getStats(pkg: string): Promise<PackageStats | null> {
-    const res = await fetch(API, {
+    const json = await fetchWithRetry<ExtensionQueryResponse>(API, 'vscode', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -41,11 +41,8 @@ export const vscode: RegistryProvider = {
       }),
     });
 
-    if (!res.ok) {
-      throw new RegistryError('vscode', res.status, `${res.statusText}`);
-    }
+    if (!json) return null;
 
-    const json = (await res.json()) as ExtensionQueryResponse;
     const ext = json.results?.[0]?.extensions?.[0];
     if (!ext) return null;
 
