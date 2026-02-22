@@ -1,8 +1,10 @@
 # @mcptoolshop/registry-stats
 
-Multi-registry download stats for npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub.
+One command. Five registries. All your download stats.
 
-Zero dependencies — uses native `fetch()` (Node 18+).
+If you publish to npm, PyPI, NuGet, VS Code Marketplace, or Docker Hub, you currently need five different APIs to answer "how many downloads did I get this month?" This library gives you one interface for all of them — as a CLI or programmatic API.
+
+Zero dependencies. Uses native `fetch()`. Node 18+.
 
 ## Install
 
@@ -10,15 +12,41 @@ Zero dependencies — uses native `fetch()` (Node 18+).
 npm install @mcptoolshop/registry-stats
 ```
 
-## Usage
+## CLI
+
+```bash
+# Query a single registry
+registry-stats express -r npm
+#  npm     | express
+#            month: 283,472,710  week: 67,367,773  day: 11,566,113
+
+# Query all registries at once
+registry-stats express
+
+# Time series with monthly breakdown + trend
+registry-stats express -r npm --range 2025-01-01:2025-06-30
+#  2025-01  142,359,021
+#  2025-02  147,522,528
+#  ...
+#  Total: 448,383,383  Avg/day: 4,982,038  Trend: flat (-0.46%)
+
+# Raw JSON output
+registry-stats express -r npm --json
+
+# Other registries
+registry-stats requests -r pypi
+registry-stats Newtonsoft.Json -r nuget
+registry-stats esbenp.prettier-vscode -r vscode
+registry-stats library/node -r docker
+```
+
+## Programmatic API
 
 ```typescript
-import { stats, calc } from '@mcptoolshop/registry-stats';
+import { stats, calc, createCache } from '@mcptoolshop/registry-stats';
 
 // Single registry
 const npm = await stats('npm', 'express');
-// → { registry: 'npm', package: 'express', downloads: { lastDay: 4521, lastWeek: 31247, lastMonth: 134982 } }
-
 const pypi = await stats('pypi', 'requests');
 const nuget = await stats('nuget', 'Newtonsoft.Json');
 const vscode = await stats('vscode', 'esbenp.prettier-vscode');
@@ -27,24 +55,27 @@ const docker = await stats('docker', 'library/node');
 // All registries at once (uses Promise.allSettled — never throws)
 const all = await stats.all('express');
 
-// Bulk — multiple packages from one registry
+// Bulk — multiple packages, concurrency-limited (default: 5)
 const bulk = await stats.bulk('npm', ['express', 'koa', 'fastify']);
 
 // Time series (npm + pypi only)
 const daily = await stats.range('npm', 'express', '2025-01-01', '2025-06-30');
 
-// Calculations on time-series data
+// Calculations
 calc.total(daily);                         // sum of all downloads
 calc.avg(daily);                           // daily average
-calc.groupTotals(calc.monthly(daily));     // { '2025-01': 134982, '2025-02': 128451, ... }
-calc.trend(daily);                         // { slope: 12.5, direction: 'up', changePercent: 8.3 }
+calc.groupTotals(calc.monthly(daily));     // { '2025-01': 134982, ... }
+calc.trend(daily);                         // { direction: 'up', changePercent: 8.3 }
+calc.movingAvg(daily, 7);                  // 7-day moving average
+calc.popularity(daily);                    // 0-100 log-scale score
+
+// Caching (5 min TTL, in-memory)
+const cache = createCache();
+await stats('npm', 'express', { cache });  // fetches
+await stats('npm', 'express', { cache });  // cache hit
 ```
 
-## API
-
-### `stats(registry, package, options?)`
-
-Fetch stats from a single registry. Returns `PackageStats | null`.
+## Registry Support
 
 | Registry | Package format | Time series | Data available |
 |----------|---------------|-------------|----------------|
@@ -54,30 +85,35 @@ Fetch stats from a single registry. Returns `PackageStats | null`.
 | `vscode` | `publisher.extension` | No | total (installs), rating, trends |
 | `docker` | `namespace/repo` | No | total (pulls), stars |
 
-### `stats.all(package)`
+## Built-in Reliability
 
-Query all registries. Returns results for any that have the package, never throws.
+- Automatic retry with exponential backoff on 429/5xx errors
+- Respects `Retry-After` headers
+- Concurrency limiting for bulk requests
+- Optional TTL cache (pluggable — bring your own Redis/file backend via `StatsCache` interface)
 
-### `stats.bulk(registry, packages)`
+## Custom Registries
 
-Fetch stats for multiple packages from one registry.
+```typescript
+import { registerProvider, type RegistryProvider } from '@mcptoolshop/registry-stats';
 
-### `stats.range(registry, package, start, end)`
+const cargo: RegistryProvider = {
+  name: 'cargo',
+  async getStats(pkg) {
+    const res = await fetch(`https://crates.io/api/v1/crates/${pkg}`);
+    const json = await res.json();
+    return {
+      registry: 'cargo' as any,
+      package: pkg,
+      downloads: { total: json.crate.downloads },
+      fetchedAt: new Date().toISOString(),
+    };
+  },
+};
 
-Fetch daily download counts. Only `npm` and `pypi` support this.
-
-### `calc`
-
-Calculation utilities for `DailyDownloads[]` arrays:
-
-- `calc.total(records)` — sum
-- `calc.avg(records)` — daily average
-- `calc.monthly(records)` — group by month
-- `calc.yearly(records)` — group by year
-- `calc.group(records, fn)` — group by custom function
-- `calc.groupTotals(grouped)` — sum per group
-- `calc.groupAvgs(grouped)` — average per group
-- `calc.trend(records, windowDays?)` — trend detection (up/down/flat)
+registerProvider(cargo);
+await stats('cargo', 'serde');
+```
 
 ## License
 
