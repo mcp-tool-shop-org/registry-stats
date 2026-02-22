@@ -31,7 +31,10 @@
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "site:dev": "npm --prefix site run dev",
+    "site:build": "npm --prefix site run build",
+    "site:preview": "npm --prefix site run preview"
   },
   "keywords": [
     "npm",

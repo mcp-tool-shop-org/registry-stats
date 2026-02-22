@@ -234,6 +234,14 @@ registerProvider(cargo);
 await stats('cargo', 'serde');
 ```
 
+## Website
+
+Docs / landing page lives in `site/`.
+
+- Dev: `npm run site:dev`
+- Build: `npm run site:build`
+- Preview: `npm run site:preview`
+
 ## License
 
 MIT
