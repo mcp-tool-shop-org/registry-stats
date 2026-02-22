@@ -25,21 +25,27 @@ export const vscode: RegistryProvider = {
   name: 'vscode',
 
   async getStats(pkg: string): Promise<PackageStats | null> {
-    const json = await fetchWithRetry<ExtensionQueryResponse>(API, 'vscode', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json;api-version=3.0-preview.1',
-      },
-      body: JSON.stringify({
-        filters: [
-          {
-            criteria: [{ filterType: 7, value: pkg }],
-          },
-        ],
-        flags: 0x100, // IncludeStatistics
-      }),
-    });
+    let json: ExtensionQueryResponse | null;
+    try {
+      json = await fetchWithRetry<ExtensionQueryResponse>(API, 'vscode', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json;api-version=3.0-preview.1',
+        },
+        body: JSON.stringify({
+          filters: [
+            {
+              criteria: [{ filterType: 7, value: pkg }],
+            },
+          ],
+          flags: 0x100, // IncludeStatistics
+        }),
+      });
+    } catch (e: any) {
+      if (e.statusCode === 400) return null;
+      throw e;
+    }
 
     if (!json) return null;
 

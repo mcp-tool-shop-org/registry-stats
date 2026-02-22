@@ -21,7 +21,7 @@ export const docker: RegistryProvider = {
       last_updated: string;
     }>(`${API}/${pkg}`, 'docker', { headers });
 
-    if (!json) return null;
+    if (!json || !json.name || !json.namespace) return null;
 
     return {
       registry: 'docker',
