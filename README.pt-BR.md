@@ -13,6 +13,7 @@
 </p>
 
 <p align="center">
+  <a href="https://mcp-tool-shop-org.github.io/registry-stats/">Docs</a> &middot;
   <a href="#instalação">Instalação</a> &middot;
   <a href="#cli">CLI</a> &middot;
   <a href="#arquivo-de-configuração">Configuração</a> &middot;

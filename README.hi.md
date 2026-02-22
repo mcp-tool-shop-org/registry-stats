@@ -13,6 +13,7 @@
 </p>
 
 <p align="center">
+  <a href="https://mcp-tool-shop-org.github.io/registry-stats/">डॉक्स</a> &middot;
   <a href="#इंस्टॉल">इंस्टॉल</a> &middot;
   <a href="#cli">CLI</a> &middot;
   <a href="#कॉन्फ़िग-फ़ाइल">कॉन्फ़िग</a> &middot;
