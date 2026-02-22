@@ -40,6 +40,7 @@ interface OverallResponse {
 
 export const pypi: RegistryProvider = {
   name: 'pypi',
+  rateLimit: { maxRequests: 30, windowSeconds: 60, authRaisesLimit: false },
 
   async getStats(pkg: string): Promise<PackageStats | null> {
     const [recent, overall] = await Promise.all([

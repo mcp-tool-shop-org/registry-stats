@@ -7,10 +7,10 @@ import { vscode } from './providers/vscode.js';
 import { docker } from './providers/docker.js';
 
 export { calc } from './calc.js';
-export type { RegistryName, PackageStats, DailyDownloads, StatsOptions } from './types.js';
+export type { RegistryName, PackageStats, DailyDownloads, StatsOptions, RegistryProvider, RateLimitConfig } from './types.js';
 export { RegistryError } from './types.js';
 
-const providers: Record<RegistryName, RegistryProvider> = {
+const providers: Record<string, RegistryProvider> = {
   npm,
   pypi,
   nuget,
@@ -18,12 +18,19 @@ const providers: Record<RegistryName, RegistryProvider> = {
   docker,
 };
 
+function registerProvider(provider: RegistryProvider): void {
+  providers[provider.name] = provider;
+}
+
 async function stats(
-  registry: RegistryName,
+  registry: string,
   pkg: string,
   options?: StatsOptions,
 ): Promise<PackageStats | null> {
   const provider = providers[registry];
+  if (!provider) {
+    throw new RegistryError(registry as RegistryName, 0, `Unknown registry "${registry}". Use registerProvider() to add custom registries.`);
+  }
   return provider.getStats(pkg, options);
 }
 
@@ -44,24 +51,30 @@ stats.all = async function all(
 };
 
 stats.bulk = async function bulk(
-  registry: RegistryName,
+  registry: string,
   packages: string[],
   options?: StatsOptions,
 ): Promise<(PackageStats | null)[]> {
   const provider = providers[registry];
+  if (!provider) {
+    throw new RegistryError(registry as RegistryName, 0, `Unknown registry "${registry}".`);
+  }
   return Promise.all(packages.map((pkg) => provider.getStats(pkg, options)));
 };
 
 stats.range = async function range(
-  registry: RegistryName,
+  registry: string,
   pkg: string,
   start: string,
   end: string,
 ): Promise<DailyDownloads[]> {
   const provider = providers[registry];
+  if (!provider) {
+    throw new RegistryError(registry as RegistryName, 0, `Unknown registry "${registry}".`);
+  }
   if (!provider.getRange) {
     throw new RegistryError(
-      registry,
+      registry as RegistryName,
       0,
       `${registry} does not support time-series data. Only npm and pypi support getRange().`,
     );
@@ -69,4 +82,4 @@ stats.range = async function range(
   return provider.getRange(pkg, start, end);
 };
 
-export { stats };
+export { stats, registerProvider };

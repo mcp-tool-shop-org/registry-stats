@@ -5,6 +5,7 @@ const API = 'https://hub.docker.com/v2/repositories';
 
 export const docker: RegistryProvider = {
   name: 'docker',
+  rateLimit: { maxRequests: 10, windowSeconds: 3600, authRaisesLimit: true },
 
   async getStats(pkg: string, options?: StatsOptions): Promise<PackageStats | null> {
     const headers: Record<string, string> = {};

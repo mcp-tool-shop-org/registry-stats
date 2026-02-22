@@ -18,10 +18,20 @@ export interface DailyDownloads {
   downloads: number;
 }
 
+export interface RateLimitConfig {
+  /** Max requests per window */
+  maxRequests: number;
+  /** Window duration in seconds */
+  windowSeconds: number;
+  /** Whether auth raises the limit */
+  authRaisesLimit: boolean;
+}
+
 export interface RegistryProvider {
-  name: RegistryName;
+  name: string;
   getStats(pkg: string, options?: StatsOptions): Promise<PackageStats | null>;
   getRange?(pkg: string, start: string, end: string): Promise<DailyDownloads[]>;
+  rateLimit?: RateLimitConfig;
 }
 
 export interface StatsOptions {
