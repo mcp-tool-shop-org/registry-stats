@@ -70,4 +70,36 @@ export const calc = {
 
     return { slope: Math.round(slope * 100) / 100, direction, changePercent: Math.round(changePercent * 100) / 100 };
   },
+
+  movingAvg(records: DailyDownloads[], windowDays = 7): DailyDownloads[] {
+    if (records.length < windowDays) return [];
+    const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date));
+    const result: DailyDownloads[] = [];
+
+    for (let i = windowDays - 1; i < sorted.length; i++) {
+      let sum = 0;
+      for (let j = i - windowDays + 1; j <= i; j++) {
+        sum += sorted[j].downloads;
+      }
+      result.push({
+        date: sorted[i].date,
+        downloads: Math.round((sum / windowDays) * 100) / 100,
+      });
+    }
+
+    return result;
+  },
+
+  popularity(records: DailyDownloads[]): number {
+    if (records.length === 0) return 0;
+
+    const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date));
+    const recentDays = Math.min(30, sorted.length);
+    const recent = sorted.slice(-recentDays);
+
+    const avgDaily = calc.avg(recent);
+    // Log scale: 0 at 1 download/day, 100 at 1M downloads/day
+    const score = Math.max(0, Math.min(100, (Math.log10(Math.max(1, avgDaily)) / 6) * 100));
+    return Math.round(score * 10) / 10;
+  },
 };

@@ -134,4 +134,55 @@ describe('calc', () => {
       expect(t.direction).toBe('flat');
     });
   });
+
+  describe('movingAvg', () => {
+    it('computes 3-day moving average', () => {
+      const data = makeDays('2025-01-01', [10, 20, 30, 40, 50]);
+      const ma = calc.movingAvg(data, 3);
+      expect(ma).toHaveLength(3); // 5 - 3 + 1
+      expect(ma[0].downloads).toBe(20);   // (10+20+30)/3
+      expect(ma[1].downloads).toBe(30);   // (20+30+40)/3
+      expect(ma[2].downloads).toBe(40);   // (30+40+50)/3
+    });
+
+    it('returns empty for insufficient data', () => {
+      const data = makeDays('2025-01-01', [10, 20]);
+      expect(calc.movingAvg(data, 7)).toEqual([]);
+    });
+
+    it('aligns dates to end of window', () => {
+      const data = makeDays('2025-01-01', [10, 20, 30]);
+      const ma = calc.movingAvg(data, 3);
+      expect(ma[0].date).toBe('2025-01-03'); // last day of first window
+    });
+  });
+
+  describe('popularity', () => {
+    it('returns 0 for empty data', () => {
+      expect(calc.popularity([])).toBe(0);
+    });
+
+    it('returns low score for tiny packages', () => {
+      const data = makeDays('2025-01-01', [1, 1, 1, 1, 1]);
+      expect(calc.popularity(data)).toBe(0);
+    });
+
+    it('returns mid score for moderate packages', () => {
+      const data = makeDays('2025-01-01', Array(30).fill(1000));
+      const score = calc.popularity(data);
+      expect(score).toBeGreaterThan(40);
+      expect(score).toBeLessThan(60);
+    });
+
+    it('returns high score for popular packages', () => {
+      const data = makeDays('2025-01-01', Array(30).fill(100000));
+      const score = calc.popularity(data);
+      expect(score).toBeGreaterThan(70);
+    });
+
+    it('caps at 100', () => {
+      const data = makeDays('2025-01-01', Array(30).fill(10000000));
+      expect(calc.popularity(data)).toBeLessThanOrEqual(100);
+    });
+  });
 });
