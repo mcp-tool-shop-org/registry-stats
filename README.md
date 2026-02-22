@@ -1,4 +1,4 @@
-# @mcptoolshop/registry-stats
+# registry-stats
 
 One command. Five registries. All your download stats.
 
