@@ -1,217 +1,32 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
-
-const registries = [
-  { name: "npm", pkg: "express, @scope/pkg", series: "Yes (549 days)", data: "lastDay, lastWeek, lastMonth" },
-  { name: "pypi", pkg: "requests", series: "Yes (180 days)", data: "lastDay, lastWeek, lastMonth, total" },
-  { name: "nuget", pkg: "Newtonsoft.Json", series: "No", data: "total" },
-  { name: "vscode", pkg: "publisher.extension", series: "No", data: "total (installs), rating, trends" },
-  { name: "docker", pkg: "namespace/repo", series: "No", data: "total (pulls), stars" },
-];
+import BaseLayout from '@mcptoolshop/site-theme/components/BaseLayout.astro';
+import Hero from '@mcptoolshop/site-theme/components/Hero.astro';
+import Section from '@mcptoolshop/site-theme/components/Section.astro';
+import FeatureGrid from '@mcptoolshop/site-theme/components/FeatureGrid.astro';
+import DataTable from '@mcptoolshop/site-theme/components/DataTable.astro';
+import CodeCardGrid from '@mcptoolshop/site-theme/components/CodeCardGrid.astro';
+import ApiList from '@mcptoolshop/site-theme/components/ApiList.astro';
+import { config } from '../site-config';
 ---
 
-<BaseLayout>
-  <!-- HERO -->
-  <section class="relative overflow-hidden rounded-3xl border border-zinc-800 bg-gradient-to-b from-zinc-900/60 to-zinc-950 px-6 py-16 md:px-12">
-    <div class="absolute inset-0 opacity-40 [background:radial-gradient(900px_circle_at_20%_20%,rgba(255,255,255,0.10),transparent_60%),radial-gradient(700px_circle_at_80%_30%,rgba(255,255,255,0.06),transparent_60%)]"></div>
+<BaseLayout
+  title={config.title}
+  description={config.description}
+  logoBadge={config.logoBadge}
+  brandName={config.brandName}
+  repoUrl={config.repoUrl}
+  npmUrl={config.npmUrl}
+  footerText={config.footerText}
+  nav={config.sections.map(s => ({ href: `#${s.id}`, label: s.title }))}
+>
+  <Hero {...config.hero} />
 
-    <div class="relative">
-      <div class="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-950/60 px-3 py-1 text-xs text-zinc-300">
-        <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
-        Zero dependencies &bull; Native fetch() &bull; Node 18+
-      </div>
-
-      <h1 class="mt-6 text-4xl font-semibold tracking-tight md:text-6xl">
-        Multi-registry download stats,
-        <span class="text-zinc-300"> in one API.</span>
-      </h1>
-
-      <p class="mt-4 max-w-2xl text-lg text-zinc-300">
-        <code class="rounded bg-zinc-900 px-2 py-1 text-zinc-100">@mcptoolshop/registry-stats</code>
-        fetches package stats across npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub.
-        Includes time-series support (npm + PyPI) and helper utilities for trends and rollups.
-      </p>
-
-      <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-        <a
-          href="#usage"
-          class="inline-flex items-center justify-center rounded-xl bg-zinc-50 px-5 py-3 text-sm font-medium text-zinc-950 hover:bg-zinc-200"
-        >
-          Get started
-        </a>
-        <a
-          href="#api"
-          class="inline-flex items-center justify-center rounded-xl border border-zinc-800 px-5 py-3 text-sm text-zinc-200 hover:bg-zinc-900"
-        >
-          Read the API
-        </a>
-      </div>
-
-      <div class="mt-10 grid gap-4 md:grid-cols-3">
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
-          <p class="text-xs text-zinc-400">One call, one registry</p>
-          <p class="mt-2 text-sm text-zinc-200"><code>await stats('npm', 'express')</code></p>
-        </div>
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
-          <p class="text-xs text-zinc-400">Never-throw "all registries"</p>
-          <p class="mt-2 text-sm text-zinc-200"><code>await stats.all('express')</code></p>
-        </div>
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
-          <p class="text-xs text-zinc-400">Time series + calculations</p>
-          <p class="mt-2 text-sm text-zinc-200"><code>calc.trend(daily)</code></p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- FEATURES -->
-  <section id="features" class="mt-20">
-    <h2 class="text-3xl font-semibold tracking-tight">Features</h2>
-    <p class="mt-2 max-w-2xl text-zinc-400">
-      A small library that stays out of your way: fetch stats, normalize output, do simple analytics.
-    </p>
-
-    <div class="mt-8 grid gap-6 md:grid-cols-3">
-      {[
-        { title: "Multi-registry support", desc: "npm, PyPI, NuGet, VS Code Marketplace, Docker Hub." },
-        { title: "Zero dependencies", desc: "Uses native fetch() on Node 18+." },
-        { title: "Time series (where available)", desc: "Daily downloads via range() for npm + PyPI." },
-        { title: "Comparison mode", desc: "Compare the same package across registries side-by-side." },
-        { title: "Export formats", desc: "CSV, Chart.js-compatible JSON, or raw data — your choice." },
-        { title: "REST API server", desc: "Built-in HTTP server with createHandler() for microservices or serverless." },
-        { title: "Bulk helpers", desc: "Fetch multiple packages per registry with concurrency-limited bulk()." },
-        { title: "Never-throw all()", desc: "Promise.allSettled style aggregation that won't crash your pipeline." },
-        { title: "calc utilities", desc: "Totals, averages, monthly/yearly grouping, trends, moving averages, popularity scores." },
-      ].map((f) => (
-        <div class="rounded-2xl border border-zinc-900 bg-zinc-950 p-6">
-          <h3 class="text-lg font-semibold">{f.title}</h3>
-          <p class="mt-2 text-sm text-zinc-400">{f.desc}</p>
-        </div>
-      ))}
-    </div>
-  </section>
-
-  <!-- REGISTRIES -->
-  <section id="registries" class="mt-20">
-    <h2 class="text-3xl font-semibold tracking-tight">Supported registries</h2>
-    <p class="mt-2 max-w-2xl text-zinc-400">
-      Package formats and the kinds of data you can expect from each source.
-    </p>
-
-    <div class="mt-8 overflow-hidden rounded-2xl border border-zinc-900">
-      <div class="grid grid-cols-4 gap-0 bg-zinc-950 text-xs text-zinc-400">
-        <div class="border-b border-zinc-900 p-4">Registry</div>
-        <div class="border-b border-zinc-900 p-4">Package format</div>
-        <div class="border-b border-zinc-900 p-4">Time series</div>
-        <div class="border-b border-zinc-900 p-4">Data available</div>
-
-        {registries.map((r) => (
-          <>
-            <div class="border-b border-zinc-900 p-4 font-medium text-zinc-200">{r.name}</div>
-            <div class="border-b border-zinc-900 p-4">{r.pkg}</div>
-            <div class="border-b border-zinc-900 p-4">{r.series}</div>
-            <div class="border-b border-zinc-900 p-4">{r.data}</div>
-          </>
-        ))}
-      </div>
-    </div>
-  </section>
-
-  <!-- USAGE -->
-  <section id="usage" class="mt-20">
-    <h2 class="text-3xl font-semibold tracking-tight">Install & usage</h2>
-
-    <div class="mt-6 grid gap-6 md:grid-cols-2">
-      <div class="rounded-2xl border border-zinc-900 bg-zinc-950 p-6">
-        <h3 class="text-lg font-semibold">Install</h3>
-        <pre class="mt-4 overflow-x-auto rounded-xl bg-zinc-900 p-4 text-sm text-zinc-200"><code>npm install @mcptoolshop/registry-stats</code></pre>
-      </div>
-
-      <div class="rounded-2xl border border-zinc-900 bg-zinc-950 p-6">
-        <h3 class="text-lg font-semibold">Single registry</h3>
-        <pre class="mt-4 overflow-x-auto rounded-xl bg-zinc-900 p-4 text-sm text-zinc-200"><code>import &#123; stats &#125; from '@mcptoolshop/registry-stats';
-
-const npm = await stats('npm', 'express');
-// &#x2192; &#123; registry, package, downloads &#125;</code></pre>
-      </div>
-
-      <div class="rounded-2xl border border-zinc-900 bg-zinc-950 p-6">
-        <h3 class="text-lg font-semibold">All registries at once</h3>
-        <pre class="mt-4 overflow-x-auto rounded-xl bg-zinc-900 p-4 text-sm text-zinc-200"><code>import &#123; stats &#125; from '@mcptoolshop/registry-stats';
-
-const results = await stats.all('express');
-// Promise.allSettled style &#x2014; never throws</code></pre>
-      </div>
-
-      <div class="rounded-2xl border border-zinc-900 bg-zinc-950 p-6">
-        <h3 class="text-lg font-semibold">Time series + calc</h3>
-        <pre class="mt-4 overflow-x-auto rounded-xl bg-zinc-900 p-4 text-sm text-zinc-200"><code>import &#123; stats, calc &#125; from '@mcptoolshop/registry-stats';
-
-const daily = await stats.range(
-  'npm', 'express', '2025-01-01', '2025-06-30'
-);
-const trend = calc.trend(daily);
-const monthly = calc.groupTotals(calc.monthly(daily));</code></pre>
-      </div>
-
-      <div class="rounded-2xl border border-zinc-900 bg-zinc-950 p-6">
-        <h3 class="text-lg font-semibold">Compare across registries</h3>
-        <pre class="mt-4 overflow-x-auto rounded-xl bg-zinc-900 p-4 text-sm text-zinc-200"><code>import &#123; stats &#125; from '@mcptoolshop/registry-stats';
-
-const comparison = await stats.compare('express');
-// &#x2192; &#123; package, registries: &#123; npm, pypi, ... &#125; &#125;</code></pre>
-      </div>
-
-      <div class="rounded-2xl border border-zinc-900 bg-zinc-950 p-6">
-        <h3 class="text-lg font-semibold">CLI</h3>
-        <pre class="mt-4 overflow-x-auto rounded-xl bg-zinc-900 p-4 text-sm text-zinc-200"><code>registry-stats express -r npm
-registry-stats express --compare
-registry-stats serve --port 3000</code></pre>
-      </div>
-    </div>
-  </section>
-
-  <!-- API -->
-  <section id="api" class="mt-20">
-    <h2 class="text-3xl font-semibold tracking-tight">API</h2>
-
-    <div class="mt-8 grid gap-6">
-      <div class="rounded-2xl border border-zinc-900 bg-zinc-950 p-6">
-        <h3 class="text-lg font-semibold"><code>stats(registry, package, options?)</code></h3>
-        <p class="mt-2 text-sm text-zinc-400">Fetch stats from a single registry. Returns <code>PackageStats | null</code>.</p>
-      </div>
-
-      <div class="rounded-2xl border border-zinc-900 bg-zinc-950 p-6">
-        <h3 class="text-lg font-semibold"><code>stats.all(package)</code></h3>
-        <p class="mt-2 text-sm text-zinc-400">Query all registries. Returns results for any that have the package; never throws.</p>
-      </div>
-
-      <div class="rounded-2xl border border-zinc-900 bg-zinc-950 p-6">
-        <h3 class="text-lg font-semibold"><code>stats.bulk(registry, packages)</code></h3>
-        <p class="mt-2 text-sm text-zinc-400">Fetch stats for multiple packages from one registry. Concurrency-limited (default: 5).</p>
-      </div>
-
-      <div class="rounded-2xl border border-zinc-900 bg-zinc-950 p-6">
-        <h3 class="text-lg font-semibold"><code>stats.range(registry, package, start, end)</code></h3>
-        <p class="mt-2 text-sm text-zinc-400">Fetch daily download counts. Only <code>npm</code> and <code>pypi</code> support this.</p>
-      </div>
-
-      <div class="rounded-2xl border border-zinc-900 bg-zinc-950 p-6">
-        <h3 class="text-lg font-semibold"><code>stats.compare(package, registries?)</code></h3>
-        <p class="mt-2 text-sm text-zinc-400">Compare stats for the same package across multiple registries side-by-side.</p>
-      </div>
-
-      <div class="rounded-2xl border border-zinc-900 bg-zinc-950 p-6">
-        <h3 class="text-lg font-semibold"><code>createHandler()</code> / <code>serve(options?)</code></h3>
-        <p class="mt-2 text-sm text-zinc-400">REST API server. Use <code>createHandler()</code> for serverless or <code>serve()</code> for a quick HTTP server.</p>
-      </div>
-
-      <div class="rounded-2xl border border-zinc-900 bg-zinc-950 p-6">
-        <h3 class="text-lg font-semibold"><code>calc</code></h3>
-        <p class="mt-2 text-sm text-zinc-400">
-          Utilities for <code>DailyDownloads[]</code>: total, avg, monthly/yearly grouping, group totals/avgs, trend detection, moving averages, popularity scores, toCSV, toChartData.
-        </p>
-      </div>
-    </div>
-  </section>
+  {config.sections.map((s) => (
+    <Section id={s.id} title={s.title} subtitle={s.subtitle}>
+      {s.kind === 'features' && <FeatureGrid features={s.features} />}
+      {s.kind === 'data-table' && <DataTable columns={s.columns} rows={s.rows} />}
+      {s.kind === 'code-cards' && <CodeCardGrid cards={s.cards} />}
+      {s.kind === 'api' && <ApiList apis={s.apis} />}
+    </Section>
+  ))}
 </BaseLayout>
