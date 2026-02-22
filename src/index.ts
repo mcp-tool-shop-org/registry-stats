@@ -7,8 +7,9 @@ import { vscode } from './providers/vscode.js';
 import { docker } from './providers/docker.js';
 
 export { calc } from './calc.js';
-export type { RegistryName, PackageStats, DailyDownloads, StatsOptions, StatsCache, RegistryProvider, RateLimitConfig } from './types.js';
+export type { RegistryName, PackageStats, DailyDownloads, StatsOptions, StatsCache, RegistryProvider, RateLimitConfig, Config, PackageConfig } from './types.js';
 export { RegistryError } from './types.js';
+export { loadConfig, defaultConfig, starterConfig } from './config.js';
 
 // --- Built-in TTL cache ---
 

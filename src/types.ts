@@ -49,6 +49,26 @@ export interface StatsOptions {
   cacheTtlMs?: number;
 }
 
+export interface PackageConfig {
+  /** Registry-specific package identifiers */
+  [registry: string]: string;
+}
+
+export interface Config {
+  /** Default registries to query when none specified */
+  registries?: string[];
+  /** Tracked packages — key is display name, value maps registries to package IDs */
+  packages?: Record<string, PackageConfig>;
+  /** Enable caching (default: true) */
+  cache?: boolean;
+  /** Cache TTL in milliseconds (default: 300000 = 5 min) */
+  cacheTtlMs?: number;
+  /** Max concurrent requests (default: 5) */
+  concurrency?: number;
+  /** Docker Hub auth token */
+  dockerToken?: string;
+}
+
 export class RegistryError extends Error {
   constructor(
     public registry: RegistryName,

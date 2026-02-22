@@ -38,6 +38,47 @@ registry-stats requests -r pypi
 registry-stats Newtonsoft.Json -r nuget
 registry-stats esbenp.prettier-vscode -r vscode
 registry-stats library/node -r docker
+
+# Create a config file
+registry-stats --init
+
+# Run with config — fetches all tracked packages
+registry-stats
+```
+
+## Config File
+
+Create a `registry-stats.config.json` in your project root (or run `registry-stats --init`):
+
+```json
+{
+  "registries": ["npm", "pypi", "nuget", "vscode", "docker"],
+  "packages": {
+    "mcpt": {
+      "npm": "mcpt",
+      "pypi": "mcpt"
+    },
+    "tool-compass": {
+      "npm": "@mcptoolshop/tool-compass",
+      "vscode": "mcp-tool-shop.tool-compass"
+    }
+  },
+  "cache": true,
+  "cacheTtlMs": 300000,
+  "concurrency": 5
+}
+```
+
+Run `registry-stats` with no arguments to fetch stats for all configured packages. The CLI walks up from cwd to find the nearest config file.
+
+The config is also available programmatically:
+
+```typescript
+import { loadConfig, defaultConfig, starterConfig } from '@mcptoolshop/registry-stats';
+
+const config = loadConfig();          // finds nearest config file, or null
+const defaults = defaultConfig();     // returns default Config object
+const template = starterConfig();     // returns starter JSON string
 ```
 
 ## Programmatic API
