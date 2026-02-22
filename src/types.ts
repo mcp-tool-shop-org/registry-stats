@@ -34,8 +34,19 @@ export interface RegistryProvider {
   rateLimit?: RateLimitConfig;
 }
 
+export interface StatsCache {
+  get(key: string): PackageStats | DailyDownloads[] | undefined;
+  set(key: string, value: PackageStats | DailyDownloads[], ttlMs: number): void;
+}
+
 export interface StatsOptions {
   dockerToken?: string;
+  /** Max concurrent requests for bulk operations (default: 5) */
+  concurrency?: number;
+  /** Cache instance — use createCache() for built-in TTL cache */
+  cache?: StatsCache;
+  /** Cache TTL in milliseconds (default: 300000 = 5 min) */
+  cacheTtlMs?: number;
 }
 
 export class RegistryError extends Error {
