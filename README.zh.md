@@ -1,32 +1,37 @@
 <p align="center">
-  <a href="README.md">English</a> | <a href="README.ja.md">日本語</a> | <strong>中文</strong> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português</a>
+  <strong>English</strong> | <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português</a>
 </p>
 
 <p align="center">
-  <img src="assets/logo.png" alt="registry-stats 标志" width="280" />
-</p>
-
-<h1 align="center">@mcptoolshop/registry-stats</h1>
-
-<p align="center">
-  一个命令。五个注册表。所有下载统计。
+  <img src="https://raw.githubusercontent.com/mcp-tool-shop-org/brand/main/logos/registry-stats/readme.png" alt="registry-stats logo" width="400" />
 </p>
 
 <p align="center">
-  <a href="https://mcp-tool-shop-org.github.io/registry-stats/">文档</a> &middot;
-  <a href="#安装">安装</a> &middot;
+  One command. Five registries. All your download stats.
+</p>
+
+<p align="center">
+  <a href="https://github.com/mcp-tool-shop-org/registry-stats/actions/workflows/pages.yml"><img src="https://github.com/mcp-tool-shop-org/registry-stats/actions/workflows/pages.yml/badge.svg" alt="CI"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"></a>
+  <a href="https://www.npmjs.com/package/@mcptoolshop/registry-stats"><img src="https://img.shields.io/npm/v/@mcptoolshop/registry-stats" alt="npm version"></a>
+  <a href="https://mcp-tool-shop-org.github.io/registry-stats/"><img src="https://img.shields.io/badge/Landing_Page-live-blue" alt="Landing Page"></a>
+</p>
+
+<p align="center">
+  <a href="https://mcp-tool-shop-org.github.io/registry-stats/">Docs</a> &middot;
+  <a href="#install">Install</a> &middot;
   <a href="#cli">CLI</a> &middot;
-  <a href="#配置文件">配置</a> &middot;
-  <a href="#编程接口">API</a> &middot;
-  <a href="#rest-api-服务器">REST 服务器</a> &middot;
-  <a href="#许可证">许可证</a>
+  <a href="#config-file">Config</a> &middot;
+  <a href="#programmatic-api">API</a> &middot;
+  <a href="#rest-api-server">REST Server</a> &middot;
+  <a href="#license">License</a>
 </p>
 
 ---
 
-如果你在 npm、PyPI、NuGet、VS Code Marketplace 或 Docker Hub 上发布包，你目前需要五个不同的 API 来回答"这个月我有多少下载量？"这个库提供统一接口 — 支持 CLI 和编程方式。
+如果您将软件包发布到 npm、PyPI、NuGet、VS Code Marketplace 或 Docker Hub，目前您需要使用五个不同的 API 来回答“我这个月下载了多少次？”。这个库为您提供一个统一的接口，用于访问所有这些平台，可以通过命令行界面 (CLI) 或编程 API 使用。
 
-零依赖。使用原生 `fetch()`。Node 18+。
+无任何依赖。使用原生的 `fetch()` 方法。Node 18 及以上版本。
 
 ## 安装
 
@@ -34,47 +39,61 @@
 npm install @mcptoolshop/registry-stats
 ```
 
-## CLI
+## 命令行界面 (CLI)
 
 ```bash
-# 查询单个注册表
+# Query a single registry
 registry-stats express -r npm
+#  npm     | express
+#            month: 283,472,710  week: 67,367,773  day: 11,566,113
 
-# 一次查询所有注册表
+# Query all registries at once
 registry-stats express
 
-# 带月度细分和趋势的时间序列
+# Time series with monthly breakdown + trend
 registry-stats express -r npm --range 2025-01-01:2025-06-30
+#  2025-01  142,359,021
+#  2025-02  147,522,528
+#  ...
+#  Total: 448,383,383  Avg/day: 4,982,038  Trend: flat (-0.46%)
 
-# JSON 输出
+# Raw JSON output
 registry-stats express -r npm --json
 
-# 其他注册表
+# Other registries
 registry-stats requests -r pypi
 registry-stats Newtonsoft.Json -r nuget
 registry-stats esbenp.prettier-vscode -r vscode
 registry-stats library/node -r docker
 
-# 创建配置文件
+# Create a config file
 registry-stats --init
 
-# 从配置运行 — 获取所有跟踪包的统计
+# Run with config — fetches all tracked packages
 registry-stats
 
-# 跨注册表比较
+# Compare across registries
 registry-stats express --compare
+#  express — comparison
+#
+#  Metric        npm         pypi
+#  ─────────────────────────────────
+#  Total         -           -
+#  Month         283,472     47,201
+#  Week          67,367      11,800
+#  Day           11,566      1,686
 
-# 导出为 CSV 或图表友好的 JSON
+# Export as CSV or chart-friendly JSON
 registry-stats express -r npm --range 2025-01-01:2025-06-30 --format csv
 registry-stats express -r npm --range 2025-01-01:2025-06-30 --format chart
 
-# 启动 REST API 服务器
+# Start a REST API server
 registry-stats serve --port 3000
 ```
 
 ## 配置文件
 
-在项目根目录创建 `registry-stats.config.json`（或运行 `registry-stats --init`）：
+在您的项目根目录下创建一个 `registry-stats.config.json` 文件（或者运行 `registry-stats --init` 命令）：
 
 ```json
 {
@@ -95,91 +114,110 @@ registry-stats serve --port 3000
 }
 ```
 
-不带参数运行 `registry-stats` 即可获取所有配置包的统计。CLI 会从当前目录向上查找配置文件。
+运行 `registry-stats` 命令，不带任何参数，即可获取所有配置软件包的统计数据。命令行界面会从当前工作目录向上查找最近的配置文件。
 
-## 编程接口
+配置文件也可以通过编程方式访问：
+
+```typescript
+import { loadConfig, defaultConfig, starterConfig } from '@mcptoolshop/registry-stats';
+
+const config = loadConfig();          // finds nearest config file, or null
+const defaults = defaultConfig();     // returns default Config object
+const template = starterConfig();     // returns starter JSON string
+```
+
+## 编程 API
 
 ```typescript
 import { stats, calc, createCache } from '@mcptoolshop/registry-stats';
 
-// 单个注册表
+// Single registry
 const npm = await stats('npm', 'express');
 const pypi = await stats('pypi', 'requests');
+const nuget = await stats('nuget', 'Newtonsoft.Json');
+const vscode = await stats('vscode', 'esbenp.prettier-vscode');
+const docker = await stats('docker', 'library/node');
 
-// 所有注册表（使用 Promise.allSettled — 永不抛出）
+// All registries at once (uses Promise.allSettled — never throws)
 const all = await stats.all('express');
 
-// 批量 — 多个包，并发限制（默认：5）
+// Bulk — multiple packages, concurrency-limited (default: 5)
 const bulk = await stats.bulk('npm', ['express', 'koa', 'fastify']);
 
-// 时间序列（仅 npm + pypi）
+// Time series (npm + pypi only)
 const daily = await stats.range('npm', 'express', '2025-01-01', '2025-06-30');
 
-// 计算
-calc.total(daily);                         // 下载总量
-calc.avg(daily);                           // 日均量
+// Calculations
+calc.total(daily);                         // sum of all downloads
+calc.avg(daily);                           // daily average
+calc.groupTotals(calc.monthly(daily));     // { '2025-01': 134982, ... }
 calc.trend(daily);                         // { direction: 'up', changePercent: 8.3 }
-calc.movingAvg(daily, 7);                  // 7天移动平均
-calc.popularity(daily);                    // 0-100 对数刻度评分
+calc.movingAvg(daily, 7);                  // 7-day moving average
+calc.popularity(daily);                    // 0-100 log-scale score
 
-// 导出格式
-calc.toCSV(daily);                         // CSV 字符串
-calc.toChartData(daily, 'express');        // { labels: [...], datasets: [...] }
+// Export formats
+calc.toCSV(daily);                         // "date,downloads\n2025-01-01,1234\n..."
+calc.toChartData(daily, 'express');        // { labels: [...], datasets: [{ label, data }] }
 
-// 比较 — 跨注册表的同一包
+// Comparison — same package across registries
 const comparison = await stats.compare('express');
-await stats.compare('express', ['npm', 'pypi']);
+// → { package: 'express', registries: { npm: {...}, pypi: {...} }, fetchedAt: '...' }
+await stats.compare('express', ['npm', 'pypi']);  // specific registries only
 
-// 缓存（5分钟 TTL，内存中）
+// Caching (5 min TTL, in-memory)
 const cache = createCache();
-await stats('npm', 'express', { cache });
+await stats('npm', 'express', { cache });  // fetches
+await stats('npm', 'express', { cache });  // cache hit
 ```
 
-## 注册表支持
+## 仓库支持
 
-| 注册表 | 包格式 | 时间序列 | 可用数据 |
-|--------|--------|----------|----------|
-| `npm` | `express`, `@scope/pkg` | 支持（549天） | lastDay, lastWeek, lastMonth |
-| `pypi` | `requests` | 支持（180天） | lastDay, lastWeek, lastMonth, total |
-| `nuget` | `Newtonsoft.Json` | 不支持 | total |
-| `vscode` | `publisher.extension` | 不支持 | total（安装数）、rating、trends |
-| `docker` | `namespace/repo` | 不支持 | total（拉取数）、stars |
+| 仓库 | 软件包格式 | 时间序列 | 可用数据 |
+| ---------- | --------------- | ------------- | ---------------- |
+| `npm` | `express`, `@scope/pkg` | 是 (549 天) | 最近一天、最近一周、最近一个月 |
+| `pypi` | `requests` | 是 (180 天) | 最近一天、最近一周、最近一个月、总数 |
+| `nuget` | `Newtonsoft.Json` | No | 总数 |
+| `vscode` | `publisher.extension` | No | 总数（安装量）、评分、趋势 |
+| `docker` | `namespace/repo` | No | 总数（拉取次数）、星级 |
 
 ## 内置可靠性
 
-- 429/5xx 错误的指数退避自动重试
-- 遵守 `Retry-After` 头部
+- 自动重试，并在遇到 429/5xx 错误时采用指数退避策略
+- 尊重 `Retry-After` 头部信息
 - 批量请求的并发限制
-- 可选的 TTL 缓存（可插拔 — 通过 `StatsCache` 接口使用 Redis/文件后端）
+- 可选的 TTL 缓存（可插拔，通过 `StatsCache` 接口，您可以自定义 Redis 或文件后端）
 
 ## REST API 服务器
 
-作为微服务运行，或嵌入到自己的服务器中：
+可以作为微服务运行，也可以嵌入到您自己的服务器中：
 
 ```bash
+# CLI
 registry-stats serve --port 3000
 ```
 
 ```
-GET /stats/:package              # 所有注册表
-GET /stats/:registry/:package    # 单个注册表
+GET /stats/:package              # all registries
+GET /stats/:registry/:package    # single registry
 GET /compare/:package?registries=npm,pypi
 GET /range/:registry/:package?start=YYYY-MM-DD&end=YYYY-MM-DD&format=json|csv|chart
 ```
 
+用于自定义服务器或无服务器环境的编程用法：
+
 ```typescript
 import { createHandler, serve } from '@mcptoolshop/registry-stats';
 
-// 快速启动
+// Option 1: Quick start
 serve({ port: 3000 });
 
-// 自定义服务器
+// Option 2: Bring your own server
 import { createServer } from 'node:http';
 const handler = createHandler();
 createServer(handler).listen(3000);
 ```
 
-## 自定义注册表
+## 自定义仓库
 
 ```typescript
 import { registerProvider, type RegistryProvider } from '@mcptoolshop/registry-stats';
@@ -202,6 +240,18 @@ registerProvider(cargo);
 await stats('cargo', 'serde');
 ```
 
+## 网站
+
+网站和主页位于 `site/` 目录下。
+
+- 开发：`npm run site:dev`
+- 构建：`npm run site:build`
+- 预览：`npm run site:preview`
+
 ## 许可证
 
 MIT
+
+---
+
+由 <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a> 构建。

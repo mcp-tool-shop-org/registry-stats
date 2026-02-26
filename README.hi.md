@@ -1,80 +1,99 @@
 <p align="center">
-  <a href="README.md">English</a> | <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <strong>हिन्दी</strong> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português</a>
+  <strong>English</strong> | <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português</a>
 </p>
 
 <p align="center">
-  <img src="assets/logo.png" alt="registry-stats लोगो" width="280" />
-</p>
-
-<h1 align="center">@mcptoolshop/registry-stats</h1>
-
-<p align="center">
-  एक कमांड। पाँच रजिस्ट्री। आपके सभी डाउनलोड आँकड़े।
+  <img src="https://raw.githubusercontent.com/mcp-tool-shop-org/brand/main/logos/registry-stats/readme.png" alt="registry-stats logo" width="400" />
 </p>
 
 <p align="center">
-  <a href="https://mcp-tool-shop-org.github.io/registry-stats/">डॉक्स</a> &middot;
-  <a href="#इंस्टॉल">इंस्टॉल</a> &middot;
+  One command. Five registries. All your download stats.
+</p>
+
+<p align="center">
+  <a href="https://github.com/mcp-tool-shop-org/registry-stats/actions/workflows/pages.yml"><img src="https://github.com/mcp-tool-shop-org/registry-stats/actions/workflows/pages.yml/badge.svg" alt="CI"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"></a>
+  <a href="https://www.npmjs.com/package/@mcptoolshop/registry-stats"><img src="https://img.shields.io/npm/v/@mcptoolshop/registry-stats" alt="npm version"></a>
+  <a href="https://mcp-tool-shop-org.github.io/registry-stats/"><img src="https://img.shields.io/badge/Landing_Page-live-blue" alt="Landing Page"></a>
+</p>
+
+<p align="center">
+  <a href="https://mcp-tool-shop-org.github.io/registry-stats/">Docs</a> &middot;
+  <a href="#install">Install</a> &middot;
   <a href="#cli">CLI</a> &middot;
-  <a href="#कॉन्फ़िग-फ़ाइल">कॉन्फ़िग</a> &middot;
-  <a href="#प्रोग्रामैटिक-api">API</a> &middot;
-  <a href="#rest-api-सर्वर">REST सर्वर</a> &middot;
-  <a href="#लाइसेंस">लाइसेंस</a>
+  <a href="#config-file">Config</a> &middot;
+  <a href="#programmatic-api">API</a> &middot;
+  <a href="#rest-api-server">REST Server</a> &middot;
+  <a href="#license">License</a>
 </p>
 
 ---
 
-यदि आप npm, PyPI, NuGet, VS Code Marketplace, या Docker Hub पर पैकेज प्रकाशित करते हैं, तो "इस महीने मेरे कितने डाउनलोड हुए?" का जवाब देने के लिए आपको पाँच अलग-अलग API की आवश्यकता होती है। यह लाइब्रेरी सभी के लिए एक इंटरफ़ेस प्रदान करती है — CLI या प्रोग्रामैटिक API के रूप में।
+यदि आप npm, PyPI, NuGet, VS Code मार्केटप्लेस या डॉकर हब पर कुछ प्रकाशित करते हैं, तो वर्तमान में आपको "इस महीने मुझे कितने डाउनलोड मिले?" यह जानने के लिए पांच अलग-अलग एपीआई की आवश्यकता होती है। यह लाइब्रेरी आपको सभी के लिए एक ही इंटरफ़ेस प्रदान करती है - या तो कमांड-लाइन इंटरफ़ेस (CLI) के रूप में या प्रोग्रामेटिक एपीआई के रूप में।
 
-शून्य निर्भरता। नेटिव `fetch()` का उपयोग। Node 18+.
+शून्य निर्भरता। यह मूल `fetch()` का उपयोग करता है। Node 18 या उससे ऊपर।
 
-## इंस्टॉल
+## इंस्टॉल करें
 
 ```bash
 npm install @mcptoolshop/registry-stats
 ```
 
-## CLI
+## कमांड-लाइन इंटरफ़ेस (CLI)
 
 ```bash
-# एकल रजिस्ट्री क्वेरी
+# Query a single registry
 registry-stats express -r npm
+#  npm     | express
+#            month: 283,472,710  week: 67,367,773  day: 11,566,113
 
-# सभी रजिस्ट्री एक साथ क्वेरी
+# Query all registries at once
 registry-stats express
 
-# मासिक ब्रेकडाउन + ट्रेंड के साथ टाइम सीरीज़
+# Time series with monthly breakdown + trend
 registry-stats express -r npm --range 2025-01-01:2025-06-30
+#  2025-01  142,359,021
+#  2025-02  147,522,528
+#  ...
+#  Total: 448,383,383  Avg/day: 4,982,038  Trend: flat (-0.46%)
 
-# JSON आउटपुट
+# Raw JSON output
 registry-stats express -r npm --json
 
-# अन्य रजिस्ट्री
+# Other registries
 registry-stats requests -r pypi
 registry-stats Newtonsoft.Json -r nuget
 registry-stats esbenp.prettier-vscode -r vscode
 registry-stats library/node -r docker
 
-# कॉन्फ़िग फ़ाइल बनाएँ
+# Create a config file
 registry-stats --init
 
-# कॉन्फ़िग से चलाएँ — सभी ट्रैक किए गए पैकेज प्राप्त करें
+# Run with config — fetches all tracked packages
 registry-stats
 
-# रजिस्ट्री में तुलना करें
+# Compare across registries
 registry-stats express --compare
+#  express — comparison
+#
+#  Metric        npm         pypi
+#  ─────────────────────────────────
+#  Total         -           -
+#  Month         283,472     47,201
+#  Week          67,367      11,800
+#  Day           11,566      1,686
 
-# CSV या चार्ट-फ्रेंडली JSON में एक्सपोर्ट
+# Export as CSV or chart-friendly JSON
 registry-stats express -r npm --range 2025-01-01:2025-06-30 --format csv
 registry-stats express -r npm --range 2025-01-01:2025-06-30 --format chart
 
-# REST API सर्वर शुरू करें
+# Start a REST API server
 registry-stats serve --port 3000
 ```
 
-## कॉन्फ़िग फ़ाइल
+## कॉन्फ़िगरेशन फ़ाइल
 
-अपने प्रोजेक्ट रूट में `registry-stats.config.json` बनाएँ (या `registry-stats --init` चलाएँ):
+अपने प्रोजेक्ट के रूट में `registry-stats.config.json` फ़ाइल बनाएं (या `registry-stats --init` कमांड चलाएं):
 
 ```json
 {
@@ -95,85 +114,104 @@ registry-stats serve --port 3000
 }
 ```
 
-बिना तर्क के `registry-stats` चलाएँ और सभी कॉन्फ़िगर किए गए पैकेजों के आँकड़े प्राप्त करें। CLI वर्तमान डायरेक्टरी से ऊपर की ओर कॉन्फ़िग फ़ाइल खोजता है।
+सभी कॉन्फ़िगर किए गए पैकेजों के आंकड़े प्राप्त करने के लिए बिना किसी तर्क के `registry-stats` कमांड चलाएं। CLI, कॉन्फ़िगरेशन फ़ाइल ढूंढने के लिए वर्तमान कार्यशील निर्देशिका (cwd) से ऊपर की ओर खोज करता है।
 
-## प्रोग्रामैटिक API
+कॉन्फ़िगरेशन प्रोग्रामेटिक रूप से भी उपलब्ध है:
+
+```typescript
+import { loadConfig, defaultConfig, starterConfig } from '@mcptoolshop/registry-stats';
+
+const config = loadConfig();          // finds nearest config file, or null
+const defaults = defaultConfig();     // returns default Config object
+const template = starterConfig();     // returns starter JSON string
+```
+
+## प्रोग्रामेटिक एपीआई
 
 ```typescript
 import { stats, calc, createCache } from '@mcptoolshop/registry-stats';
 
-// एकल रजिस्ट्री
+// Single registry
 const npm = await stats('npm', 'express');
 const pypi = await stats('pypi', 'requests');
+const nuget = await stats('nuget', 'Newtonsoft.Json');
+const vscode = await stats('vscode', 'esbenp.prettier-vscode');
+const docker = await stats('docker', 'library/node');
 
-// सभी रजिस्ट्री (Promise.allSettled का उपयोग — कभी एरर नहीं फेंकता)
+// All registries at once (uses Promise.allSettled — never throws)
 const all = await stats.all('express');
 
-// बल्क — कई पैकेज, सीमित कंकरेंसी (डिफ़ॉल्ट: 5)
+// Bulk — multiple packages, concurrency-limited (default: 5)
 const bulk = await stats.bulk('npm', ['express', 'koa', 'fastify']);
 
-// टाइम सीरीज़ (केवल npm + pypi)
+// Time series (npm + pypi only)
 const daily = await stats.range('npm', 'express', '2025-01-01', '2025-06-30');
 
-// गणनाएँ
-calc.total(daily);                         // कुल डाउनलोड
-calc.avg(daily);                           // दैनिक औसत
+// Calculations
+calc.total(daily);                         // sum of all downloads
+calc.avg(daily);                           // daily average
+calc.groupTotals(calc.monthly(daily));     // { '2025-01': 134982, ... }
 calc.trend(daily);                         // { direction: 'up', changePercent: 8.3 }
-calc.movingAvg(daily, 7);                  // 7-दिन मूविंग एवरेज
-calc.popularity(daily);                    // 0-100 लॉग-स्केल स्कोर
+calc.movingAvg(daily, 7);                  // 7-day moving average
+calc.popularity(daily);                    // 0-100 log-scale score
 
-// एक्सपोर्ट फ़ॉर्मेट
-calc.toCSV(daily);                         // CSV स्ट्रिंग
-calc.toChartData(daily, 'express');        // { labels: [...], datasets: [...] }
+// Export formats
+calc.toCSV(daily);                         // "date,downloads\n2025-01-01,1234\n..."
+calc.toChartData(daily, 'express');        // { labels: [...], datasets: [{ label, data }] }
 
-// तुलना — रजिस्ट्री में एक ही पैकेज
+// Comparison — same package across registries
 const comparison = await stats.compare('express');
-await stats.compare('express', ['npm', 'pypi']);
+// → { package: 'express', registries: { npm: {...}, pypi: {...} }, fetchedAt: '...' }
+await stats.compare('express', ['npm', 'pypi']);  // specific registries only
 
-// कैश (5 मिनट TTL, इन-मेमोरी)
+// Caching (5 min TTL, in-memory)
 const cache = createCache();
-await stats('npm', 'express', { cache });
+await stats('npm', 'express', { cache });  // fetches
+await stats('npm', 'express', { cache });  // cache hit
 ```
 
-## रजिस्ट्री सपोर्ट
+## रजिस्ट्री समर्थन
 
-| रजिस्ट्री | पैकेज फ़ॉर्मेट | टाइम सीरीज़ | उपलब्ध डेटा |
-|-----------|---------------|------------|-------------|
-| `npm` | `express`, `@scope/pkg` | हाँ (549 दिन) | lastDay, lastWeek, lastMonth |
-| `pypi` | `requests` | हाँ (180 दिन) | lastDay, lastWeek, lastMonth, total |
-| `nuget` | `Newtonsoft.Json` | नहीं | total |
-| `vscode` | `publisher.extension` | नहीं | total (इंस्टॉल), rating, trends |
-| `docker` | `namespace/repo` | नहीं | total (पुल), stars |
+| रजिस्ट्री | पैकेज प्रारूप | समय श्रृंखला | उपलब्ध डेटा |
+| ---------- | --------------- | ------------- | ---------------- |
+| `npm` | `express`, `@scope/pkg` | हाँ (549 दिन) | अंतिम दिन, अंतिम सप्ताह, अंतिम महीना |
+| `pypi` | `requests` | हाँ (180 दिन) | अंतिम दिन, अंतिम सप्ताह, अंतिम महीना, कुल |
+| `nuget` | `Newtonsoft.Json` | No | कुल |
+| `vscode` | `publisher.extension` | No | कुल (इंस्टॉलेशन), रेटिंग, रुझान |
+| `docker` | `namespace/repo` | No | कुल (डाउनलोड), सितारे |
 
-## अंतर्निर्मित विश्वसनीयता
+## अंतर्निहित विश्वसनीयता
 
-- 429/5xx त्रुटियों पर एक्सपोनेंशियल बैकऑफ़ के साथ स्वचालित रीट्राई
-- `Retry-After` हेडर का सम्मान
-- बल्क अनुरोधों के लिए कंकरेंसी सीमा
-- वैकल्पिक TTL कैश (प्लगेबल — `StatsCache` इंटरफ़ेस के माध्यम से Redis/फ़ाइल बैकएंड)
+- 429/5xx त्रुटियों पर स्वचालित पुनः प्रयास, जिसमें घातीय बैकऑफ़ शामिल है।
+- `Retry-After` हेडर का सम्मान करता है।
+- बल्क अनुरोधों के लिए समवर्ती सीमा।
+- वैकल्पिक TTL कैश (प्लग करने योग्य - `StatsCache` इंटरफ़ेस के माध्यम से अपना Redis/फ़ाइल बैकएंड प्रदान करें)।
 
-## REST API सर्वर
+## REST एपीआई सर्वर
 
-माइक्रोसर्विस के रूप में चलाएँ, या अपने सर्वर में एम्बेड करें:
+इसे एक माइक्रोसर्विस के रूप में चलाएं या इसे अपने सर्वर में एम्बेड करें:
 
 ```bash
+# CLI
 registry-stats serve --port 3000
 ```
 
 ```
-GET /stats/:package              # सभी रजिस्ट्री
-GET /stats/:registry/:package    # एकल रजिस्ट्री
+GET /stats/:package              # all registries
+GET /stats/:registry/:package    # single registry
 GET /compare/:package?registries=npm,pypi
 GET /range/:registry/:package?start=YYYY-MM-DD&end=YYYY-MM-DD&format=json|csv|chart
 ```
 
+कस्टम सर्वरों या सर्वरलेस वातावरण के लिए प्रोग्रामेटिक उपयोग:
+
 ```typescript
 import { createHandler, serve } from '@mcptoolshop/registry-stats';
 
-// क्विक स्टार्ट
+// Option 1: Quick start
 serve({ port: 3000 });
 
-// कस्टम सर्वर
+// Option 2: Bring your own server
 import { createServer } from 'node:http';
 const handler = createHandler();
 createServer(handler).listen(3000);
@@ -202,6 +240,18 @@ registerProvider(cargo);
 await stats('cargo', 'serde');
 ```
 
+## वेबसाइट
+
+दस्तावेज़/लैंडिंग पृष्ठ `site/` में स्थित है।
+
+- विकास: `npm run site:dev`
+- बिल्ड: `npm run site:build`
+- पूर्वावलोकन: `npm run site:preview`
+
 ## लाइसेंस
 
 MIT
+
+---
+
+यह <a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a> द्वारा बनाया गया है।
