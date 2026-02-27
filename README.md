@@ -248,6 +248,31 @@ Docs / landing page lives in `site/`.
 - Build: `npm run site:build`
 - Preview: `npm run site:preview`
 
+## Security & Data Scope
+
+| Aspect | Detail |
+|--------|--------|
+| **Data touched** | Public download statistics from npm, PyPI, NuGet, VS Code Marketplace, Docker Hub. In-memory cache (optional) |
+| **Data NOT touched** | No telemetry. No analytics. No credential storage. No user data. No file writes |
+| **Permissions** | Read: public registry APIs via HTTPS. Write: stdout/stderr only |
+| **Network** | HTTPS outbound to public registry APIs. Optional localhost REST server |
+| **Telemetry** | None collected or sent |
+
+See [SECURITY.md](SECURITY.md) for vulnerability reporting.
+
+## Scorecard
+
+| Category | Score |
+|----------|-------|
+| A. Security | 10 |
+| B. Error Handling | 10 |
+| C. Operator Docs | 10 |
+| D. Shipping Hygiene | 10 |
+| E. Identity (soft) | 10 |
+| **Overall** | **50/50** |
+
+> Full audit: [SHIP_GATE.md](SHIP_GATE.md) · [SCORECARD.md](SCORECARD.md)
+
 ## License
 
 MIT
