@@ -4,9 +4,13 @@
   "private": true,
   "version": "0.0.1",
   "scripts": {
+    "fetch-stats": "node scripts/fetch-stats.mjs",
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview"
+  },
+  "devDependencies": {
+    "@mcptoolshop/registry-stats": "file:.."
   },
   "dependencies": {
     "@mcptoolshop/site-theme": "^0.2.4",

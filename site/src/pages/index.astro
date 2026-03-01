@@ -18,7 +18,7 @@ import { config } from '../site-config';
   repoUrl={config.repoUrl}
   npmUrl={config.npmUrl}
   footerText={config.footerText}
-  nav={config.sections.map(s => ({ href: `#${s.id}`, label: s.title }))}
+  nav={[...config.sections.map(s => ({ href: `#${s.id}`, label: s.title })), { href: '/registry-stats/dashboard/', label: 'Dashboard' }]}
 >
   <Hero {...config.hero} />
 

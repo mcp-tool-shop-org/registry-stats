@@ -1,3 +1,24 @@
 @import "tailwindcss";
 @import "@mcptoolshop/site-theme/styles/theme.css";
 @source "../../node_modules/@mcptoolshop/site-theme";
+
+/* ── Light mode overrides ──────────────────────── */
+[data-theme="light"] {
+  --color-surface:        #ffffff;
+  --color-surface-raised: #f4f4f5;
+  --color-surface-strong: #e4e4e7;
+
+  --color-edge:        #d4d4d8;
+  --color-edge-subtle: #e4e4e7;
+
+  --color-heading: #09090b;
+  --color-body:    #27272a;
+  --color-muted:   #3f3f46;
+  --color-dim:     #71717a;
+
+  --color-accent: #059669;
+
+  --color-action:       #09090b;
+  --color-action-text:  #fafafa;
+  --color-action-hover: #27272a;
+}

@@ -6,6 +6,8 @@ on:
     paths:
       - 'site/**'
       - '.github/workflows/pages.yml'
+  schedule:
+    - cron: '0 6 * * 1'  # Monday 06:00 UTC
   workflow_dispatch:
 
 concurrency:
@@ -27,9 +29,19 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install library dependencies
+        run: npm ci
+
+      - name: Build library
+        run: npm run build
+
       - name: Install site dependencies
         working-directory: site
         run: npm ci
+
+      - name: Fetch live stats
+        working-directory: site
+        run: npm run fetch-stats
 
       - name: Build site
         working-directory: site
