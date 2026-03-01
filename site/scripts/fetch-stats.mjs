@@ -141,6 +141,9 @@ async function main() {
         const last7 = counts.slice(-7).reduce((a, b) => a + b, 0);
         const prev7 = counts.slice(-14, -7).reduce((a, b) => a + b, 0);
         if (!item.week) item.week = last7;
+        item.last7 = last7;
+        item.prev7 = prev7;
+        item.delta7 = last7 - prev7;
         item.trendPct = pctChange(last7, prev7);
       }
     } catch (e) {
@@ -182,6 +185,9 @@ async function main() {
       day: safeNumber(x.day),
       total: safeNumber(x.total),
       trendPct: x.trendPct ?? null,
+      last7: x.last7 ?? null,
+      prev7: x.prev7 ?? null,
+      delta7: x.delta7 ?? null,
       range30: x.range30 ?? null,
       extra: x.extra ?? null,
     }))

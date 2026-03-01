@@ -20,12 +20,27 @@ function registryLabel(key: string) {
   return ({ npm: 'npm', pypi: 'PyPI', vscode: 'VS Code', nuget: 'NuGet', docker: 'Docker Hub' } as Record<string, string>)[key] ?? key;
 }
 
+/** What the "number" column means per registry */
+function registryUnit(key: string) {
+  return ({ npm: 'last 7d', pypi: 'last 7d', vscode: 'all-time', nuget: 'all-time', docker: 'all-time' } as Record<string, string>)[key] ?? '';
+}
+
 function trendBadge(pct: number | null) {
   if (pct === null || pct === undefined) return { text: '\u2014', cls: 'text-dim' };
   const rounded = Math.round(pct * 10) / 10;
   if (rounded > 0) return { text: `\u25B2 ${rounded}%`, cls: 'text-emerald-400' };
   if (rounded < 0) return { text: `\u25BC ${Math.abs(rounded)}%`, cls: 'text-rose-400' };
   return { text: '0%', cls: 'text-dim' };
+}
+
+function relativeTime(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
 }
 
 const totals = data?.totals;
@@ -36,9 +51,21 @@ const sparkline30 = data?.sparkline30 ?? [];
 const maxBar = Math.max(1, ...Object.values(registryTotals).map((r: any) => Number(r?.week ?? 0)));
 const sparkMax = Math.max(1, ...sparkline30.map((n: number) => Number(n ?? 0)));
 
+// --- Top Movers (npm only, where we have trend data) ---
+const npmRows = leaderboard.filter((r: any) => r.registry === 'npm' && r.trendPct !== null);
+const gainers = [...npmRows].filter((r: any) => r.delta7 > 0).sort((a: any, b: any) => b.delta7 - a.delta7).slice(0, 5);
+const decliners = [...npmRows].filter((r: any) => r.delta7 < 0).sort((a: any, b: any) => a.delta7 - b.delta7).slice(0, 5);
+const awakening = [...npmRows].filter((r: any) => r.prev7 === 0 && r.last7 > 0).sort((a: any, b: any) => b.last7 - a.last7).slice(0, 5);
+
+// --- Concentration ---
+const top5Week = leaderboard.slice(0, 5).reduce((s: number, r: any) => s + r.week, 0);
+const totalWeek = totals?.week ?? 1;
+const concentrationPct = Math.round((top5Week / totalWeek) * 100);
+
 const nav = [
   { href: '/registry-stats/', label: 'Home' },
   { href: '#summary', label: 'Summary' },
+  { href: '#movers', label: 'Movers' },
   { href: '#breakdown', label: 'Breakdown' },
   { href: '#leaderboard', label: 'Leaderboard' },
 ];
@@ -58,10 +85,13 @@ const nav = [
     <div>
       <h1 class="text-4xl font-semibold tracking-tight text-heading">Dashboard</h1>
       <p class="mt-2 text-dim">
-        Precomputed weekly + monthly stats across registries. No scripts, no CORS drama.
+        Weekly + monthly stats across registries.
         {!missing && data && (
-          <span class="ml-2 text-muted">
-            Updated {new Date(data.fetchedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.
+          <span
+            class="ml-2 text-muted cursor-help"
+            title={new Date(data.fetchedAt).toUTCString()}
+          >
+            Updated {relativeTime(data.fetchedAt)}.
           </span>
         )}
       </p>
@@ -109,9 +139,74 @@ const nav = [
             <div class="mt-2 text-3xl font-semibold text-heading">{fmtCompact.format(totals.month)}</div>
           </div>
           <div class="rounded-2xl border border-edge bg-surface-raised p-5">
-            <div class="text-sm text-dim">Active registries</div>
-            <div class="mt-2 text-3xl font-semibold text-heading">{fmt.format(totals.activeRegistries)}</div>
+            <div class="text-sm text-dim">Top-5 concentration</div>
+            <div class="mt-2 text-3xl font-semibold text-heading">{concentrationPct}%</div>
+            <div class="mt-1 text-xs text-dim">of weekly downloads</div>
           </div>
+        </div>
+      </Section>
+
+      {/* ── Top Movers ───────────────────────────────── */}
+      <Section id="movers" title="Top Movers" subtitle="What changed this week (npm packages with 7-day trend data).">
+        <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Gainers */}
+          {gainers.length > 0 && (
+            <div class="rounded-2xl border border-edge bg-surface-raised p-5">
+              <h3 class="text-sm font-semibold text-emerald-400 flex items-center gap-1.5">
+                <span class="text-lg">{'\u25B2'}</span> Top Gainers
+              </h3>
+              <div class="mt-3 space-y-2">
+                {gainers.map((r: any) => (
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-heading truncate max-w-[60%]">{r.name.replace('@mcptoolshop/', '')}</span>
+                    <span class="text-emerald-400 tabular-nums">+{fmt.format(r.delta7)}/wk</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Decliners */}
+          {decliners.length > 0 && (
+            <div class="rounded-2xl border border-edge bg-surface-raised p-5">
+              <h3 class="text-sm font-semibold text-rose-400 flex items-center gap-1.5">
+                <span class="text-lg">{'\u25BC'}</span> Decliners
+              </h3>
+              <div class="mt-3 space-y-2">
+                {decliners.map((r: any) => (
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-heading truncate max-w-[60%]">{r.name.replace('@mcptoolshop/', '')}</span>
+                    <span class="text-rose-400 tabular-nums">{fmt.format(r.delta7)}/wk</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Awakening */}
+          {awakening.length > 0 && (
+            <div class="rounded-2xl border border-edge bg-surface-raised p-5">
+              <h3 class="text-sm font-semibold text-amber-400 flex items-center gap-1.5">
+                <span class="text-lg">{'\u2728'}</span> New Activity
+              </h3>
+              <p class="mt-1 text-xs text-dim">Zero downloads last week, active now.</p>
+              <div class="mt-3 space-y-2">
+                {awakening.map((r: any) => (
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-heading truncate max-w-[60%]">{r.name.replace('@mcptoolshop/', '')}</span>
+                    <span class="text-amber-400 tabular-nums">{fmt.format(r.last7)}/wk</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Fallback if nothing moved */}
+          {gainers.length === 0 && decliners.length === 0 && awakening.length === 0 && (
+            <div class="rounded-2xl border border-edge bg-surface-raised p-5 col-span-full">
+              <p class="text-dim text-sm">No significant movers this week. Steady state.</p>
+            </div>
+          )}
         </div>
       </Section>
 
@@ -130,7 +225,12 @@ const nav = [
               {Object.entries(registryTotals).map(([key, r]: [string, any]) => (
                 <div>
                   <div class="flex items-center justify-between text-sm">
-                    <div class="font-medium text-heading">{registryLabel(key)}</div>
+                    <div class="font-medium text-heading">
+                      {registryLabel(key)}
+                      {(key === 'vscode' || key === 'nuget') && (
+                        <span class="ml-1.5 text-xs text-dim font-normal">(all-time installs)</span>
+                      )}
+                    </div>
                     <div class="text-dim">
                       <span class="text-muted font-medium">{fmtCompact.format(r.week)}</span>
                       <span class="mx-2 text-edge">&bull;</span>
@@ -174,6 +274,9 @@ const nav = [
             <div class="text-sm text-dim">
               Showing <span class="font-medium text-muted">{leaderboard.length}</span> packages
             </div>
+            <div class="text-xs text-dim">
+              npm/PyPI = last 7d &bull; VS Code/NuGet = all-time installs
+            </div>
           </div>
 
           <div class="overflow-x-auto">
@@ -185,12 +288,15 @@ const nav = [
                   <th class="text-left font-medium px-5 py-3">Registry</th>
                   <th class="text-right font-medium px-5 py-3">Week</th>
                   <th class="text-right font-medium px-5 py-3">Month</th>
+                  <th class="text-center font-medium px-3 py-3">30d</th>
                   <th class="text-right font-medium px-5 py-3">Trend</th>
                 </tr>
               </thead>
               <tbody>
                 {leaderboard.map((row: any, i: number) => {
                   const t = trendBadge(row.trendPct);
+                  const hasSparkline = row.range30 && row.range30.length === 30;
+                  const rowSparkMax = hasSparkline ? Math.max(1, ...row.range30) : 1;
                   return (
                     <tr class="border-t border-edge-subtle hover:bg-surface-raised/50">
                       <td class="px-5 py-3 text-dim tabular-nums">{i + 1}</td>
@@ -198,6 +304,20 @@ const nav = [
                       <td class="px-5 py-3 text-dim">{registryLabel(row.registry)}</td>
                       <td class="px-5 py-3 text-right tabular-nums text-body">{fmt.format(row.week)}</td>
                       <td class="px-5 py-3 text-right tabular-nums text-body">{fmt.format(row.month)}</td>
+                      <td class="px-3 py-3">
+                        {hasSparkline ? (
+                          <div class="row-spark" title={`Peak: ${fmt.format(rowSparkMax)}/day`}>
+                            {row.range30.map((n: number) => (
+                              <span
+                                class="rs"
+                                style={`height:${Math.max(1, Math.round((n / rowSparkMax) * 100))}%`}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <span class="text-dim text-xs">{'\u2014'}</span>
+                        )}
+                      </td>
                       <td class={`px-5 py-3 text-right tabular-nums ${t.cls}`}>{t.text}</td>
                     </tr>
                   );
@@ -218,6 +338,7 @@ const nav = [
 </BaseLayout>
 
 <style>
+  /* Aggregate sparkline (breakdown section) */
   .sparkline {
     height: 88px;
     display: flex;
@@ -240,6 +361,23 @@ const nav = [
   .spark:hover {
     transform: translateY(-2px);
     opacity: 1;
+  }
+
+  /* Per-row sparklines (leaderboard table) */
+  .row-spark {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 1px;
+    height: 20px;
+    width: 60px;
+    vertical-align: middle;
+  }
+  .rs {
+    flex: 1 1 0;
+    min-width: 1px;
+    border-radius: 1px;
+    background: var(--color-accent);
+    opacity: 0.7;
   }
 </style>
 
