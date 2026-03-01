@@ -342,6 +342,87 @@ async function main() {
     return `${leadRegStr}. ${leadPkgStr}. ${moverStr}. ${concStr}. ${opsStr}.`;
   })();
 
+  // Structured narrative lines for dashboard rendering
+  const narrativeLines = (() => {
+    const lines = [];
+
+    // Registry lead
+    if (leadReg) {
+      const others = regShares.slice(1).filter(r => r.week > 0);
+      const othersStr = others.length
+        ? ` followed by ${others.slice(0, 2).map(r => `${regLabel(r.reg)} (${Math.round(r.sharePct)}%)`).join(" and ")}`
+        : "";
+      lines.push({
+        icon: "📊",
+        label: "Registry Lead",
+        text: `${regLabel(leadReg.reg)} led with ${Math.round(leadReg.sharePct)}% of ${fmtInt(totals.week)} weekly downloads${othersStr}.`
+      });
+    }
+
+    // Top package
+    if (leadPkg) {
+      const runner = leaderboard[1];
+      const runnerStr = runner
+        ? ` Runner-up: ${runner.name} (${fmtInt(runner.week)}).`
+        : "";
+      lines.push({
+        icon: "🏆",
+        label: "Top Package",
+        text: `${leadPkg.name} with ${fmtInt(leadPkg.week)} downloads this week.${runnerStr}`
+      });
+    }
+
+    // Top mover
+    const g = pickTopGainer(movers);
+    if (g?.type === "gainer") {
+      lines.push({
+        icon: "🚀",
+        label: "Top Mover",
+        text: `${g.row.name} surged ${fmtPct(g.row.trendPct)} week-over-week (${fmtInt(g.row.delta7)} additional downloads).`
+      });
+    } else if (g?.type === "new") {
+      lines.push({
+        icon: "✨",
+        label: "Newly Active",
+        text: `${g.row.name} appeared this week with ${fmtInt(g.row.week)} downloads (not tracked in prior period).`
+      });
+    }
+
+    // Decliners
+    if (topDecliners.length > 0) {
+      const top = topDecliners[0];
+      lines.push({
+        icon: "📉",
+        label: "Decline",
+        text: `${top.name} dropped ${fmtPct(Math.abs(top.trendPct))} week-over-week (${fmtInt(Math.abs(top.delta7))} fewer downloads).`
+      });
+    }
+
+    // Concentration
+    const conc = Number(concentrationTop5Pct ?? 0);
+    if (conc > 0) {
+      const verdict = conc > 50 ? "Portfolio is top-heavy — diversification may reduce risk." :
+                      conc > 30 ? "Moderate concentration in top packages." :
+                                  "Downloads are well-distributed across the portfolio.";
+      lines.push({
+        icon: "📈",
+        label: "Concentration",
+        text: `Top 5 packages account for ${fmtPct(conc)} of weekly downloads. ${verdict}`
+      });
+    }
+
+    // Data health
+    const opsStr = summarizeConfidence({ confidence, errors });
+    const healthIcon = confidence && Object.values(confidence).every(v => v === "ok") ? "✅" : "⚠️";
+    lines.push({
+      icon: healthIcon,
+      label: "Data Health",
+      text: opsStr + "."
+    });
+
+    return lines;
+  })();
+
   const payload = {
     fetchedAt,
     totals,
@@ -351,6 +432,7 @@ async function main() {
     errorsByRegistry,
     confidence,
     narrative,
+    narrativeLines,
     movers,
     leaderboard,
     sparkline30,
