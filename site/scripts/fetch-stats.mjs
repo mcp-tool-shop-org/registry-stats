@@ -31,6 +31,39 @@ function dateStr(daysAgo) {
   return d.toISOString().slice(0, 10);
 }
 
+function regLabel(reg) {
+  return ({ npm: "npm", pypi: "PyPI", vscode: "VS Code", nuget: "NuGet", docker: "Docker Hub" })[reg] ?? reg;
+}
+
+function fmtInt(n) {
+  return new Intl.NumberFormat("en-US").format(Math.round(Number(n ?? 0)));
+}
+
+function fmtPct(p) {
+  if (!Number.isFinite(p)) return null;
+  const abs = Math.abs(p);
+  const digits = abs >= 100 ? 0 : 1;
+  return `${(Math.round(p * (10 ** digits)) / (10 ** digits)).toFixed(digits)}%`;
+}
+
+function summarizeConfidence({ confidence, errors }) {
+  const missing = Object.entries(confidence ?? {}).filter(([, v]) => v === "missing").map(([k]) => regLabel(k));
+  const partial = Object.entries(confidence ?? {}).filter(([, v]) => v === "partial").map(([k]) => regLabel(k));
+  if (!errors?.length && missing.length === 0 && partial.length === 0) return "All sources fetched cleanly";
+  if (missing.length && partial.length) return `Data is partial (missing: ${missing.join(", ")}; degraded: ${partial.join(", ")})`;
+  if (missing.length) return `Data is partial (missing: ${missing.join(", ")})`;
+  if (partial.length) return `Data is partial (degraded: ${partial.join(", ")})`;
+  return `Data is partial (${errors.length} fetch issues)`;
+}
+
+function pickTopGainer(movers) {
+  const g = movers?.topGainers?.[0];
+  if (g) return { type: "gainer", row: g };
+  const n = movers?.newlyActive?.[0];
+  if (n) return { type: "new", row: n };
+  return null;
+}
+
 async function main() {
   const fetchedAt = new Date().toISOString();
   const errors = [];
@@ -152,7 +185,7 @@ async function main() {
         item.prev7 = prev7;
         item.delta7 = last7 - prev7;
         item.isNew = prev7 === 0 && last7 > 0;
-        item.trendPct = pctChange(last7, prev7);
+        item.trendPct = item.isNew ? null : pctChange(last7, prev7);
       } else {
         item.last7 = null;
         item.prev7 = null;
@@ -281,12 +314,32 @@ async function main() {
   const leadReg = regShares[0];
   const leadPkg = leaderboard[0];
 
-  // --- Executive Narrative ---
+  // --- Executive Narrative (rich) ---
+  const movers = { topGainers, topDecliners, newlyActive, concentrationTop5Pct };
+
   const narrative = (() => {
-    const regPart = leadReg ? `${leadReg.reg.toUpperCase()} led with ${Math.round(leadReg.sharePct)}% of weekly downloads` : "Weekly downloads updated";
-    const pkgPart = leadPkg ? `; top package was ${leadPkg.name} (${leadPkg.week.toLocaleString()} this week)` : "";
-    const opsPart = errors.length ? `; ${errors.length} fetch issues detected` : "; all sources fetched cleanly";
-    return `${regPart}${pkgPart}${opsPart}.`;
+    const leadRegStr = leadReg
+      ? `${regLabel(leadReg.reg)} led with ${Math.round(leadReg.sharePct)}% of weekly downloads`
+      : "Weekly downloads updated";
+
+    const leadPkgStr = leadPkg
+      ? `Top package: ${leadPkg.name} (${fmtInt(leadPkg.week)} this week)`
+      : "Top package unavailable";
+
+    const conc = Number(concentrationTop5Pct ?? 0);
+    const concStr = conc > 0 ? `Concentration: top 5 = ${fmtPct(conc)}` : "Concentration unavailable";
+
+    const g = pickTopGainer(movers);
+    let moverStr = "Mover: none detected";
+    if (g?.type === "gainer") {
+      moverStr = `Top gainer: ${g.row.name} (+${fmtPct(g.row.trendPct)}; \u0394${fmtInt(g.row.delta7)})`;
+    } else if (g?.type === "new") {
+      moverStr = `Newly active: ${g.row.name} (${fmtInt(g.row.week)} this week)`;
+    }
+
+    const opsStr = summarizeConfidence({ confidence, errors });
+
+    return `${leadRegStr}. ${leadPkgStr}. ${moverStr}. ${concStr}. ${opsStr}.`;
   })();
 
   const payload = {
@@ -298,12 +351,7 @@ async function main() {
     errorsByRegistry,
     confidence,
     narrative,
-    movers: {
-      topGainers,
-      topDecliners,
-      newlyActive,
-      concentrationTop5Pct,
-    },
+    movers,
     leaderboard,
     sparkline30,
     errors,
