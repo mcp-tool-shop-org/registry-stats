@@ -20,11 +20,6 @@ function registryLabel(key: string) {
   return ({ npm: 'npm', pypi: 'PyPI', vscode: 'VS Code', nuget: 'NuGet', docker: 'Docker Hub' } as Record<string, string>)[key] ?? key;
 }
 
-/** What the "number" column means per registry */
-function registryUnit(key: string) {
-  return ({ npm: 'last 7d', pypi: 'last 7d', vscode: 'all-time', nuget: 'all-time', docker: 'all-time' } as Record<string, string>)[key] ?? '';
-}
-
 function trendBadge(pct: number | null) {
   if (pct === null || pct === undefined) return { text: '\u2014', cls: 'text-dim' };
   const rounded = Math.round(pct * 10) / 10;
@@ -43,29 +38,31 @@ function relativeTime(iso: string) {
   return `${days}d ago`;
 }
 
+function confidenceBadge(conf: string) {
+  if (conf === 'ok') return '\u2705';
+  if (conf === 'partial') return '\u26A0\uFE0F';
+  return '\u26D4';
+}
+
 const totals = data?.totals;
 const registryTotals = data?.registryTotals ?? {};
 const leaderboard = data?.leaderboard ?? [];
 const sparkline30 = data?.sparkline30 ?? [];
+const movers = data?.movers;
 
 const maxBar = Math.max(1, ...Object.values(registryTotals).map((r: any) => Number(r?.week ?? 0)));
 const sparkMax = Math.max(1, ...sparkline30.map((n: number) => Number(n ?? 0)));
 
-// --- Top Movers (npm only, where we have trend data) ---
-const npmRows = leaderboard.filter((r: any) => r.registry === 'npm' && r.trendPct !== null);
-const gainers = [...npmRows].filter((r: any) => r.delta7 > 0).sort((a: any, b: any) => b.delta7 - a.delta7).slice(0, 5);
-const decliners = [...npmRows].filter((r: any) => r.delta7 < 0).sort((a: any, b: any) => a.delta7 - b.delta7).slice(0, 5);
-const awakening = [...npmRows].filter((r: any) => r.prev7 === 0 && r.last7 > 0).sort((a: any, b: any) => b.last7 - a.last7).slice(0, 5);
-
-// --- Concentration ---
-const top5Week = leaderboard.slice(0, 5).reduce((s: number, r: any) => s + r.week, 0);
-const totalWeek = totals?.week ?? 1;
-const concentrationPct = Math.round((top5Week / totalWeek) * 100);
+// Use precomputed movers or fallback to empty
+const gainers = movers?.topGainers ?? [];
+const decliners = movers?.topDecliners ?? [];
+const awakening = movers?.newlyActive ?? [];
+const concentrationPct = Math.round(movers?.concentrationTop5Pct ?? 0);
 
 const nav = [
   { href: '/registry-stats/', label: 'Home' },
   { href: '#summary', label: 'Summary' },
-  { href: '#movers', label: 'Movers' },
+  { href: '#pulse', label: 'Pulse' },
   { href: '#breakdown', label: 'Breakdown' },
   { href: '#leaderboard', label: 'Leaderboard' },
 ];
@@ -111,6 +108,14 @@ const nav = [
     </button>
   </div>
 
+  {/* ── Executive Snapshot ──────────────────────── */}
+  {!missing && data?.narrative && (
+    <div class="mb-8 rounded-2xl border border-edge bg-surface-raised/50 p-5">
+      <div class="text-xs font-medium tracking-wide uppercase text-dim">Executive snapshot</div>
+      <div class="mt-1.5 text-base font-medium text-heading">{data.narrative}</div>
+    </div>
+  )}
+
   {missing && (
     <div class="mt-6 rounded-2xl border border-edge bg-surface-raised p-5 text-body">
       <div class="font-semibold text-heading">Stats data not found</div>
@@ -146,67 +151,131 @@ const nav = [
         </div>
       </Section>
 
-      {/* ── Top Movers ───────────────────────────────── */}
-      <Section id="movers" title="Top Movers" subtitle="What changed this week (npm packages with 7-day trend data).">
-        <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {/* Gainers */}
-          {gainers.length > 0 && (
-            <div class="rounded-2xl border border-edge bg-surface-raised p-5">
-              <h3 class="text-sm font-semibold text-emerald-400 flex items-center gap-1.5">
-                <span class="text-lg">{'\u25B2'}</span> Top Gainers
-              </h3>
-              <div class="mt-3 space-y-2">
-                {gainers.map((r: any) => (
-                  <div class="flex items-center justify-between text-sm">
-                    <span class="text-heading truncate max-w-[60%]">{r.name.replace('@mcptoolshop/', '')}</span>
-                    <span class="text-emerald-400 tabular-nums">+{fmt.format(r.delta7)}/wk</span>
-                  </div>
-                ))}
+      {/* ── Growth Pulse + Data Health (2-col) ────────── */}
+      <Section id="pulse" title="Pulse" subtitle="Growth signals and data reliability at a glance.">
+        <div class="mt-6 grid gap-6 lg:grid-cols-2">
+
+          {/* ── Growth Pulse (left) ── */}
+          <div class="rounded-2xl border border-edge bg-surface-raised p-6">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+              <h3 class="text-lg font-semibold text-heading">Growth Pulse</h3>
+              <div class="text-sm text-dim">
+                Top-5: <span class="font-medium text-muted">{concentrationPct}%</span> of weekly
               </div>
             </div>
-          )}
 
-          {/* Decliners */}
-          {decliners.length > 0 && (
-            <div class="rounded-2xl border border-edge bg-surface-raised p-5">
-              <h3 class="text-sm font-semibold text-rose-400 flex items-center gap-1.5">
-                <span class="text-lg">{'\u25BC'}</span> Decliners
-              </h3>
-              <div class="mt-3 space-y-2">
-                {decliners.map((r: any) => (
-                  <div class="flex items-center justify-between text-sm">
-                    <span class="text-heading truncate max-w-[60%]">{r.name.replace('@mcptoolshop/', '')}</span>
-                    <span class="text-rose-400 tabular-nums">{fmt.format(r.delta7)}/wk</span>
-                  </div>
-                ))}
+            <div class="mt-5 grid gap-4 sm:grid-cols-3">
+              {/* Gainers */}
+              <div class="rounded-xl border border-edge p-4">
+                <div class="text-xs font-semibold text-emerald-400 flex items-center gap-1">
+                  <span>{'\u25B2'}</span> Top Gainers
+                </div>
+                <ul class="mt-2 space-y-2">
+                  {gainers.length > 0 ? gainers.map((r: any) => (
+                    <li class="flex items-center justify-between gap-2 text-sm">
+                      <span class="truncate text-heading">{r.name.replace('@mcptoolshop/', '')}</span>
+                      <span class="text-emerald-400 tabular-nums whitespace-nowrap">{'\u25B2'} {Math.round((r.trendPct ?? 0) * 10) / 10}%</span>
+                    </li>
+                  )) : (
+                    <li class="text-xs text-dim">No gainers this week</li>
+                  )}
+                </ul>
+              </div>
+
+              {/* Decliners */}
+              <div class="rounded-xl border border-edge p-4">
+                <div class="text-xs font-semibold text-rose-400 flex items-center gap-1">
+                  <span>{'\u25BC'}</span> Decliners
+                </div>
+                <ul class="mt-2 space-y-2">
+                  {decliners.length > 0 ? decliners.map((r: any) => (
+                    <li class="flex items-center justify-between gap-2 text-sm">
+                      <span class="truncate text-heading">{r.name.replace('@mcptoolshop/', '')}</span>
+                      <span class="text-rose-400 tabular-nums whitespace-nowrap">{'\u25BC'} {Math.round(Math.abs(r.trendPct ?? 0) * 10) / 10}%</span>
+                    </li>
+                  )) : (
+                    <li class="text-xs text-dim">No decliners this week</li>
+                  )}
+                </ul>
+              </div>
+
+              {/* Newly active */}
+              <div class="rounded-xl border border-edge p-4">
+                <div class="text-xs font-semibold text-amber-400 flex items-center gap-1">
+                  <span>{'\u2728'}</span> Newly Active
+                </div>
+                <ul class="mt-2 space-y-2">
+                  {awakening.length > 0 ? awakening.map((r: any) => (
+                    <li class="flex items-center justify-between gap-2 text-sm">
+                      <span class="truncate text-heading">{r.name.replace('@mcptoolshop/', '')}</span>
+                      <span class="text-amber-400 tabular-nums whitespace-nowrap">{fmt.format(r.week)}/wk</span>
+                    </li>
+                  )) : (
+                    <li class="text-xs text-dim">No new activity</li>
+                  )}
+                </ul>
               </div>
             </div>
-          )}
 
-          {/* Awakening */}
-          {awakening.length > 0 && (
-            <div class="rounded-2xl border border-edge bg-surface-raised p-5">
-              <h3 class="text-sm font-semibold text-amber-400 flex items-center gap-1.5">
-                <span class="text-lg">{'\u2728'}</span> New Activity
-              </h3>
-              <p class="mt-1 text-xs text-dim">Zero downloads last week, active now.</p>
-              <div class="mt-3 space-y-2">
-                {awakening.map((r: any) => (
-                  <div class="flex items-center justify-between text-sm">
-                    <span class="text-heading truncate max-w-[60%]">{r.name.replace('@mcptoolshop/', '')}</span>
-                    <span class="text-amber-400 tabular-nums">{fmt.format(r.last7)}/wk</span>
-                  </div>
-                ))}
+            <div class="mt-4 text-xs text-dim">
+              Movers computed from npm 30-day ranges (last 7 vs prior 7).
+            </div>
+          </div>
+
+          {/* ── Data Health (right) ── */}
+          <div class="rounded-2xl border border-edge bg-surface-raised p-6">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+              <h3 class="text-lg font-semibold text-heading">Data Health</h3>
+              <div class="text-sm text-dim">
+                Errors: <span class="font-medium text-muted">{data.errors?.length ?? 0}</span>
               </div>
             </div>
-          )}
 
-          {/* Fallback if nothing moved */}
-          {gainers.length === 0 && decliners.length === 0 && awakening.length === 0 && (
-            <div class="rounded-2xl border border-edge bg-surface-raised p-5 col-span-full">
-              <p class="text-dim text-sm">No significant movers this week. Steady state.</p>
+            <div class="mt-5 space-y-3">
+              {Object.entries(data.manifestCounts ?? {}).map(([reg, expected]: [string, any]) => {
+                const fetched = (data.fetchedCounts as any)?.[reg] ?? 0;
+                const conf = (data.confidence as any)?.[reg] ?? 'missing';
+                const badge = confidenceBadge(conf);
+                const regErrors = (data.errorsByRegistry as any)?.[reg] ?? 0;
+                return (
+                  <div class="flex items-center justify-between gap-3 rounded-xl border border-edge px-4 py-3">
+                    <div class="flex items-center gap-2">
+                      <span>{badge}</span>
+                      <span class="font-medium text-heading">{registryLabel(reg)}</span>
+                    </div>
+                    <div class="text-sm text-dim tabular-nums">
+                      {fetched}/{expected} fetched
+                      {regErrors > 0 && (
+                        <span class="ml-2 text-amber-400">({regErrors} issues)</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          )}
+
+            {(data.errors?.length ?? 0) > 0 && (
+              <details class="mt-4 rounded-xl border border-edge p-4">
+                <summary class="cursor-pointer text-sm font-medium text-heading">View fetch issues</summary>
+                <ul class="mt-3 space-y-2 text-xs text-dim">
+                  {(data.errors as any[]).slice(0, 12).map((e: any) => (
+                    <li class="flex gap-2">
+                      <code class="text-muted shrink-0">{e.scope}</code>
+                      <span class="truncate">{e.message}</span>
+                    </li>
+                  ))}
+                </ul>
+                {(data.errors as any[]).length > 12 && (
+                  <div class="mt-2 text-xs text-dim">Showing first 12. See stats.json for full list.</div>
+                )}
+              </details>
+            )}
+
+            <div class="mt-4 text-xs text-dim">
+              Freshness: updated {relativeTime(data.fetchedAt)} &bull; {Object.values(data.confidence ?? {}).filter((c: any) => c === 'ok').length}/{Object.keys(data.confidence ?? {}).length} registries OK
+            </div>
+          </div>
+
         </div>
       </Section>
 
@@ -326,11 +395,11 @@ const nav = [
             </table>
           </div>
 
-          {data.errors?.length ? (
+          {(data.errors?.length ?? 0) > 0 && (
             <div class="border-t border-edge bg-surface-raised px-5 py-3 text-xs text-dim">
               Some sources failed to fetch ({data.errors.length}). Data may be partial.
             </div>
-          ) : null}
+          )}
         </div>
       </Section>
     </>
@@ -390,7 +459,6 @@ const nav = [
     function getTheme() {
       const stored = localStorage.getItem(KEY);
       if (stored === 'light' || stored === 'dark') return stored;
-      // Default to dark
       return 'dark';
     }
 
@@ -400,7 +468,6 @@ const nav = [
       } else {
         root.removeAttribute('data-theme');
       }
-      // Update icons
       const sun = document.getElementById('icon-sun');
       const moon = document.getElementById('icon-moon');
       if (sun && moon) {

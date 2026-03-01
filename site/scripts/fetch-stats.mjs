@@ -34,7 +34,14 @@ function dateStr(daysAgo) {
 async function main() {
   const fetchedAt = new Date().toISOString();
   const errors = [];
+  const errorsByRegistry = {};
   const cache = createCache();
+
+  function trackError(scope, message) {
+    errors.push({ scope, message });
+    const reg = scope.split(".")[0].split(":")[0];
+    errorsByRegistry[reg] = (errorsByRegistry[reg] ?? 0) + 1;
+  }
   const opts = { cache, cacheTtlMs: 600_000 };
 
   const manifest = JSON.parse(await fs.readFile(MANIFEST_PATH, "utf8"));
@@ -52,7 +59,7 @@ async function main() {
       }
       console.log(`  npm: ${npmPackages.length} packages total (${discovered.length} discovered)`);
     } catch (e) {
-      errors.push({ scope: "npm.mine", message: String(e?.message ?? e) });
+      trackError("npm.mine", String(e?.message ?? e));
       console.warn(`  npm.mine failed: ${e?.message}`);
     }
   }
@@ -95,7 +102,7 @@ async function main() {
         });
       }
     } catch (e) {
-      errors.push({ scope: `${registry}.bulk`, message: String(e?.message ?? e) });
+      trackError(`${registry}.bulk`, String(e?.message ?? e));
       console.warn(`  ${registry}.bulk failed, falling back to individual: ${e?.message}`);
 
       // Fallback: individual calls
@@ -115,7 +122,7 @@ async function main() {
             error: r === null,
           });
         } catch (err) {
-          errors.push({ scope: `${registry}:${pkg}`, message: String(err?.message ?? err) });
+          trackError(`${registry}:${pkg}`, String(err?.message ?? err));
           items.push({ registry, name: pkg, week: 0, month: 0, day: 0, total: 0, extra: null, range30: null, trendPct: null, error: true });
         }
       }
@@ -144,13 +151,40 @@ async function main() {
         item.last7 = last7;
         item.prev7 = prev7;
         item.delta7 = last7 - prev7;
+        item.isNew = prev7 === 0 && last7 > 0;
         item.trendPct = pctChange(last7, prev7);
+      } else {
+        item.last7 = null;
+        item.prev7 = null;
+        item.delta7 = null;
+        item.isNew = false;
+        item.trendPct = null;
       }
     } catch (e) {
-      errors.push({ scope: `npm.range:${item.name}`, message: String(e?.message ?? e) });
+      trackError(`npm.range:${item.name}`, String(e?.message ?? e));
     }
   }
   console.log("  npm: ranges done");
+
+  // --- Ensure non-npm rows have growth fields ---
+  for (const item of Object.values(perRegistry).flat()) {
+    if (item.registry !== "npm") {
+      item.last7 = null;
+      item.prev7 = null;
+      item.delta7 = null;
+      item.isNew = false;
+      item.trendPct = item.trendPct ?? null;
+    }
+  }
+
+  // --- Manifest / fetched counts ---
+  const manifestCounts = Object.fromEntries(
+    Object.entries(registryLists).map(([reg, names]) => [reg, names.length])
+  );
+  const fetchedCounts = {};
+  for (const [registry, items] of Object.entries(perRegistry)) {
+    fetchedCounts[registry] = items.filter((x) => !x.error).length;
+  }
 
   // --- Aggregate ---
   const allPackages = Object.values(perRegistry).flat();
@@ -201,10 +235,75 @@ async function main() {
     for (let i = 0; i < 30; i++) sparkline30[i] += safeNumber(item.range30[i]);
   }
 
+  // --- Confidence per registry ---
+  const confidence = Object.fromEntries(
+    Object.keys(registryLists).map((reg) => {
+      const expected = manifestCounts[reg] ?? 0;
+      const fetched = fetchedCounts[reg] ?? 0;
+      const err = errorsByRegistry[reg] ?? 0;
+      if (expected === 0) return [reg, "missing"];
+      if (err === 0 && fetched === expected) return [reg, "ok"];
+      if (fetched > 0) return [reg, "partial"];
+      return [reg, "missing"];
+    })
+  );
+
+  // --- Top Movers (precomputed) ---
+  const npmWithRange = (perRegistry.npm ?? []).filter((r) => r.range30);
+
+  const topGainers = [...npmWithRange]
+    .filter((r) => r.trendPct !== null && !r.isNew)
+    .sort((a, b) => b.trendPct - a.trendPct)
+    .slice(0, 5)
+    .map((r) => ({ name: r.name, registry: "npm", week: r.week, month: r.month, trendPct: r.trendPct, delta7: r.delta7 }));
+
+  const topDecliners = [...npmWithRange]
+    .filter((r) => r.trendPct !== null && !r.isNew)
+    .sort((a, b) => a.trendPct - b.trendPct)
+    .slice(0, 5)
+    .map((r) => ({ name: r.name, registry: "npm", week: r.week, month: r.month, trendPct: r.trendPct, delta7: r.delta7 }));
+
+  const newlyActive = [...npmWithRange]
+    .filter((r) => r.isNew)
+    .sort((a, b) => b.week - a.week)
+    .slice(0, 5)
+    .map((r) => ({ name: r.name, registry: "npm", week: r.week, month: r.month, trendPct: r.trendPct, delta7: r.delta7 }));
+
+  // Concentration: top 5 share of weekly
+  const top5Weekly = [...allPackages].sort((a, b) => b.week - a.week).slice(0, 5).reduce((s, x) => s + safeNumber(x.week), 0);
+  const concentrationTop5Pct = totals.week ? (top5Weekly / totals.week) * 100 : 0;
+
+  // Registry share breakdown
+  const regShares = Object.entries(registryTotals)
+    .map(([reg, r]) => ({ reg, week: safeNumber(r.week), sharePct: totals.week ? (safeNumber(r.week) / totals.week) * 100 : 0 }))
+    .sort((a, b) => b.week - a.week);
+
+  const leadReg = regShares[0];
+  const leadPkg = leaderboard[0];
+
+  // --- Executive Narrative ---
+  const narrative = (() => {
+    const regPart = leadReg ? `${leadReg.reg.toUpperCase()} led with ${Math.round(leadReg.sharePct)}% of weekly downloads` : "Weekly downloads updated";
+    const pkgPart = leadPkg ? `; top package was ${leadPkg.name} (${leadPkg.week.toLocaleString()} this week)` : "";
+    const opsPart = errors.length ? `; ${errors.length} fetch issues detected` : "; all sources fetched cleanly";
+    return `${regPart}${pkgPart}${opsPart}.`;
+  })();
+
   const payload = {
     fetchedAt,
     totals,
     registryTotals,
+    manifestCounts,
+    fetchedCounts,
+    errorsByRegistry,
+    confidence,
+    narrative,
+    movers: {
+      topGainers,
+      topDecliners,
+      newlyActive,
+      concentrationTop5Pct,
+    },
     leaderboard,
     sparkline30,
     errors,

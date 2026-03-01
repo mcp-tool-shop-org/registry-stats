@@ -1,9 +1,9 @@
 {
-  "fetchedAt": "2026-03-01T09:11:05.338Z",
+  "fetchedAt": "2026-03-01T09:32:17.093Z",
   "totals": {
     "packages": 78,
-    "week": 15538,
-    "month": 29509,
+    "week": 15382,
+    "month": 29255,
     "activeRegistries": 4
   },
   "registryTotals": {
@@ -14,8 +14,8 @@
     },
     "pypi": {
       "packages": 31,
-      "week": 6343,
-      "month": 12237
+      "week": 6187,
+      "month": 11983
     },
     "vscode": {
       "packages": 5,
@@ -32,6 +32,160 @@
       "week": 0,
       "month": 0
     }
+  },
+  "manifestCounts": {
+    "npm": 39,
+    "pypi": 31,
+    "vscode": 5,
+    "nuget": 3,
+    "docker": 0
+  },
+  "fetchedCounts": {
+    "npm": 39,
+    "pypi": 30,
+    "vscode": 5,
+    "nuget": 3,
+    "docker": 0
+  },
+  "errorsByRegistry": {
+    "pypi": 2
+  },
+  "confidence": {
+    "npm": "ok",
+    "pypi": "partial",
+    "vscode": "ok",
+    "nuget": "ok",
+    "docker": "missing"
+  },
+  "narrative": "NPM led with 60% of weekly downloads; top package was @mcptoolshop/site-theme (1,260 this week); 2 fetch issues detected.",
+  "movers": {
+    "topGainers": [
+      {
+        "name": "@mcptoolshop/site-theme",
+        "registry": "npm",
+        "week": 1260,
+        "month": 1444,
+        "trendPct": 584.7826086956521,
+        "delta7": 1076
+      },
+      {
+        "name": "@mcptoolshop/civility-kernel",
+        "registry": "npm",
+        "week": 277,
+        "month": 365,
+        "trendPct": 214.77272727272728,
+        "delta7": 189
+      },
+      {
+        "name": "@mcptoolshop/consensus-os",
+        "registry": "npm",
+        "week": 291,
+        "month": 476,
+        "trendPct": 206.31578947368422,
+        "delta7": 196
+      },
+      {
+        "name": "@mcptoolshop/ai-jam-sessions",
+        "registry": "npm",
+        "week": 482,
+        "month": 671,
+        "trendPct": 155.026455026455,
+        "delta7": 293
+      },
+      {
+        "name": "@mcptoolshop/venvkit",
+        "registry": "npm",
+        "week": 194,
+        "month": 401,
+        "trendPct": 115.55555555555554,
+        "delta7": 104
+      }
+    ],
+    "topDecliners": [
+      {
+        "name": "@mcptoolshop/mcpt-publishing",
+        "registry": "npm",
+        "week": 35,
+        "month": 299,
+        "trendPct": -86.74242424242425,
+        "delta7": -229
+      },
+      {
+        "name": "@mcptoolshop/logo-studio",
+        "registry": "npm",
+        "week": 131,
+        "month": 516,
+        "trendPct": -65.97402597402598,
+        "delta7": -254
+      },
+      {
+        "name": "@mcptoolshop/voice-soundboard-mcp",
+        "registry": "npm",
+        "week": 204,
+        "month": 954,
+        "trendPct": -58.95372233400402,
+        "delta7": -293
+      },
+      {
+        "name": "@mcptoolshop/toolshopstudio",
+        "registry": "npm",
+        "week": 219,
+        "month": 683,
+        "trendPct": -52.80172413793104,
+        "delta7": -245
+      },
+      {
+        "name": "@mcptoolshop/mcp-aside",
+        "registry": "npm",
+        "week": 202,
+        "month": 578,
+        "trendPct": -46.27659574468085,
+        "delta7": -174
+      }
+    ],
+    "newlyActive": [
+      {
+        "name": "@mcptoolshop/polyglot-mcp",
+        "registry": "npm",
+        "week": 531,
+        "month": 531,
+        "trendPct": 100,
+        "delta7": 531
+      },
+      {
+        "name": "@mcptoolshop/brand",
+        "registry": "npm",
+        "week": 414,
+        "month": 414,
+        "trendPct": 100,
+        "delta7": 414
+      },
+      {
+        "name": "@mcptoolshop/claude-sfx",
+        "registry": "npm",
+        "week": 346,
+        "month": 346,
+        "trendPct": 100,
+        "delta7": 346
+      },
+      {
+        "name": "@mcptoolshop/claude-guardian",
+        "registry": "npm",
+        "week": 319,
+        "month": 319,
+        "trendPct": 100,
+        "delta7": 319
+      },
+      {
+        "name": "@mcptoolshop/vocal-synth-engine",
+        "registry": "npm",
+        "week": 182,
+        "month": 182,
+        "trendPct": 100,
+        "delta7": 182
+      }
+    ],
+    "concentrationTop5Pct": 21.55116369782863
   },
   "leaderboard": [
     {
@@ -1604,20 +1758,6 @@
     },
     {
       "registry": "pypi",
-      "name": "mcp-stress-test",
-      "week": 156,
-      "month": 254,
-      "day": 75,
-      "total": 300,
-      "trendPct": null,
-      "last7": null,
-      "prev7": null,
-      "delta7": null,
-      "range30": null,
-      "extra": null
-    },
-    {
-      "registry": "pypi",
       "name": "xrpl-witness",
       "week": 148,
       "month": 238,
@@ -2224,6 +2364,20 @@
       "extra": null
     },
     {
+      "registry": "pypi",
+      "name": "mcp-stress-test",
+      "week": 0,
+      "month": 0,
+      "day": 0,
+      "total": 0,
+      "trendPct": null,
+      "last7": null,
+      "prev7": null,
+      "delta7": null,
+      "range30": null,
+      "extra": null
+    },
+    {
       "registry": "vscode",
       "name": "mcp-tool-shop.runforge",
       "week": 0,
@@ -2248,7 +2402,7 @@
       "week": 0,
       "month": 0,
       "day": 0,
-      "total": 32,
+      "total": 33,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -2402,7 +2556,11 @@
   "errors": [
     {
       "scope": "pypi.bulk",
-      "message": "[pypi] Too Many Requests: https://pypistats.org/api/packages/a11y-lint/recent"
+      "message": "[pypi] Too Many Requests: https://pypistats.org/api/packages/mcpt-pathway/recent"
+    },
+    {
+      "scope": "pypi:mcp-stress-test",
+      "message": "[pypi] Too Many Requests: https://pypistats.org/api/packages/mcp-stress-test/recent"
     }
   ]
 }
