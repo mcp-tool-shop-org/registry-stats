@@ -6,7 +6,6 @@ import { pypi } from './providers/pypi.js';
 import { nuget } from './providers/nuget.js';
 import { vscode } from './providers/vscode.js';
 import { docker } from './providers/docker.js';
-import { ghcr } from './providers/ghcr.js';
 import { fetchDirect } from './fetch.js';
 
 export { calc } from './calc.js';
@@ -69,7 +68,6 @@ const providers: Record<string, RegistryProvider> = {
   nuget,
   vscode,
   docker,
-  ghcr,
 };
 
 function registerProvider(provider: RegistryProvider): void {

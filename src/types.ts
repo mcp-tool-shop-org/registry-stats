@@ -1,4 +1,4 @@
-export type RegistryName = 'npm' | 'pypi' | 'nuget' | 'vscode' | 'docker' | 'ghcr';
+export type RegistryName = 'npm' | 'pypi' | 'nuget' | 'vscode' | 'docker';
 
 export interface PackageStats {
   registry: RegistryName;
@@ -41,8 +41,6 @@ export interface StatsCache {
 
 export interface StatsOptions {
   dockerToken?: string;
-  /** GitHub token for GHCR (GitHub Container Registry) — read:packages scope */
-  ghcrToken?: string;
   /** Max concurrent requests for bulk operations (default: 5) */
   concurrency?: number;
   /** Cache instance — use createCache() for built-in TTL cache */
