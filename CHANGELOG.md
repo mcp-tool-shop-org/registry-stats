@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.1] - 2026-03-01
+
+### Changed
+- Executive snapshot now emits structured `narrativeLines` array (6 labeled rows with icons) alongside flat `narrative` string
+- Each line includes richer context: runner-up package, delta counts, portfolio concentration verdict
+
 ## [1.2.0] - 2026-03-01
 
 ### Added
