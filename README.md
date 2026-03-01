@@ -24,6 +24,7 @@
   <a href="#config-file">Config</a> &middot;
   <a href="#programmatic-api">API</a> &middot;
   <a href="#rest-api-server">REST Server</a> &middot;
+  <a href="#dashboard">Dashboard</a> &middot;
   <a href="#license">License</a>
 </p>
 
@@ -239,6 +240,18 @@ const cargo: RegistryProvider = {
 registerProvider(cargo);
 await stats('cargo', 'serde');
 ```
+
+## Dashboard
+
+A self-updating stats dashboard ships with the library at [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
+
+- **Executive snapshot** — one-sentence weekly narrative (top registry, top package, top gainer, concentration, data confidence)
+- **Growth Pulse** — top gainers, decliners, and newly active packages (npm 7d vs prior 7d)
+- **Data Health** — per-registry coverage, confidence badges, expandable error details
+- **Breakdown** — per-registry bars and 30-day aggregate sparkline
+- **Leaderboard** — all packages ranked by weekly downloads with per-row 30d sparklines
+
+Data is fetched at build time via `npm run fetch-stats` and rebuilt weekly by CI (Mondays 06:00 UTC). Dark and light themes supported.
 
 ## Website
 

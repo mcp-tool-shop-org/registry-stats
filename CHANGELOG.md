@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-03-01
+
+### Added
+- Executive snapshot: rich one-sentence narrative (registry lead, top package, top gainer with delta, concentration, data confidence)
+- Growth Pulse panel: precomputed top gainers, decliners, newly active packages
+- Data Health panel: per-registry coverage, confidence badges (ok/partial/missing), expandable error details
+- Per-row 30-day sparklines in leaderboard (npm only, CSS-only)
+- `manifestCounts`, `fetchedCounts`, `errorsByRegistry`, `confidence`, `narrative`, and `movers` fields in stats.json payload
+- `isNew` flag on packages (prev7=0 && last7>0); `trendPct` set to null for new packages to avoid infinity display
+
+### Changed
+- Dashboard restructured into two-column Pulse layout (Growth + Ops) replacing standalone Top Movers
+- Concentration metric replaces "Active registries" summary card
+- Updated timestamp is now relative ("5m ago") with hover for exact UTC
+
 ## [1.1.0] - 2026-03-01
 
 ### Added
