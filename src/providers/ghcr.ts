@@ -6,13 +6,14 @@ const API = 'https://api.github.com';
 interface GhcrVersion {
   id: number;
   name: string;
+  created_at?: string;
+  updated_at?: string;
   metadata?: {
     container?: {
       tags?: string[];
     };
     package_type?: string;
   };
-  download_count?: number;
 }
 
 export const ghcr: RegistryProvider = {
@@ -35,7 +36,6 @@ export const ghcr: RegistryProvider = {
       headers['Authorization'] = `Bearer ${options.ghcrToken}`;
     }
 
-    // Fetch versions to sum download_count
     const versions = await fetchWithRetry<GhcrVersion[]>(
       `${API}/orgs/${owner}/packages/container/${encodeURIComponent(name)}/versions?per_page=100`,
       'ghcr',
@@ -44,18 +44,43 @@ export const ghcr: RegistryProvider = {
 
     if (!versions || !Array.isArray(versions)) return null;
 
-    const totalPulls = versions.reduce((sum, v) => sum + (v.download_count ?? 0), 0);
+    const now = Date.now();
+    const DAY = 86_400_000;
+    let activity7d = 0;
+    let activity30d = 0;
+    let lastPublished: string | null = null;
+
+    for (const v of versions) {
+      const created = v.created_at ? new Date(v.created_at).getTime() : 0;
+      if (created > 0) {
+        const age = now - created;
+        if (age <= 7 * DAY) activity7d++;
+        if (age <= 30 * DAY) activity30d++;
+        if (!lastPublished || v.created_at! > lastPublished) {
+          lastPublished = v.created_at!;
+        }
+      }
+    }
+
     const tags = versions.flatMap(v => v.metadata?.container?.tags ?? []);
 
+    // GHCR does not expose pull counts via public API.
+    // We report version activity as the primary metric instead.
     return {
       registry: 'ghcr',
       package: pkg,
       downloads: {
-        total: totalPulls,
+        total: versions.length,       // versionCount as primary number
+        lastWeek: activity7d,         // new versions in 7d
+        lastMonth: activity30d,       // new versions in 30d
       },
       extra: {
+        metricType: 'versions',       // signals this is version activity, not downloads
         tags: tags.slice(0, 10),
         versionCount: versions.length,
+        activity7d,
+        activity30d,
+        lastPublished,
       },
       fetchedAt: new Date().toISOString(),
     };
