@@ -496,10 +496,35 @@ const concentrationPct = Math.round(movers?.concentrationTop5Pct ?? 0);
       return '\u26D4';
     }
 
-    function esc(s) {
-      var d = document.createElement('div');
-      d.textContent = s;
-      return d.innerHTML;
+    // Safe DOM builder: creates element with optional class and children (strings become text nodes)
+    function el(tag, cls, children) {
+      var e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (children != null) {
+        var list = Array.isArray(children) ? children : [children];
+        for (var i = 0; i < list.length; i++) {
+          var c = list[i];
+          e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+        }
+      }
+      return e;
+    }
+
+    var CUMULATIVE = ['vscode', 'nuget', 'docker'];
+    function regDisplayVal(key, r) {
+      return CUMULATIVE.indexOf(key) !== -1 ? Number(r.total || r.week || 0) : Number(r.week || 0);
+    }
+
+    // Lightweight schema check — rejects clearly malformed payloads
+    function validateStats(data) {
+      if (!data || typeof data !== 'object') return false;
+      if (!data.totals || typeof data.totals !== 'object') return false;
+      if (typeof data.totals.packages !== 'number') return false;
+      if (typeof data.totals.week !== 'number') return false;
+      if (typeof data.fetchedAt !== 'string') return false;
+      if (data.leaderboard && !Array.isArray(data.leaderboard)) return false;
+      if (data.sparkline30 && !Array.isArray(data.sparkline30)) return false;
+      return true;
     }
 
     function renderDashboard(data) {
@@ -515,27 +540,38 @@ const concentrationPct = Math.round(movers?.concentrationTop5Pct ?? 0);
         upd.textContent = 'Updated ' + relTime(data.fetchedAt) + '.';
       }
 
-      var el;
-      el = document.getElementById('stat-packages'); if (el) el.textContent = fmt.format(t.packages);
-      el = document.getElementById('stat-weekly'); if (el) el.textContent = fmtCompact.format(t.week);
-      el = document.getElementById('stat-monthly'); if (el) el.textContent = fmtCompact.format(t.month);
-      el = document.getElementById('stat-concentration'); if (el) el.textContent = concPct + '%';
-      el = document.getElementById('pulse-conc'); if (el) el.textContent = concPct + '%';
+      var e;
+      e = document.getElementById('stat-packages'); if (e) e.textContent = fmt.format(t.packages);
+      e = document.getElementById('stat-weekly'); if (e) e.textContent = fmtCompact.format(t.week);
+      e = document.getElementById('stat-monthly'); if (e) e.textContent = fmtCompact.format(t.month);
+      e = document.getElementById('stat-concentration'); if (e) e.textContent = concPct + '%';
+      e = document.getElementById('pulse-conc'); if (e) e.textContent = concPct + '%';
 
+      // Executive snapshot
       var snap = document.getElementById('exec-snapshot');
       if (snap) snap.classList.remove('hidden');
       var meta = document.getElementById('exec-meta');
-      if (meta) meta.innerHTML = 'Source: build-time fetch<br>' + esc(new Date(data.fetchedAt).toUTCString());
+      if (meta) {
+        meta.textContent = '';
+        meta.appendChild(document.createTextNode('Source: build-time fetch'));
+        meta.appendChild(document.createElement('br'));
+        meta.appendChild(document.createTextNode(new Date(data.fetchedAt).toUTCString()));
+      }
       var lines = document.getElementById('exec-lines');
       if (lines && data.narrativeLines) {
-        lines.innerHTML = data.narrativeLines.map(function (ln) {
-          return '<div class="flex items-start gap-3">' +
-            '<span class="text-lg leading-6 shrink-0">' + esc(ln.icon) + '</span>' +
-            '<div><span class="text-xs font-semibold uppercase tracking-wide text-accent">' + esc(ln.label) + '</span>' +
-            '<span class="text-sm text-heading ml-2">' + esc(ln.text) + '</span></div></div>';
-        }).join('');
+        lines.textContent = '';
+        data.narrativeLines.forEach(function (ln) {
+          lines.appendChild(el('div', 'flex items-start gap-3', [
+            el('span', 'text-lg leading-6 shrink-0', String(ln.icon)),
+            el('div', '', [
+              el('span', 'text-xs font-semibold uppercase tracking-wide text-accent', String(ln.label)),
+              el('span', 'text-sm text-heading ml-2', String(ln.text))
+            ])
+          ]));
+        });
       } else if (lines && data.narrative) {
-        lines.innerHTML = '<div class="text-base font-medium text-heading">' + esc(data.narrative) + '</div>';
+        lines.textContent = '';
+        lines.appendChild(el('div', 'text-base font-medium text-heading', String(data.narrative)));
       }
 
       var content = document.getElementById('dashboard-content');
@@ -544,19 +580,21 @@ const concentrationPct = Math.round(movers?.concentrationTop5Pct ?? 0);
       function renderMoverList(id, items, colorCls, arrow, suffix) {
         var ul = document.getElementById(id);
         if (!ul) return;
+        ul.textContent = '';
         if (!items || items.length === 0) {
-          ul.innerHTML = '<li class="text-xs text-dim">No data this week</li>';
+          ul.appendChild(el('li', 'text-xs text-dim', 'No data this week'));
           return;
         }
-        ul.innerHTML = items.map(function (r) {
-          var name = (r.name || '').replace('@mcptoolshop/', '');
+        items.forEach(function (r) {
+          var name = String(r.name || '').replace('@mcptoolshop/', '');
           var val = suffix === '/wk'
             ? fmt.format(r.week) + '/wk'
             : arrow + ' ' + (Math.round(Math.abs(r.trendPct || 0) * 10) / 10) + '%';
-          return '<li class="flex items-center justify-between gap-2 text-sm">' +
-            '<span class="truncate text-heading">' + esc(name) + '</span>' +
-            '<span class="' + colorCls + ' tabular-nums whitespace-nowrap">' + esc(val) + '</span></li>';
-        }).join('');
+          ul.appendChild(el('li', 'flex items-center justify-between gap-2 text-sm', [
+            el('span', 'truncate text-heading', name),
+            el('span', colorCls + ' tabular-nums whitespace-nowrap', val)
+          ]));
+        });
       }
       renderMoverList('pulse-gainers', movers.topGainers, 'text-emerald-400', '\u25B2', '%');
       renderMoverList('pulse-decliners', movers.topDecliners, 'text-rose-400', '\u25BC', '%');
@@ -564,21 +602,33 @@ const concentrationPct = Math.round(movers?.concentrationTop5Pct ?? 0);
 
       var healthRows = document.getElementById('health-rows');
       if (healthRows && data.manifestCounts) {
-        healthRows.innerHTML = Object.keys(data.manifestCounts).map(function (reg) {
+        healthRows.textContent = '';
+        Object.keys(data.manifestCounts).forEach(function (reg) {
           var expected = data.manifestCounts[reg] || 0;
           var fetched = (data.fetchedCounts || {})[reg] || 0;
           var conf = (data.confidence || {})[reg] || 'missing';
           var regErr = (data.errorsByRegistry || {})[reg] || 0;
           var badge = confBadge(conf);
-          var errStr = regErr > 0 ? ' <span class="ml-2 text-amber-400">(' + regErr + ' issues)</span>' : '';
-          return '<div class="flex items-center justify-between gap-3 rounded-xl border border-edge px-4 py-3">' +
-            '<div class="flex items-center gap-2"><span>' + badge + '</span>' +
-            '<span class="font-medium text-heading">' + esc(regLabel(reg)) + '</span></div>' +
-            '<div class="text-sm text-dim tabular-nums">' + fetched + '/' + expected + ' fetched' + errStr + '</div></div>';
-        }).join('');
+          var infoChildren = [document.createTextNode(fetched + '/' + expected + ' fetched')];
+          if (regErr > 0) {
+            infoChildren.push(document.createTextNode(' '));
+            infoChildren.push(el('span', 'ml-2 text-amber-400', '(' + regErr + ' issues)'));
+          }
+          healthRows.appendChild(el('div', 'flex items-center justify-between gap-3 rounded-xl border border-edge px-4 py-3', [
+            el('div', 'flex items-center gap-2', [
+              el('span', '', badge),
+              el('span', 'font-medium text-heading', regLabel(reg))
+            ]),
+            el('div', 'text-sm text-dim tabular-nums', infoChildren)
+          ]));
+        });
       }
       var errCount = document.getElementById('health-error-count');
-      if (errCount) errCount.innerHTML = 'Errors: <span class="font-medium text-muted">' + (data.errors ? data.errors.length : 0) + '</span>';
+      if (errCount) {
+        errCount.textContent = '';
+        errCount.appendChild(document.createTextNode('Errors: '));
+        errCount.appendChild(el('span', 'font-medium text-muted', String(data.errors ? data.errors.length : 0)));
+      }
       var freshness = document.getElementById('health-freshness');
       if (freshness && data.confidence) {
         var ok = Object.values(data.confidence).filter(function (c) { return c === 'ok'; }).length;
@@ -586,82 +636,132 @@ const concentrationPct = Math.round(movers?.concentrationTop5Pct ?? 0);
         freshness.textContent = 'Freshness: updated ' + relTime(data.fetchedAt) + ' \u2022 ' + ok + '/' + total + ' registries OK';
       }
 
+      // Registry breakdown — uses total for cumulative registries (Docker/VS Code/NuGet)
       var regTotals = data.registryTotals || {};
-      var maxB = Math.max(1, Math.max.apply(null, Object.values(regTotals).map(function (r) { return Number(r.week || 0); })));
+      var maxB = 1;
+      Object.keys(regTotals).forEach(function (k) {
+        var v = regDisplayVal(k, regTotals[k]);
+        if (v > maxB) maxB = v;
+      });
       var bars = document.getElementById('breakdown-bars');
       if (bars) {
-        bars.innerHTML = Object.keys(regTotals).map(function (key) {
+        bars.textContent = '';
+        Object.keys(regTotals).forEach(function (key) {
           var r = regTotals[key];
-          var suffix = (key === 'vscode' || key === 'nuget') ? ' <span class="ml-1.5 text-xs text-dim font-normal">(all-time installs)</span>' : '';
-          var pct = Math.round((Number(r.week || 0) / maxB) * 100);
-          return '<div><div class="flex items-center justify-between text-sm">' +
-            '<div class="font-medium text-heading">' + esc(regLabel(key)) + suffix + '</div>' +
-            '<div class="text-dim"><span class="text-muted font-medium">' + fmtCompact.format(r.week) + '</span>' +
-            '<span class="mx-2 text-edge">\u2022</span>' + fmt.format(r.packages) + ' pkg</div></div>' +
-            '<div class="mt-2 h-2 rounded-full bg-surface-strong overflow-hidden">' +
-            '<div class="h-2 rounded-full bg-accent" style="width:' + pct + '%"></div></div></div>';
-        }).join('');
+          var displayVal = regDisplayVal(key, r);
+          var pct = Math.round((displayVal / maxB) * 100);
+          var labelChildren = [document.createTextNode(regLabel(key))];
+          if (key === 'vscode' || key === 'nuget') {
+            labelChildren.push(document.createTextNode(' '));
+            labelChildren.push(el('span', 'ml-1.5 text-xs text-dim font-normal', '(all-time installs)'));
+          } else if (key === 'docker') {
+            labelChildren.push(document.createTextNode(' '));
+            labelChildren.push(el('span', 'ml-1.5 text-xs text-dim font-normal', '(all-time pulls)'));
+          }
+          var barInner = document.createElement('div');
+          barInner.className = 'h-2 rounded-full bg-accent';
+          barInner.style.width = pct + '%';
+          bars.appendChild(el('div', '', [
+            el('div', 'flex items-center justify-between text-sm', [
+              el('div', 'font-medium text-heading', labelChildren),
+              el('div', 'text-dim', [
+                el('span', 'text-muted font-medium', fmtCompact.format(displayVal)),
+                el('span', 'mx-2 text-edge', '\u2022'),
+                document.createTextNode(fmt.format(r.packages) + ' pkg')
+              ])
+            ]),
+            el('div', 'mt-2 h-2 rounded-full bg-surface-strong overflow-hidden', [barInner])
+          ]));
+        });
       }
       var bmax = document.getElementById('breakdown-max');
-      if (bmax) bmax.innerHTML = 'Max: <span class="font-medium text-muted">' + fmtCompact.format(maxB) + '</span>';
+      if (bmax) {
+        bmax.textContent = '';
+        bmax.appendChild(document.createTextNode('Max: '));
+        bmax.appendChild(el('span', 'font-medium text-muted', fmtCompact.format(maxB)));
+      }
 
       var sp30 = data.sparkline30 || [];
-      var spMax = Math.max(1, Math.max.apply(null, sp30.map(Number)));
+      var spMax = 1;
+      for (var si = 0; si < sp30.length; si++) { var sv = Number(sp30[si]); if (sv > spMax) spMax = sv; }
       var spEl = document.getElementById('sparkline-agg');
       if (spEl) {
-        spEl.innerHTML = sp30.map(function (n) {
+        spEl.textContent = '';
+        sp30.forEach(function (n) {
           var h = Math.max(2, Math.round((Number(n) / spMax) * 100));
-          return '<span class="spark" style="height:' + h + '%" title="' + fmt.format(n) + ' downloads"></span>';
-        }).join('');
+          var s = document.createElement('span');
+          s.className = 'spark';
+          s.style.height = h + '%';
+          s.title = fmt.format(n) + ' downloads';
+          spEl.appendChild(s);
+        });
       }
 
       var lb = data.leaderboard || [];
       var lbCount = document.getElementById('leaderboard-count');
-      if (lbCount) lbCount.textContent = lb.length;
+      if (lbCount) lbCount.textContent = String(lb.length);
       var tbody = document.getElementById('leaderboard-body');
       if (tbody) {
-        tbody.innerHTML = lb.map(function (row, i) {
+        tbody.textContent = '';
+        lb.forEach(function (row, i) {
           var tb = trendBadge(row.trendPct);
           var has30 = row.range30 && row.range30.length === 30;
-          var sparkHtml;
+          var sparkCell;
           if (has30) {
-            var rm = Math.max(1, Math.max.apply(null, row.range30));
-            sparkHtml = '<div class="row-spark" title="Peak: ' + fmt.format(rm) + '/day">' +
-              row.range30.map(function (n) {
-                return '<span class="rs" style="height:' + Math.max(1, Math.round((n / rm) * 100)) + '%"></span>';
-              }).join('') + '</div>';
+            var rm = 1;
+            for (var ri = 0; ri < row.range30.length; ri++) { if (row.range30[ri] > rm) rm = row.range30[ri]; }
+            sparkCell = document.createElement('div');
+            sparkCell.className = 'row-spark';
+            sparkCell.title = 'Peak: ' + fmt.format(rm) + '/day';
+            row.range30.forEach(function (n) {
+              var s = document.createElement('span');
+              s.className = 'rs';
+              s.style.height = Math.max(1, Math.round((n / rm) * 100)) + '%';
+              sparkCell.appendChild(s);
+            });
           } else {
-            sparkHtml = '<span class="text-dim text-xs">\u2014</span>';
+            sparkCell = el('span', 'text-dim text-xs', '\u2014');
           }
-          return '<tr class="border-t border-edge-subtle hover:bg-surface-raised/50">' +
-            '<td class="px-5 py-3 text-dim tabular-nums">' + (i + 1) + '</td>' +
-            '<td class="px-5 py-3 font-medium text-heading">' + esc(row.name) + '</td>' +
-            '<td class="px-5 py-3 text-dim">' + esc(regLabel(row.registry)) + '</td>' +
-            '<td class="px-5 py-3 text-right tabular-nums text-body">' + fmt.format(row.week) + '</td>' +
-            '<td class="px-5 py-3 text-right tabular-nums text-body">' + fmt.format(row.month) + '</td>' +
-            '<td class="px-3 py-3">' + sparkHtml + '</td>' +
-            '<td class="px-5 py-3 text-right tabular-nums ' + tb.cls + '">' + esc(tb.text) + '</td></tr>';
-        }).join('');
+          function td(cls, child) {
+            var c = document.createElement('td');
+            c.className = cls;
+            c.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
+            return c;
+          }
+          var tr = document.createElement('tr');
+          tr.className = 'border-t border-edge-subtle hover:bg-surface-raised/50';
+          tr.appendChild(td('px-5 py-3 text-dim tabular-nums', String(i + 1)));
+          tr.appendChild(td('px-5 py-3 font-medium text-heading', String(row.name)));
+          tr.appendChild(td('px-5 py-3 text-dim', regLabel(row.registry)));
+          tr.appendChild(td('px-5 py-3 text-right tabular-nums text-body', fmt.format(row.week)));
+          tr.appendChild(td('px-5 py-3 text-right tabular-nums text-body', fmt.format(row.month)));
+          tr.appendChild(td('px-3 py-3', sparkCell));
+          tr.appendChild(td('px-5 py-3 text-right tabular-nums ' + tb.cls, tb.text));
+          tbody.appendChild(tr);
+        });
       }
 
+      // Leaderboard footer
       var lbFoot = document.getElementById('leaderboard-footer');
       if (lbFoot) {
+        lbFoot.textContent = '';
         if (data.errors && data.errors.length > 0) {
-          lbFoot.innerHTML = '<div class="border-t border-edge bg-surface-raised px-5 py-3 text-xs text-dim">' +
-            'Some sources failed to fetch (' + data.errors.length + '). Data may be partial.</div>';
-        } else {
-          lbFoot.innerHTML = '';
+          lbFoot.appendChild(el('div', 'border-t border-edge bg-surface-raised px-5 py-3 text-xs text-dim',
+            'Some sources failed to fetch (' + data.errors.length + '). Data may be partial.'));
         }
       }
     }
 
-    var basePath = '/registry-stats/';
+    // Read base path from meta tag set by AppShell (avoids hardcoded path)
+    var baseMeta = document.querySelector('meta[name="base-url"]');
+    var basePath = (baseMeta ? baseMeta.getAttribute('content') : '/registry-stats') + '/';
     var statsUrl = basePath + 'data/stats.json';
 
     fetch(statsUrl).then(function (res) {
       if (!res.ok) throw new Error(res.status);
       return res.json();
     }).then(function (data) {
+      if (!validateStats(data)) return;
       var existing = document.getElementById('updated-at');
       var buildTime = existing ? existing.getAttribute('data-fetched') : null;
       if (buildTime && data.fetchedAt === buildTime) return;

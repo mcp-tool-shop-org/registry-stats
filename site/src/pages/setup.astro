@@ -256,7 +256,14 @@ const notice = Astro.url.searchParams.get('notice');
 
     if (branding.logoUrl) {
       const badge = document.getElementById('nav-badge');
-      if (badge) badge.innerHTML = '<img src="' + branding.logoUrl + '" alt="" class="h-5 w-5 rounded" />';
+      if (badge) {
+        badge.textContent = '';
+        const img = document.createElement('img');
+        img.src = branding.logoUrl;
+        img.alt = '';
+        img.className = 'h-5 w-5 rounded';
+        badge.appendChild(img);
+      }
     }
   }
 
@@ -536,7 +543,14 @@ const notice = Astro.url.searchParams.get('notice');
             if (ac) ac.textContent = branding.companyName;
             if (branding.logoUrl) {
               const badge = document.getElementById('nav-badge');
-              if (badge) badge.innerHTML = '<img src="' + branding.logoUrl + '" alt="" class="h-5 w-5 rounded" />';
+              if (badge) {
+                badge.textContent = '';
+                const img = document.createElement('img');
+                img.src = branding.logoUrl;
+                img.alt = '';
+                img.className = 'h-5 w-5 rounded';
+                badge.appendChild(img);
+              }
             }
           }
           break;
