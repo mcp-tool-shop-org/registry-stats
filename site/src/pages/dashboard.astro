@@ -19,12 +19,40 @@ function registryLabel(key: string) {
   return ({ npm: 'npm', pypi: 'PyPI', vscode: 'VS Code', nuget: 'NuGet', docker: 'Docker Hub' } as Record<string, string>)[key] ?? key;
 }
 
-function trendBadge(pct: number | null) {
-  if (pct === null || pct === undefined) return { text: '\u2014', cls: 'text-dim' };
+// Smart growth display — handles small-denominator distortion
+const BASELINE_THRESHOLD = 20; // minimum prev downloads to show raw %
+const PCT_CAP = 500;           // visual cap for giant percentages
+
+function smartGrowth(pct: number | null | undefined, prev: number | null | undefined, curr: number | null | undefined): { text: string; cls: string; isEmerging: boolean } {
+  if (pct === null || pct === undefined) {
+    // No percentage available — check if it's a brand-new/emerging package
+    if ((prev === 0 || prev === null || prev === undefined) && (curr ?? 0) > 0) {
+      return { text: `\uD83D\uDE80 New (+${fmtCompact.format(curr ?? 0)})`, cls: 'text-amber-400', isEmerging: true };
+    }
+    return { text: '\u2014', cls: 'text-dim', isEmerging: false };
+  }
+  const absDelta = (curr ?? 0) - (prev ?? 0);
+  // Small-base packages: show absolute change with emerging badge
+  if ((prev ?? 0) < BASELINE_THRESHOLD) {
+    return { text: `\uD83D\uDE80 Emerging (+${fmtCompact.format(Math.max(0, absDelta))})`, cls: 'text-amber-400', isEmerging: true };
+  }
   const rounded = Math.round(pct * 10) / 10;
-  if (rounded > 0) return { text: `\u25B2 ${rounded}%`, cls: 'text-emerald-400' };
-  if (rounded < 0) return { text: `\u25BC ${Math.abs(rounded)}%`, cls: 'text-rose-400' };
-  return { text: '0%', cls: 'text-dim' };
+  const arrow = rounded > 0 ? '\u25B2' : rounded < 0 ? '\u25BC' : '';
+  const absR = Math.abs(rounded);
+  if (absR > PCT_CAP) {
+    // Cap display, show real delta
+    const cap = rounded > 0 ? `${arrow} ${PCT_CAP}%+` : `${arrow} ${PCT_CAP}%+`;
+    return { text: `${cap} (+${fmtCompact.format(Math.abs(absDelta))})`, cls: rounded > 0 ? 'text-emerald-400' : 'text-rose-400', isEmerging: false };
+  }
+  if (rounded > 0) return { text: `${arrow} ${absR}%`, cls: 'text-emerald-400', isEmerging: false };
+  if (rounded < 0) return { text: `${arrow} ${absR}%`, cls: 'text-rose-400', isEmerging: false };
+  return { text: '0%', cls: 'text-dim', isEmerging: false };
+}
+
+// Backwards-compatible wrapper for leaderboard table where we only have pct
+function trendBadge(pct: number | null, prev?: number | null, curr?: number | null) {
+  const sg = smartGrowth(pct, prev, curr);
+  return { text: sg.text, cls: sg.cls };
 }
 
 function relativeTime(iso: string) {
@@ -128,14 +156,29 @@ const median = n > 0 ? sortedWeeks[Math.floor(n / 2)] : 0;
 const p90 = n > 0 ? sortedWeeks[Math.floor(n * 0.9)] : 0;
 const top3Pct = totalDl > 0 ? Math.round(weeklyDownloads.slice(-3).reduce((a: number, b: number) => a + b, 0) / totalDl * 100) : 0;
 
-// Velocity scores (7d growth rate as daily avg across range30)
+// Velocity scores — damped formula to avoid small-denominator distortion
+// velocity = (curr - prev) / sqrt(prev + k) — rewards real growth, penalizes tiny bases
+const VELOCITY_K = 10; // damping constant
 const velocityBoard = (leaderboard as any[]).slice(0, 30).map((r: any) => {
   const name = (r.name ?? '').replace('@mcptoolshop/', '');
-  const velocity = r.range30?.length === 30
-    ? Math.round(((r.range30.slice(-7).reduce((a: number, b: number) => a + Number(b), 0) /
-        Math.max(1, r.range30.slice(-14, -7).reduce((a: number, b: number) => a + Number(b), 0))) - 1) * 100)
+  let velocity: number | null = null;
+  let prevWeek: number | null = null;
+  let isEmerging = false;
+  if (r.range30?.length === 30) {
+    prevWeek = r.range30.slice(-14, -7).reduce((a: number, b: number) => a + Number(b), 0);
+    const currWeek = r.range30.slice(-7).reduce((a: number, b: number) => a + Number(b), 0);
+    if (prevWeek < BASELINE_THRESHOLD) {
+      isEmerging = true;
+      velocity = null; // don't compute misleading % for tiny bases
+    } else {
+      velocity = Math.round((currWeek - prevWeek) / Math.sqrt(prevWeek + VELOCITY_K) * 10) / 10;
+    }
+  }
+  const absDelta = r.range30?.length === 30
+    ? r.range30.slice(-7).reduce((a: number, b: number) => a + Number(b), 0) -
+      r.range30.slice(-14, -7).reduce((a: number, b: number) => a + Number(b), 0)
     : null;
-  return { name, registry: r.registry, week: r.week, month: r.month, trendPct: r.trendPct, range30: r.range30, velocity };
+  return { name, registry: r.registry, week: r.week, month: r.month, trendPct: r.trendPct, prevWeek, absDelta, range30: r.range30, velocity, isEmerging };
 });
 
 // Packages needing attention (declining 3+ weeks or stale)
@@ -148,7 +191,12 @@ const attentionPkgs = (leaderboard as any[])
     return (w3 < w2 && w2 < w1) || w3 === 0;
   })
   .slice(0, 5)
-  .map((r: any) => ({ name: (r.name ?? '').replace('@mcptoolshop/', ''), trendPct: r.trendPct, week: r.week }));
+  .map((r: any) => {
+    const prev = r.range30?.length === 30 ? r.range30.slice(-14, -7).reduce((a: number, b: number) => a + Number(b), 0) : null;
+    const curr = r.range30?.length === 30 ? r.range30.slice(-7).reduce((a: number, b: number) => a + Number(b), 0) : r.week;
+    const sg = smartGrowth(r.trendPct, prev, curr);
+    return { name: (r.name ?? '').replace('@mcptoolshop/', ''), trendPct: r.trendPct, week: r.week, growthText: sg.text, growthCls: sg.cls };
+  });
 
 // Auto-generated insights
 const insights: { icon: string; text: string; type: string }[] = [];
@@ -163,10 +211,24 @@ if (anomalies.length > 0) {
   if (dropCount > 0) insights.push({ icon: '\uD83D\uDCC9', text: `${dropCount} unusual drop${dropCount > 1 ? 's' : ''} detected in the last 30 days (>2σ below mean)`, type: 'warning' });
 }
 const topGainer = gainers[0];
-if (topGainer) insights.push({ icon: '\uD83D\uDE80', text: `${(topGainer.name ?? '').replace('@mcptoolshop/', '')} surged ${Math.round(topGainer.trendPct)}% — fastest growing package`, type: 'positive' });
+if (topGainer) {
+  const gName = (topGainer.name ?? '').replace('@mcptoolshop/', '');
+  const gCurr = topGainer.week ?? 0;
+  const gPrev = topGainer.delta7 !== undefined ? gCurr - topGainer.delta7 : null;
+  if ((gPrev ?? 0) < BASELINE_THRESHOLD) {
+    insights.push({ icon: '\uD83D\uDE80', text: `${gName} emerged with +${fmtCompact.format(topGainer.delta7 ?? gCurr)} downloads \u2014 fastest growing package (new)`, type: 'positive' });
+  } else {
+    const cappedPct = Math.min(PCT_CAP, Math.abs(Math.round(topGainer.trendPct ?? 0)));
+    insights.push({ icon: '\uD83D\uDE80', text: `${gName} surged ${cappedPct}${Math.abs(topGainer.trendPct ?? 0) > PCT_CAP ? '+' : ''}% (+${fmtCompact.format(Math.abs(topGainer.delta7 ?? 0))}) \u2014 fastest growing package`, type: 'positive' });
+  }
+}
 const topDecliner = decliners[0];
-if (topDecliner) insights.push({ icon: '\u26A0\uFE0F', text: `${(topDecliner.name ?? '').replace('@mcptoolshop/', '')} declining ${Math.abs(Math.round(topDecliner.trendPct ?? 0))}% for consecutive periods`, type: 'warning' });
-if (attentionPkgs.length > 0) insights.push({ icon: '\uD83D\uDD0D', text: `${attentionPkgs.length} package${attentionPkgs.length > 1 ? 's' : ''} showing sustained decline — may need attention`, type: 'warning' });
+if (topDecliner) {
+  const dName = (topDecliner.name ?? '').replace('@mcptoolshop/', '');
+  const dPct = Math.abs(Math.round(topDecliner.trendPct ?? 0));
+  insights.push({ icon: '\u26A0\uFE0F', text: `${dName} declining ${Math.min(dPct, PCT_CAP)}${dPct > PCT_CAP ? '+' : ''}% for consecutive periods`, type: 'warning' });
+}
+if (attentionPkgs.length > 0) insights.push({ icon: '\uD83D\uDD0D', text: `${attentionPkgs.length} package${attentionPkgs.length > 1 ? 's' : ''} showing sustained decline \u2014 may need attention`, type: 'warning' });
 
 // Registry dependency
 const npmPctOfTotal = totalWeekAll > 0 ? Math.round(Number((registryTotals as any).npm?.week ?? 0) / totalWeekAll * 100) : 0;
@@ -372,12 +434,17 @@ const chatContext = !missing && data ? JSON.stringify({
                   <span>{'\u25B2'}</span> Top Gainers
                 </div>
                 <ul id="pulse-gainers" class="mt-2 space-y-2">
-                  {gainers.length > 0 ? gainers.map((r: any) => (
+                  {gainers.length > 0 ? gainers.map((r: any) => {
+                    const gCurr = r.week ?? 0;
+                    const gPrev = r.delta7 !== undefined ? gCurr - r.delta7 : null;
+                    const sg = smartGrowth(r.trendPct, gPrev, gCurr);
+                    return (
                     <li class="flex items-center justify-between gap-2 text-sm">
                       <span class="truncate text-heading">{r.name.replace('@mcptoolshop/', '')}</span>
-                      <span class="text-emerald-400 tabular-nums whitespace-nowrap">{'\u25B2'} {Math.round((r.trendPct ?? 0) * 10) / 10}%</span>
+                      <span class={`${sg.cls} tabular-nums whitespace-nowrap text-xs`}>{sg.text}</span>
                     </li>
-                  )) : (
+                    );
+                  }) : (
                     <li class="text-xs text-dim">No gainers this week</li>
                   )}
                 </ul>
@@ -388,12 +455,17 @@ const chatContext = !missing && data ? JSON.stringify({
                   <span>{'\u25BC'}</span> Decliners
                 </div>
                 <ul id="pulse-decliners" class="mt-2 space-y-2">
-                  {decliners.length > 0 ? decliners.map((r: any) => (
+                  {decliners.length > 0 ? decliners.map((r: any) => {
+                    const curr = r.week ?? 0;
+                    const prev = r.delta7 !== undefined ? curr - r.delta7 : null;
+                    const sg = smartGrowth(r.trendPct, prev, curr);
+                    return (
                     <li class="flex items-center justify-between gap-2 text-sm">
                       <span class="truncate text-heading">{r.name.replace('@mcptoolshop/', '')}</span>
-                      <span class="text-rose-400 tabular-nums whitespace-nowrap">{'\u25BC'} {Math.round(Math.abs(r.trendPct ?? 0) * 10) / 10}%</span>
+                      <span class={`${sg.cls} tabular-nums whitespace-nowrap text-xs`}>{sg.text}</span>
                     </li>
-                  )) : (
+                    );
+                  }) : (
                     <li class="text-xs text-dim">No decliners this week</li>
                   )}
                 </ul>
@@ -664,8 +736,8 @@ const chatContext = !missing && data ? JSON.stringify({
             {attentionPkgs.map((pkg) => (
               <div class="flex items-center justify-between rounded-lg border border-edge bg-surface px-3 py-2">
                 <span class="text-sm font-medium text-heading truncate">{pkg.name}</span>
-                <span class={`text-xs tabular-nums ${(pkg.trendPct ?? 0) < 0 ? 'text-rose-400' : 'text-dim'}`}>
-                  {pkg.trendPct !== null && pkg.trendPct !== undefined ? `${Math.round(pkg.trendPct)}%` : 'stale'}
+                <span class={`text-xs tabular-nums ${pkg.growthCls}`}>
+                  {pkg.growthText}
                 </span>
               </div>
             ))}
@@ -788,7 +860,9 @@ const chatContext = !missing && data ? JSON.stringify({
               </thead>
               <tbody id="leaderboard-body">
                 {leaderboard.map((row: any, i: number) => {
-                  const t = trendBadge(row.trendPct);
+                  const prevW = row.range30?.length === 30 ? row.range30.slice(-14, -7).reduce((a: number, b: number) => a + Number(b), 0) : null;
+                  const currW = row.range30?.length === 30 ? row.range30.slice(-7).reduce((a: number, b: number) => a + Number(b), 0) : row.week;
+                  const t = trendBadge(row.trendPct, prevW, currW);
                   const hasSparkline = row.range30 && row.range30.length === 30;
                   const rowSparkMax = hasSparkline ? Math.max(1, ...row.range30) : 1;
                   return (
@@ -1254,6 +1328,7 @@ const chatContext = !missing && data ? JSON.stringify({
       // ═══════════════════════════════════════════════
       var top10 = lb.slice(0, 10);
       var momentumLabels = top10.map(function (r) {
+        if (r.isEmerging) return r.name + ' \uD83D\uDE80';
         var arrow = '';
         if (r.velocity !== null && r.velocity !== undefined) {
           arrow = r.velocity > 10 ? ' \uD83D\uDD3C' : r.velocity < -10 ? ' \uD83D\uDD3D' : '';
@@ -1269,10 +1344,11 @@ const chatContext = !missing && data ? JSON.stringify({
             label: 'Weekly',
             data: top10.map(function (r) { return r.week; }),
             backgroundColor: top10.map(function (r) {
-              var v = r.velocity || r.trendPct || 0;
-              if (v > 20) return '#059669cc';
+              if (r.isEmerging) return '#f59e0bcc'; // amber for emerging
+              var v = r.velocity || 0;
+              if (v > 5) return '#059669cc';
               if (v > 0) return '#059669' + '80';
-              if (v > -20) return '#f59e0bcc';
+              if (v > -5) return '#f59e0bcc';
               return '#ef4444cc';
             }),
             borderRadius: 4
@@ -1286,8 +1362,15 @@ const chatContext = !missing && data ? JSON.stringify({
               callbacks: {
                 afterLabel: function (ctx) {
                   var pkg = top10[ctx.dataIndex];
-                  var parts = ['Trend: ' + (pkg.trendPct !== null ? Math.round(pkg.trendPct) + '%' : 'n/a')];
-                  if (pkg.velocity !== null && pkg.velocity !== undefined) parts.push('Velocity: ' + pkg.velocity + '%');
+                  var prev = pkg.prevWeek;
+                  var curr = (prev !== null && prev !== undefined) ? prev + (pkg.absDelta || 0) : null;
+                  var sg = formatGrowth(pkg.trendPct, prev, curr);
+                  var parts = ['Growth: ' + sg.text];
+                  if (pkg.velocity !== null && pkg.velocity !== undefined) {
+                    parts.push('Velocity score: ' + pkg.velocity);
+                  } else if (pkg.isEmerging) {
+                    parts.push('Velocity: Emerging');
+                  }
                   return parts.join('\n');
                 }
               }
@@ -1308,8 +1391,20 @@ const chatContext = !missing && data ? JSON.stringify({
           left.className = 'font-medium text-heading truncate';
           left.textContent = r.name;
           var right = document.createElement('span');
-          right.className = 'tabular-nums whitespace-nowrap ml-2 ' + ((r.velocity || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400');
-          right.textContent = (r.velocity !== null && r.velocity !== undefined) ? ((r.velocity >= 0 ? '+' : '') + r.velocity + '% vel') : (r.trendPct !== null ? Math.round(r.trendPct) + '% trend' : '\u2014');
+          // Use damped velocity score (not raw %) or smart growth badge
+          if (r.isEmerging) {
+            right.className = 'tabular-nums whitespace-nowrap ml-2 text-amber-400';
+            right.textContent = '\uD83D\uDE80 Emerging (+' + fmtK(Math.max(0, r.absDelta || r.week || 0)) + ')';
+          } else if (r.velocity !== null && r.velocity !== undefined) {
+            right.className = 'tabular-nums whitespace-nowrap ml-2 ' + (r.velocity >= 0 ? 'text-emerald-400' : 'text-rose-400');
+            right.textContent = 'vel: ' + (r.velocity >= 0 ? '+' : '') + r.velocity;
+          } else {
+            var prev = r.prevWeek;
+            var curr = (prev !== null && prev !== undefined) ? prev + (r.absDelta || 0) : null;
+            var sg = formatGrowth(r.trendPct, prev, curr);
+            right.className = 'tabular-nums whitespace-nowrap ml-2 ' + sg.cls;
+            right.textContent = sg.text;
+          }
           card.appendChild(left); card.appendChild(right);
           momLegend.appendChild(card);
         });
@@ -1354,9 +1449,20 @@ const chatContext = !missing && data ? JSON.stringify({
           row.appendChild(info);
 
           var badge = document.createElement('div');
-          var vel = r.velocity !== null && r.velocity !== undefined ? r.velocity : (r.trendPct !== null ? Math.round(r.trendPct) : null);
-          badge.className = 'text-xs font-medium tabular-nums whitespace-nowrap ' + (vel === null ? 'text-dim' : vel >= 0 ? 'text-emerald-400' : 'text-rose-400');
-          badge.textContent = vel === null ? '\u2014' : (vel >= 0 ? '+' : '') + vel + '%';
+          // Smart growth display for velocity tracker
+          if (r.isEmerging) {
+            badge.className = 'text-xs font-medium tabular-nums whitespace-nowrap text-amber-400';
+            badge.textContent = '\uD83D\uDE80 Emerging';
+          } else if (r.velocity !== null && r.velocity !== undefined) {
+            badge.className = 'text-xs font-medium tabular-nums whitespace-nowrap ' + (r.velocity >= 0 ? 'text-emerald-400' : 'text-rose-400');
+            badge.textContent = 'vel: ' + (r.velocity >= 0 ? '+' : '') + r.velocity;
+          } else {
+            var prev = r.prevWeek;
+            var curr = (prev !== null && prev !== undefined) ? prev + (r.absDelta || 0) : null;
+            var sg = formatGrowth(r.trendPct, prev, curr);
+            badge.className = 'text-xs font-medium tabular-nums whitespace-nowrap ' + sg.cls;
+            badge.textContent = sg.text;
+          }
           row.appendChild(badge);
           velList.appendChild(row);
         });
@@ -1524,12 +1630,34 @@ const chatContext = !missing && data ? JSON.stringify({
     var REG_LABELS = { npm: 'npm', pypi: 'PyPI', vscode: 'VS Code', nuget: 'NuGet', docker: 'Docker Hub' };
     function regLabel(k) { return REG_LABELS[k] || k; }
 
-    function trendBadge(pct) {
-      if (pct === null || pct === undefined) return { text: '\u2014', cls: 'text-dim' };
+    var BASELINE_THRESHOLD = 20;
+    var PCT_CAP = 500;
+
+    // Smart growth display — handles small-denominator distortion
+    function formatGrowth(pct, prev, curr) {
+      if (pct === null || pct === undefined) {
+        if ((prev === 0 || prev === null || prev === undefined) && (curr || 0) > 0) {
+          return { text: '\uD83D\uDE80 New (+' + fmtCompact.format(curr || 0) + ')', cls: 'text-amber-400', isEmerging: true };
+        }
+        return { text: '\u2014', cls: 'text-dim', isEmerging: false };
+      }
+      var absDelta = (curr || 0) - (prev || 0);
+      if ((prev || 0) < BASELINE_THRESHOLD) {
+        return { text: '\uD83D\uDE80 Emerging (+' + fmtCompact.format(Math.max(0, absDelta)) + ')', cls: 'text-amber-400', isEmerging: true };
+      }
       var r = Math.round(pct * 10) / 10;
-      if (r > 0) return { text: '\u25B2 ' + r + '%', cls: 'text-emerald-400' };
-      if (r < 0) return { text: '\u25BC ' + Math.abs(r) + '%', cls: 'text-rose-400' };
-      return { text: '0%', cls: 'text-dim' };
+      var arrow = r > 0 ? '\u25B2' : r < 0 ? '\u25BC' : '';
+      var absR = Math.abs(r);
+      if (absR > PCT_CAP) {
+        return { text: arrow + ' ' + PCT_CAP + '%+ (+' + fmtCompact.format(Math.abs(absDelta)) + ')', cls: r > 0 ? 'text-emerald-400' : 'text-rose-400', isEmerging: false };
+      }
+      if (r > 0) return { text: arrow + ' ' + absR + '%', cls: 'text-emerald-400', isEmerging: false };
+      if (r < 0) return { text: arrow + ' ' + absR + '%', cls: 'text-rose-400', isEmerging: false };
+      return { text: '0%', cls: 'text-dim', isEmerging: false };
+    }
+
+    function trendBadge(pct, prev, curr) {
+      return formatGrowth(pct, prev, curr);
     }
 
     function relTime(iso) {
@@ -1638,13 +1766,22 @@ const chatContext = !missing && data ? JSON.stringify({
         }
         items.forEach(function (r) {
           var name = String(r.name || '').replace('@mcptoolshop/', '');
-          var val = suffix === '/wk'
-            ? fmt.format(r.week) + '/wk'
-            : arrow + ' ' + (Math.round(Math.abs(r.trendPct || 0) * 10) / 10) + '%';
-          ul.appendChild(el('li', 'flex items-center justify-between gap-2 text-sm', [
-            el('span', 'truncate text-heading', name),
-            el('span', colorCls + ' tabular-nums whitespace-nowrap', val)
-          ]));
+          if (suffix === '/wk') {
+            // Newly active — show absolute downloads
+            ul.appendChild(el('li', 'flex items-center justify-between gap-2 text-sm', [
+              el('span', 'truncate text-heading', name),
+              el('span', colorCls + ' tabular-nums whitespace-nowrap', fmt.format(r.week) + '/wk')
+            ]));
+          } else {
+            // Gainers/decliners — use smart growth formatting
+            var curr = r.week || 0;
+            var prev = r.delta7 !== undefined ? curr - r.delta7 : null;
+            var sg = formatGrowth(r.trendPct, prev, curr);
+            ul.appendChild(el('li', 'flex items-center justify-between gap-2 text-sm', [
+              el('span', 'truncate text-heading', name),
+              el('span', sg.cls + ' tabular-nums whitespace-nowrap text-xs', sg.text)
+            ]));
+          }
         });
       }
       renderMoverList('pulse-gainers', movers.topGainers, 'text-emerald-400', '\u25B2', '%');
@@ -1755,7 +1892,11 @@ const chatContext = !missing && data ? JSON.stringify({
       if (tbody) {
         tbody.textContent = '';
         lb.forEach(function (row, i) {
-          var tb = trendBadge(row.trendPct);
+          var prev = row.range30 && row.range30.length === 30
+            ? row.range30.slice(-14, -7).reduce(function (a, b) { return a + Number(b); }, 0) : null;
+          var curr = row.range30 && row.range30.length === 30
+            ? row.range30.slice(-7).reduce(function (a, b) { return a + Number(b); }, 0) : row.week;
+          var tb = trendBadge(row.trendPct, prev, curr);
           var has30 = row.range30 && row.range30.length === 30;
           var sparkCell;
           if (has30) {
