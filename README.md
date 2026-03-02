@@ -40,7 +40,7 @@ Zero runtime dependencies. Uses native `fetch()`. Node 18+.
 | Layer | What it does |
 |-------|-------------|
 | **Engine** | TypeScript library + CLI + REST server. Query five registries with one interface. Published to npm as `@mcptoolshop/registry-stats`. |
-| **Dashboard** | Astro-powered web app with AI chat assistant, six interactive charts, smart growth engine, and tabbed Help guide. Rebuilt weekly by CI. |
+| **Dashboard** | Astro-powered web app with AI chat assistant, six interactive charts, live refresh, export reports (PDF / JSONL / Markdown), and tabbed Help guide. Rebuilt weekly by CI; refreshable on demand. |
 | **Desktop** | WinUI 3 + WebView2 native Windows app. Bundles the dashboard offline, fetches live stats on demand. |
 
 ## Dashboard
@@ -53,12 +53,15 @@ A self-updating stats dashboard lives at [`/dashboard/`](https://mcp-tool-shop-o
 - **Six interactive charts** — 30-day trend (aggregate / per-registry / top-5 toggles), registry share (polar area), portfolio risk (histogram + Gini & P90), top-10 momentum, velocity tracker with sparklines, and 30-day heatmap with spike detection (>2σ)
 - **Smart growth engine** — handles small-denominator distortion with baseline threshold, percentage cap, and damped velocity formula
 - **Actionable insights** — auto-generated recommendations and attention alerts for declining packages
-- **Leaderboard** — all packages ranked by weekly downloads with inline 30-day sparklines and smart trend badges
+- **Pulse panel** — split view of Established Movers (≥ 50 downloads/wk) and Emerging & New packages, with inline 7-day sparklines, absolute + percentage deltas, baseline context, and a one-line executive summary
+- **Live refresh** — on-demand client-side fetch from npm and PyPI APIs with progress indicator; results cached in sessionStorage (5 min TTL) so tab switches are instant
+- **Export reports** — dropdown next to the Refresh button offering three formats: **Exec PDF** (via jsPDF), **LLM JSONL** (typed records for AI ingestion), and **Dev Markdown** (GFM tables)
+- **Leaderboard** — 132 packages ranked by weekly downloads with inline 30-day sparklines and smart trend badges
 - **Setup page** — portfolio editor with validation, registry-sync companion section, and pipeline overview
 - **Help tab** — human-friendly guide covering every tab, key concepts, AI assistant tips, data pipeline, and useful links
 - **Dark / light theme** — follows system preference
 
-Data is fetched at build time and rebuilt weekly by CI (Mondays 06:00 UTC). Configure tracked packages in `site/src/data/packages.json`.
+Data is fetched at build time and rebuilt weekly by CI (Mondays 06:00 UTC). Live refresh pulls the latest numbers directly from registry APIs. Configure tracked packages in `site/src/data/packages.json` (132 packages across 5 registries).
 
 ## Desktop App
 
