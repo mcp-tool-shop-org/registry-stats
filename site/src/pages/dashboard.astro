@@ -56,6 +56,40 @@ const gainers = movers?.topGainers ?? [];
 const decliners = movers?.topDecliners ?? [];
 const awakening = movers?.newlyActive ?? [];
 const concentrationPct = Math.round(movers?.concentrationTop5Pct ?? 0);
+
+// ── Expanded executive metrics ──
+const npmLast7 = sparkline30.slice(-7).reduce((a: number, b: number) => a + Number(b), 0);
+const npmPrev7 = sparkline30.slice(-14, -7).reduce((a: number, b: number) => a + Number(b), 0);
+const weekDelta = npmLast7 - npmPrev7;
+const weekDeltaPct = npmPrev7 > 0 ? ((npmLast7 - npmPrev7) / npmPrev7 * 100) : 0;
+
+const okRegistries = data ? Object.values(data.confidence ?? {}).filter((c: any) => c === 'ok').length : 0;
+const totalRegistries = data ? Object.keys(data.confidence ?? {}).length : 0;
+
+const regWeeks = Object.values(registryTotals).map((r: any) => Number(r?.week ?? 0)).filter((v: number) => v > 0);
+const totalWeekAll = regWeeks.reduce((a: number, b: number) => a + b, 0);
+const shannonH = totalWeekAll > 0 ? -regWeeks.reduce((h: number, w: number) => { const p = w / totalWeekAll; return h + (p > 0 ? p * Math.log2(p) : 0); }, 0) : 0;
+const maxEntropy = regWeeks.length > 1 ? Math.log2(regWeeks.length) : 1;
+const diversityIndex = maxEntropy > 0 ? shannonH / maxEntropy : 0;
+
+const coveragePts = totalRegistries > 0 ? (okRegistries / totalRegistries) * 40 : 0;
+const errorPts = Math.min(30, (data?.errors?.length ?? 0) * 5);
+const growthPts = weekDeltaPct > 5 ? 20 : weekDeltaPct > 0 ? 10 : weekDeltaPct > -5 ? 5 : 0;
+const diversityPts = diversityIndex * 10;
+const healthScore = Math.round(Math.max(0, Math.min(100, coveragePts - errorPts + growthPts + diversityPts)));
+
+const chartPayload = !missing && data ? JSON.stringify({
+  sparkline30,
+  registryTotals,
+  leaderboard: (leaderboard as any[]).slice(0, 30).map((r: any) => ({
+    name: (r.name ?? '').replace('@mcptoolshop/', ''),
+    registry: r.registry,
+    week: r.week,
+    month: r.month,
+    trendPct: r.trendPct,
+    range30: r.range30,
+  })),
+}) : null;
 ---
 
 <AppShell
@@ -104,6 +138,16 @@ const concentrationPct = Math.round(movers?.concentrationTop5Pct ?? 0);
         </p>
       </div>
 
+      {/* ── Tab bar ── */}
+      <nav class="flex gap-1 border-b border-edge mb-6" role="tablist" id="tab-bar">
+        <button role="tab" data-tab="overview" class="tab-btn tab-active" aria-selected="true">Overview</button>
+        <button role="tab" data-tab="analytics" class="tab-btn" aria-selected="false">Analytics</button>
+        <button role="tab" data-tab="leaderboard" class="tab-btn" aria-selected="false">Leaderboard</button>
+      </nav>
+
+      {/* ── Tab: Overview ── */}
+      <div id="tab-overview" class="tab-panel" role="tabpanel">
+
       {/* ── Executive Snapshot ── */}
       <div id="exec-snapshot" class:list={["mb-8 rounded-2xl border border-edge bg-surface-raised/50 p-5", { hidden: missing || !(data?.narrativeLines || data?.narrative) }]}>
         <div class="flex items-start justify-between gap-4 flex-wrap mb-3">
@@ -112,6 +156,45 @@ const concentrationPct = Math.round(movers?.concentrationTop5Pct ?? 0);
             {!missing && data && (<>Source: build-time fetch<br />{new Date(data.fetchedAt).toUTCString()}</>)}
           </div>
         </div>
+
+        {/* ── Executive metric cards ── */}
+        <div id="exec-metrics" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-4">
+          <div class="rounded-xl border border-edge bg-surface p-3">
+            <div class="text-[10px] text-dim uppercase tracking-wide">Health Score</div>
+            <div class="mt-1 flex items-center gap-2">
+              <span id="exec-health" class="text-2xl font-bold tabular-nums text-heading">{healthScore}</span>
+              <div class="flex-1 h-2 rounded-full bg-surface-strong overflow-hidden">
+                <div class="h-2 rounded-full transition-all" id="exec-health-bar" style={`width:${healthScore}%;background:${healthScore >= 70 ? 'var(--color-accent)' : healthScore >= 40 ? '#f59e0b' : '#ef4444'}`} />
+              </div>
+            </div>
+          </div>
+          <div class="rounded-xl border border-edge bg-surface p-3">
+            <div class="text-[10px] text-dim uppercase tracking-wide">Weekly Δ (npm)</div>
+            <div class="mt-1">
+              <span id="exec-delta" class={`text-2xl font-bold tabular-nums ${weekDelta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {weekDelta >= 0 ? '+' : ''}{fmtCompact.format(weekDelta)}
+              </span>
+              <span id="exec-delta-pct" class={`ml-1 text-sm ${weekDeltaPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                ({weekDeltaPct >= 0 ? '+' : ''}{Math.round(weekDeltaPct * 10) / 10}%)
+              </span>
+            </div>
+          </div>
+          <div class="rounded-xl border border-edge bg-surface p-3">
+            <div class="text-[10px] text-dim uppercase tracking-wide">Diversity Index</div>
+            <div class="mt-1">
+              <span id="exec-diversity" class="text-2xl font-bold tabular-nums text-heading">{diversityIndex.toFixed(2)}</span>
+              <span class="ml-1 text-xs text-dim">Shannon (norm.)</span>
+            </div>
+          </div>
+          <div class="rounded-xl border border-edge bg-surface p-3">
+            <div class="text-[10px] text-dim uppercase tracking-wide">Registry Coverage</div>
+            <div class="mt-1">
+              <span id="exec-coverage" class="text-2xl font-bold tabular-nums text-heading">{okRegistries}/{totalRegistries}</span>
+              <span class="ml-1 text-xs text-dim">OK</span>
+            </div>
+          </div>
+        </div>
+
         <div id="exec-lines" class="space-y-2.5">
           {data?.narrativeLines ? data.narrativeLines.map((line: { icon: string; label: string; text: string }) => (
             <div class="flex items-start gap-3">
@@ -347,6 +430,61 @@ const concentrationPct = Math.round(movers?.concentrationTop5Pct ?? 0);
         </div>
       </section>
 
+      </div>{/* close tab-overview */}
+
+      {/* ── Tab: Analytics ── */}
+      <div id="tab-analytics" class="tab-panel hidden" role="tabpanel">
+        <section class="mb-8">
+          <h2 class="text-xl font-semibold text-heading">Analytics</h2>
+          <p class="mt-1 text-sm text-dim">Deeper visual analysis of download patterns and portfolio composition.</p>
+
+          <div class="mt-6 grid gap-6 lg:grid-cols-2">
+            <div class="rounded-2xl border border-edge bg-surface-raised p-6">
+              <h3 class="text-lg font-semibold text-heading">30-Day Download Trend</h3>
+              <p class="mt-1 text-sm text-dim">Aggregate daily npm downloads with 7-day moving average.</p>
+              <div class="mt-4" style="position:relative;height:240px;">
+                <canvas id="chart-trend"></canvas>
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-edge bg-surface-raised p-6">
+              <h3 class="text-lg font-semibold text-heading">Registry Share</h3>
+              <p class="mt-1 text-sm text-dim">Weekly download distribution across registries.</p>
+              <div class="mt-4 flex justify-center" style="position:relative;height:240px;">
+                <canvas id="chart-share"></canvas>
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-edge bg-surface-raised p-6">
+              <h3 class="text-lg font-semibold text-heading">Download Distribution</h3>
+              <p class="mt-1 text-sm text-dim">Package count by weekly download range.</p>
+              <div class="mt-4" style="position:relative;height:240px;">
+                <canvas id="chart-distribution"></canvas>
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-edge bg-surface-raised p-6">
+              <h3 class="text-lg font-semibold text-heading">Top 10 Packages</h3>
+              <p class="mt-1 text-sm text-dim">Highest weekly downloads with trend coloring.</p>
+              <div class="mt-4" style="position:relative;height:240px;">
+                <canvas id="chart-top10"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 rounded-2xl border border-edge bg-surface-raised p-6">
+            <h3 class="text-lg font-semibold text-heading">30-Day Heatmap</h3>
+            <p class="mt-1 text-sm text-dim">Daily downloads per npm package. Brighter = more downloads.</p>
+            <div class="mt-4 overflow-x-auto">
+              <canvas id="chart-heatmap"></canvas>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* ── Tab: Leaderboard ── */}
+      <div id="tab-leaderboard" class="tab-panel hidden" role="tabpanel">
+
       {/* ── Leaderboard ── */}
       <section id="leaderboard" class="mb-8">
         <h2 class="text-xl font-semibold text-heading">Leaderboard</h2>
@@ -417,8 +555,13 @@ const concentrationPct = Math.round(movers?.concentrationTop5Pct ?? 0);
           </div>
         </div>
       </section>
+
+      </div>{/* close tab-leaderboard */}
+
     </div>
   </div>
+
+  {chartPayload && <div id="chart-data" class="hidden" data-json={chartPayload} />}
 </AppShell>
 
 <style>
@@ -460,7 +603,204 @@ const concentrationPct = Math.round(movers?.concentrationTop5Pct ?? 0);
     background: var(--color-accent);
     opacity: 0.7;
   }
+
+  /* Tabs */
+  .tab-btn {
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-muted);
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: none;
+    cursor: pointer;
+    transition: color 150ms, border-color 150ms;
+  }
+  .tab-btn:hover { color: var(--color-heading); }
+  .tab-btn.tab-active {
+    color: var(--color-heading);
+    border-bottom-color: var(--color-accent);
+  }
+  .tab-panel.hidden { display: none; }
 </style>
+
+<script is:inline src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+
+<script is:inline>
+  // Tab switching (hash-based) + Chart.js initialization
+  (function () {
+    var tabs = document.querySelectorAll('[data-tab]');
+    var panels = document.querySelectorAll('.tab-panel');
+    var chartsInitialized = false;
+
+    function switchTab(name) {
+      tabs.forEach(function (btn) {
+        var active = btn.getAttribute('data-tab') === name;
+        btn.classList.toggle('tab-active', active);
+        btn.setAttribute('aria-selected', String(active));
+      });
+      panels.forEach(function (p) {
+        p.classList.toggle('hidden', p.id !== 'tab-' + name);
+      });
+      if (name === 'analytics' && !chartsInitialized) initCharts();
+      history.replaceState(null, '', '#' + name);
+    }
+
+    tabs.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        switchTab(btn.getAttribute('data-tab'));
+      });
+    });
+
+    // Restore from hash
+    var hash = location.hash.replace('#', '');
+    if (hash && document.getElementById('tab-' + hash)) {
+      switchTab(hash);
+    }
+
+    var CHART_PALETTE = ['#059669', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
+    var REG_NAMES = { npm: 'npm', pypi: 'PyPI', vscode: 'VS Code', nuget: 'NuGet', docker: 'Docker Hub' };
+
+    function getThemeColors() {
+      var s = getComputedStyle(document.documentElement);
+      return {
+        accent: s.getPropertyValue('--color-accent').trim() || '#059669',
+        heading: s.getPropertyValue('--color-heading').trim() || '#e4e4e7',
+        dim: s.getPropertyValue('--color-dim').trim() || '#71717a',
+        edge: s.getPropertyValue('--color-edge').trim() || '#27272a',
+      };
+    }
+
+    function initCharts() {
+      if (typeof Chart === 'undefined') return;
+      var dataEl = document.getElementById('chart-data');
+      if (!dataEl) return;
+      var cdata;
+      try { cdata = JSON.parse(dataEl.getAttribute('data-json')); } catch { return; }
+      if (!cdata) return;
+      chartsInitialized = true;
+
+      var tc = getThemeColors();
+      Chart.defaults.color = tc.dim;
+      Chart.defaults.borderColor = tc.edge;
+      Chart.defaults.font.family = 'system-ui, -apple-system, sans-serif';
+
+      // ── 30-day trend (line + 7d moving avg) ──
+      var sp = cdata.sparkline30 || [];
+      var labels30 = sp.map(function (_, i) { return 'D-' + (sp.length - i); });
+      var ma7 = [];
+      for (var i = 0; i < sp.length; i++) {
+        if (i < 6) { ma7.push(null); continue; }
+        var sum = 0;
+        for (var j = i - 6; j <= i; j++) sum += Number(sp[j]);
+        ma7.push(Math.round(sum / 7));
+      }
+      new Chart(document.getElementById('chart-trend'), {
+        type: 'line',
+        data: {
+          labels: labels30,
+          datasets: [
+            { label: 'Daily', data: sp, borderColor: tc.accent, backgroundColor: tc.accent + '20', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
+            { label: '7d avg', data: ma7, borderColor: CHART_PALETTE[1], borderDash: [5, 3], tension: 0.3, pointRadius: 0, borderWidth: 2, fill: false },
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, scales: { x: { display: false }, y: { beginAtZero: true, ticks: { maxTicksLimit: 5 } } }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } } } }
+      });
+
+      // ── Registry share (doughnut) ──
+      var regKeys = Object.keys(cdata.registryTotals || {});
+      var regVals = regKeys.map(function (k) { return Number((cdata.registryTotals[k] || {}).week || 0); });
+      new Chart(document.getElementById('chart-share'), {
+        type: 'doughnut',
+        data: {
+          labels: regKeys.map(function (k) { return REG_NAMES[k] || k; }),
+          datasets: [{ data: regVals, backgroundColor: CHART_PALETTE.slice(0, regKeys.length), borderWidth: 0 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '55%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } } } }
+      });
+
+      // ── Download distribution histogram ──
+      var lb = cdata.leaderboard || [];
+      var bucketLabels = ['0\u201399', '100\u2013999', '1K\u20139.9K', '10K\u201399K', '100K+'];
+      var dist = [0, 0, 0, 0, 0];
+      lb.forEach(function (r) {
+        var w = Number(r.week || 0);
+        if (w >= 100000) dist[4]++;
+        else if (w >= 10000) dist[3]++;
+        else if (w >= 1000) dist[2]++;
+        else if (w >= 100) dist[1]++;
+        else dist[0]++;
+      });
+      new Chart(document.getElementById('chart-distribution'), {
+        type: 'bar',
+        data: {
+          labels: bucketLabels,
+          datasets: [{ label: 'Packages', data: dist, backgroundColor: CHART_PALETTE.map(function (c) { return c + 'cc'; }), borderRadius: 4 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+      });
+
+      // ── Top 10 packages (horizontal bar) ──
+      var top10 = lb.slice(0, 10);
+      new Chart(document.getElementById('chart-top10'), {
+        type: 'bar',
+        data: {
+          labels: top10.map(function (r) { return r.name; }),
+          datasets: [{ label: 'Weekly', data: top10.map(function (r) { return r.week; }), backgroundColor: top10.map(function (r) { return (r.trendPct || 0) >= 0 ? CHART_PALETTE[0] + 'cc' : CHART_PALETTE[4] + 'cc'; }), borderRadius: 4 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+      });
+
+      // ── Heatmap (canvas-drawn) ──
+      var heatCanvas = document.getElementById('chart-heatmap');
+      if (heatCanvas) {
+        var withRange = lb.filter(function (r) { return r.range30 && r.range30.length === 30; }).slice(0, 15);
+        if (withRange.length > 0) {
+          var ctx = heatCanvas.getContext('2d');
+          var cellW = 18, cellH = 22, padLeft = 120, padTop = 20;
+          heatCanvas.width = padLeft + 30 * cellW + 10;
+          heatCanvas.height = padTop + withRange.length * cellH + 10;
+          heatCanvas.style.width = heatCanvas.width + 'px';
+          heatCanvas.style.height = heatCanvas.height + 'px';
+
+          var globalMax = 1;
+          withRange.forEach(function (r) { r.range30.forEach(function (v) { if (v > globalMax) globalMax = v; }); });
+
+          ctx.fillStyle = tc.dim;
+          ctx.font = '10px system-ui';
+          ctx.textAlign = 'center';
+          for (var d = 0; d < 30; d++) {
+            if (d % 5 === 0) ctx.fillText('D-' + (30 - d), padLeft + d * cellW + cellW / 2, padTop - 4);
+          }
+
+          withRange.forEach(function (pkg, row) {
+            ctx.fillStyle = tc.heading;
+            ctx.font = '11px system-ui';
+            ctx.textAlign = 'right';
+            ctx.fillText(pkg.name.substring(0, 16), padLeft - 6, padTop + row * cellH + cellH / 2 + 4);
+
+            pkg.range30.forEach(function (val, col) {
+              var intensity = Math.min(1, Number(val) / globalMax);
+              var g = Math.round(150 + intensity * 70);
+              var b = Math.round(100 - intensity * 20);
+              ctx.fillStyle = 'rgba(5, ' + g + ', ' + b + ', ' + (0.12 + intensity * 0.88).toFixed(2) + ')';
+              ctx.fillRect(padLeft + col * cellW + 1, padTop + row * cellH + 1, cellW - 2, cellH - 2);
+            });
+          });
+        } else {
+          heatCanvas.parentElement.insertBefore(
+            document.createTextNode('No 30-day range data available.'),
+            heatCanvas
+          );
+          heatCanvas.style.display = 'none';
+        }
+      }
+    }
+
+    // Expose for runtime refresh
+    window.__rpInitCharts = function () { chartsInitialized = false; initCharts(); };
+  })();
+</script>
 
 <script is:inline>
   // Runtime data loading: fetches /data/stats.json and re-renders the dashboard.
