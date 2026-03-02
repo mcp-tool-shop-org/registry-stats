@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.1.0] - 2026-03-02
+
+### Added
+- **AI chat assistant** — Ollama-powered Registry Assistant on the Home tab with RAG context injection, streaming responses, model selector, conversation memory (localStorage), typing indicator, and offline fallback
+- **Six interactive charts** (Analytics tab) — 30-day trend (aggregate / per-registry / top-5 toggles), registry share (polar area), portfolio risk (distribution histogram + Gini & P90), top-10 momentum, velocity tracker with sparklines, and 30-day heatmap with spike detection (>2σ)
+- **Smart growth engine** — baseline threshold (prev < 20 → "🚀 Emerging"), percentage cap (> 500% → "▲ 500%+"), and damped velocity formula `(curr − prev) / √(prev + k)` applied consistently across all 8 display surfaces
+- **Actionable insights panel** — auto-generated recommendations and "Needs Attention" alerts for declining packages
+- **Help tab** — human-friendly guide covering every tab, key concepts (smart growth, velocity, spike detection, health score, confidence badges), AI assistant tips, data pipeline diagram, companion tools, and useful links
+- **Setup page enhancements** — portfolio editor with validation, registry-sync companion section (install / audit / plan commands, detection grid, external links), and updated pipeline hint
+- **Chat loading UX** — animated progress bar, elapsed time counter, send button spinner, model pre-warming on connect
+- **Tabbed dashboard** — Home, Analytics, Leaderboard, and Help tabs with hash-based navigation
+
+### Fixed
+- `formatGrowth()` scope bug — function was defined in the runtime-refresh IIFE but called inside the chart-init IIFE, causing a ReferenceError that crashed the Velocity Tracker and 30-Day Heatmap
+
+### Changed
+- Dashboard restructured from single-page into four-tab layout
+- Executive snapshot upgraded with health score (0–100), Shannon diversity index, and composite metric cards
+- Leaderboard trend column now uses smart growth badges instead of raw percentages
+- Landing page updated to reflect AI-powered dashboard features
+
 ## [2.0.0] - 2026-03-02
 
 ### Added

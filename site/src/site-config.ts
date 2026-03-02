@@ -2,7 +2,7 @@ import type { SiteConfig } from '@mcptoolshop/site-theme';
 
 export const config: SiteConfig = {
   title: '@mcptoolshop/registry-stats',
-  description: 'Multi-registry download stats — engine, dashboard, and desktop app for npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub',
+  description: 'Multi-registry download stats — AI-powered dashboard, engine, and desktop app for npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub',
   logoBadge: 'RS',
   brandName: 'registry-stats',
   repoUrl: 'https://github.com/mcp-tool-shop-org/registry-stats',
@@ -12,8 +12,8 @@ export const config: SiteConfig = {
   hero: {
     badge: 'Zero dependencies · Node 18+',
     headline: 'Five registries,',
-    headlineAccent: 'one platform.',
-    description: 'Engine, dashboard, and desktop app — all from one repo. Query npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub through a single CLI, API, or live dashboard.',
+    headlineAccent: 'one AI-powered platform.',
+    description: 'Engine, AI chat assistant, six interactive charts, smart growth engine, and desktop app — all from one repo. Query npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub through a single CLI, API, or live dashboard.',
     primaryCta: { href: '/registry-stats/dashboard/', label: 'Open dashboard' },
     secondaryCta: { href: '#usage', label: 'Get started' },
     previews: [
@@ -31,11 +31,11 @@ export const config: SiteConfig = {
       subtitle: 'Three layers, one repo.',
       features: [
         { title: 'Engine', desc: 'TypeScript library + CLI + REST server. Published to npm. Zero dependencies, native fetch().' },
-        { title: 'Dashboard', desc: 'Astro-powered web app with executive snapshots, growth pulse, data health, and sparkline leaderboard.' },
+        { title: 'AI Dashboard', desc: 'Tabbed Astro app with Ollama chat assistant, six interactive Chart.js visualizations, smart growth engine, and built-in help guide.' },
         { title: 'Desktop', desc: 'WinUI 3 + WebView2 native Windows app. Offline-capable, live stats refresh, CSV export.' },
         { title: 'Five registries', desc: 'npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub — all through one interface.' },
-        { title: 'Time series', desc: 'Daily download history for npm (549 days) and PyPI (180 days) with trend detection.' },
-        { title: 'Snapshot deltas', desc: 'Week-over-week tracking for cumulative-only registries (Docker, VS Code, NuGet).' },
+        { title: 'Smart Growth', desc: 'Baseline threshold, percentage cap, and damped velocity formula eliminate misleading percentages from small-denominator distortion.' },
+        { title: 'Velocity Tracker', desc: 'Damped growth metric with sparkline visualizations and spike detection (>2σ) on a 30-day heatmap.' },
         { title: 'Bulk & comparison', desc: 'Fetch multiple packages at once or compare the same package across registries.' },
         { title: 'Export formats', desc: 'Output as CSV, Chart.js-compatible JSON, or raw data for your own dashboards.' },
         { title: 'Retry & caching', desc: 'Automatic retry with exponential backoff. 5-minute TTL cache, pluggable for Redis.' },

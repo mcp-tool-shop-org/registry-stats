@@ -40,19 +40,23 @@ Aucune dépendance d'exécution. Utilise la fonction native `fetch()`. Node 18+.
 | Couche | Fonctionnalités |
 |-------|-------------|
 | **Engine** | Bibliothèque TypeScript + CLI + serveur REST. Interrogez cinq registres avec une seule interface. Publié sur npm sous le nom `@mcptoolshop/registry-stats`. |
-| **Dashboard** | Application web basée sur Astro. Aperçus, indicateurs de croissance, état des données, classement avec des graphiques. Reconstruite chaque semaine par CI. |
+| **Dashboard** | Application web basée sur Astro. Assistant de chat IA, six graphiques interactifs, moteur de croissance intelligent et guide d'aide avec onglets. Reconstruite chaque semaine par CI. |
 | **Desktop** | Application Windows native utilisant WinUI 3 + WebView2. Inclut le tableau de bord hors ligne et récupère les statistiques en direct à la demande. |
 
 ## Tableau de bord
 
 Un tableau de bord de statistiques qui se met à jour automatiquement est disponible à l'adresse [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
 
-- **Aperçu** — récit hebdomadaire en une phrase : registre principal, paquet principal, progression la plus importante, répartition des paquets, fiabilité des données.
-- **Indicateurs de croissance** — paquets avec la progression la plus importante, les baisses les plus importantes et les nouveaux paquets actifs (npm sur 7 jours par rapport aux 7 jours précédents).
-- **État des données** — couverture par registre, badges de fiabilité (OK / partiel / manquant), détails des erreurs pouvant être développés.
-- **Évolution des données** — suivi semaine par semaine pour les registres cumulatifs uniquement (Docker, VS Code, NuGet).
-- **Classement** — tous les paquets classés par nombre de téléchargements hebdomadaires, avec des graphiques sur 30 jours pour chaque ligne.
-- **Thème clair/sombre** — suit les préférences du système.
+- **Interface à onglets** — Onglets Home, Analytics, Leaderboard et Help
+- **Assistant de chat IA** — Registry Assistant alimenté par Ollama avec contexte RAG, réponses en streaming, sélecteur de modèles et mémoire de conversation
+- **Résumé exécutif** — score de santé (0–100), indice de diversité, variation hebdomadaire, téléchargements totaux sur tous les registres
+- **Six graphiques interactifs** — tendance sur 30 jours (vue agrégée / par registre / top 5), part des registres (aire polaire), risque du portefeuille (histogramme + Gini & P90), top 10 momentum, suivi de la vélocité avec sparklines, et carte thermique 30 jours avec détection de pics (>2σ)
+- **Moteur de croissance intelligent** — gère la distorsion des petits dénominateurs avec seuil de référence, plafonnement du pourcentage et formule de vélocité amortie
+- **Perspectives exploitables** — recommandations auto-générées et alertes d'attention pour les paquets en déclin
+- **Classement** — tous les paquets classés par téléchargements hebdomadaires avec sparklines sur 30 jours et badges de tendance intelligents
+- **Page de configuration** — éditeur de portefeuille avec validation, section registry-sync et vue d'ensemble du pipeline
+- **Onglet d'aide** — guide convivial couvrant chaque onglet, les concepts clés, les conseils pour l'assistant IA, le pipeline de données et les liens utiles
+- **Thème clair/sombre** — suit les préférences du système
 
 Les données sont récupérées au moment de la construction et le tableau de bord est reconstruit chaque semaine par CI (lundi à 06h00 UTC). Configurez les paquets suivis dans `site/src/data/packages.json`.
 

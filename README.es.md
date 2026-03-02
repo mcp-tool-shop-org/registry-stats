@@ -40,19 +40,23 @@ No tiene dependencias de tiempo de ejecución. Utiliza `fetch()` nativo. Node 18
 | Capa | ¿Qué hace? |
 |-------|-------------|
 | **Engine** | Biblioteca de TypeScript + CLI + servidor REST. Consulta cinco registros con una única interfaz. Publicado en npm como `@mcptoolshop/registry-stats`. |
-| **Dashboard** | Aplicación web impulsada por Astro. Resúmenes ejecutivos, indicadores de crecimiento, estado de los datos, tabla de clasificación con gráficos. Se reconstruye semanalmente mediante CI. |
+| **Dashboard** | Aplicación web impulsada por Astro. Asistente de chat con IA, seis gráficos interactivos, motor de crecimiento inteligente y guía de ayuda con pestañas. Se reconstruye semanalmente mediante CI. |
 | **Desktop** | Aplicación nativa para Windows con WinUI 3 + WebView2. Incluye el panel sin conexión y descarga las estadísticas en tiempo real bajo demanda. |
 
 ## Panel
 
 Un panel de estadísticas que se actualiza automáticamente se encuentra en [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
 
-- **Resumen ejecutivo** — Narrativa semanal en una frase: registro principal, paquete principal, mayor crecimiento, concentración de la cartera, confianza de los datos.
-- **Indicador de crecimiento** — Paquetes con mayor crecimiento, mayor disminución y nuevos paquetes activos (npm 7 días vs. los 7 días anteriores).
-- **Estado de los datos** — Cobertura por registro, insignias de confianza (correcto / parcial / faltante), detalles de errores ampliables.
-- **Deltas de instantáneas** — Seguimiento semanal para registros solo acumulativos (Docker, VS Code, NuGet).
-- **Tabla de clasificación** — Todos los paquetes clasificados por descargas semanales con gráficos de 30 días por fila.
-- **Tema claro/oscuro** — Sigue la preferencia del sistema.
+- **Interfaz con pestañas** — Pestañas Home, Analytics, Leaderboard y Help
+- **Asistente de chat con IA** — Registry Assistant con Ollama, contexto RAG, respuestas en streaming, selector de modelos y memoria de conversación
+- **Resumen ejecutivo** — puntuación de salud (0–100), índice de diversidad, variación semanal, descargas totales de todos los registros
+- **Seis gráficos interactivos** — tendencia de 30 días (vista agregada / por registro / top 5), cuota de registro (área polar), riesgo del portafolio (histograma + Gini & P90), top 10 de momentum, rastreador de velocidad con sparklines, y mapa de calor de 30 días con detección de picos (>2σ)
+- **Motor de crecimiento inteligente** — maneja la distorsión por denominadores pequeños con umbral base, límite de porcentaje y fórmula de velocidad amortiguada
+- **Perspectivas accionables** — recomendaciones autogeneradas y alertas para paquetes en declive
+- **Tabla de clasificación** — todos los paquetes clasificados por descargas semanales con sparklines de 30 días y badges de tendencia inteligente
+- **Página de configuración** — editor de portafolio con validación, sección de registry-sync y vista general del flujo de datos
+- **Pestaña de ayuda** — guía amigable que cubre cada pestaña, conceptos clave, consejos del asistente IA, flujo de datos y enlaces útiles
+- **Tema claro/oscuro** — Sigue la preferencia del sistema
 
 Los datos se obtienen en el momento de la compilación y se reconstruyen semanalmente mediante CI (los lunes a las 06:00 UTC). Configure los paquetes rastreados en `site/src/data/packages.json`.
 

@@ -40,18 +40,22 @@ Zero runtime dependencies. Uses native `fetch()`. Node 18+.
 | Layer | What it does |
 |-------|-------------|
 | **Engine** | TypeScript library + CLI + REST server. Query five registries with one interface. Published to npm as `@mcptoolshop/registry-stats`. |
-| **Dashboard** | Astro-powered web app. Executive snapshots, growth pulse, data health, leaderboard with sparklines. Rebuilt weekly by CI. |
+| **Dashboard** | Astro-powered web app with AI chat assistant, six interactive charts, smart growth engine, and tabbed Help guide. Rebuilt weekly by CI. |
 | **Desktop** | WinUI 3 + WebView2 native Windows app. Bundles the dashboard offline, fetches live stats on demand. |
 
 ## Dashboard
 
 A self-updating stats dashboard lives at [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
 
-- **Executive snapshot** — one-sentence weekly narrative: top registry, top package, top gainer, portfolio concentration, data confidence
-- **Growth Pulse** — top gainers, decliners, and newly active packages (npm 7d vs prior 7d)
-- **Data Health** — per-registry coverage, confidence badges (ok / partial / missing), expandable error details
-- **Snapshot deltas** — week-over-week tracking for cumulative-only registries (Docker, VS Code, NuGet)
-- **Leaderboard** — all packages ranked by weekly downloads with per-row 30-day sparklines
+- **Tabbed interface** — Home, Analytics, Leaderboard, and Help tabs
+- **AI chat assistant** — Ollama-powered Registry Assistant with RAG context, streaming responses, model selector, and conversation memory
+- **Executive snapshot** — health score (0–100), diversity index, weekly change, total downloads across all registries
+- **Six interactive charts** — 30-day trend (aggregate / per-registry / top-5 toggles), registry share (polar area), portfolio risk (histogram + Gini & P90), top-10 momentum, velocity tracker with sparklines, and 30-day heatmap with spike detection (>2σ)
+- **Smart growth engine** — handles small-denominator distortion with baseline threshold, percentage cap, and damped velocity formula
+- **Actionable insights** — auto-generated recommendations and attention alerts for declining packages
+- **Leaderboard** — all packages ranked by weekly downloads with inline 30-day sparklines and smart trend badges
+- **Setup page** — portfolio editor with validation, registry-sync companion section, and pipeline overview
+- **Help tab** — human-friendly guide covering every tab, key concepts, AI assistant tips, data pipeline, and useful links
 - **Dark / light theme** — follows system preference
 
 Data is fetched at build time and rebuilt weekly by CI (Mondays 06:00 UTC). Configure tracked packages in `site/src/data/packages.json`.
