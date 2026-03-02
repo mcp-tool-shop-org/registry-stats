@@ -288,7 +288,7 @@ async function main() {
       extra: x.extra ?? null,
     }))
     .sort((a, b) => b.week - a.week || b.month - a.month || b.total - a.total)
-    .slice(0, 100);
+    .slice(0, 250);
 
   // Aggregate npm sparkline (sum daily across all npm packages)
   const sparkline30 = new Array(30).fill(0);
@@ -480,6 +480,10 @@ async function main() {
   const publicDataDir = path.join(ROOT, "public", "data");
   await fs.mkdir(publicDataDir, { recursive: true });
   await fs.writeFile(path.join(publicDataDir, "stats.json"), jsonStr, "utf8");
+
+  // Also copy the package manifest so the live refresh engine can discover all packages
+  const manifestStr = await fs.readFile(MANIFEST_PATH, "utf8");
+  await fs.writeFile(path.join(publicDataDir, "packages.json"), manifestStr, "utf8");
 
   const errCount = errors.length;
   console.log(`\n  Wrote ${path.relative(ROOT, OUT_PATH)} (${leaderboard.length} packages, ${errCount} errors)`);

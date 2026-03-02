@@ -2495,20 +2495,39 @@ const chatContext = !missing && data ? JSON.stringify({
       refreshBtn.innerHTML = '\u23F3 Refreshing\u2026';
 
       try {
-        setStatus('Loading baseline\u2026');
+        setStatus('Loading package manifest\u2026');
         var bm = document.querySelector('meta[name="base-url"]');
         var bp = (bm ? bm.getAttribute('content') : '/registry-stats') + '/';
+
+        // Fetch the canonical package manifest for the full list
+        var mRes = await fetch(bp + 'data/packages.json?_=' + Date.now());
+        var manifest = mRes.ok ? await mRes.json() : null;
+
+        // Also fetch baseline stats.json for non-CORS registries (vscode, nuget, docker)
         var bRes = await fetch(bp + 'data/stats.json?_=' + Date.now());
-        if (!bRes.ok) throw new Error('No baseline data');
-        var base = await bRes.json();
-        if (!base.leaderboard) throw new Error('Invalid baseline');
+        var base = bRes.ok ? await bRes.json() : null;
 
         var npmPkgs = [], pypiPkgs = [], others = [];
-        base.leaderboard.forEach(function (r) {
-          if (r.registry === 'npm') npmPkgs.push(r.name);
-          else if (r.registry === 'pypi') pypiPkgs.push(r.name);
-          else others.push(r);
-        });
+        if (manifest && (manifest.npm || manifest.pypi)) {
+          // Use manifest as the source of truth
+          npmPkgs = manifest.npm || [];
+          pypiPkgs = manifest.pypi || [];
+          // For non-CORS registries, keep build-time data from stats.json
+          if (base && base.leaderboard) {
+            base.leaderboard.forEach(function (r) {
+              if (r.registry !== 'npm' && r.registry !== 'pypi') others.push(r);
+            });
+          }
+        } else if (base && base.leaderboard) {
+          // Fallback: extract from stats.json leaderboard (old behaviour)
+          base.leaderboard.forEach(function (r) {
+            if (r.registry === 'npm') npmPkgs.push(r.name);
+            else if (r.registry === 'pypi') pypiPkgs.push(r.name);
+            else others.push(r);
+          });
+        } else {
+          throw new Error('No package data available');
+        }
 
         // ── npm 30-day ranges (gives daily + weekly + monthly) ──
         setStatus('Fetching npm data (' + npmPkgs.length + ' packages)\u2026');
