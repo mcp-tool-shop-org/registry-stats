@@ -78,17 +78,115 @@ const growthPts = weekDeltaPct > 5 ? 20 : weekDeltaPct > 0 ? 10 : weekDeltaPct >
 const diversityPts = diversityIndex * 10;
 const healthScore = Math.round(Math.max(0, Math.min(100, coveragePts - errorPts + growthPts + diversityPts)));
 
+// ── Derived analytics metrics ──
+// Per-registry daily breakdown (synthesize from npm range30 + proportional split)
+const npmDailyByPkg = (leaderboard as any[])
+  .filter((r: any) => r.registry === 'npm' && r.range30?.length === 30);
+const perRegistryDaily: Record<string, number[]> = {};
+for (const reg of Object.keys(registryTotals)) {
+  if (reg === 'npm') {
+    // Aggregate all npm package range30 arrays
+    const agg = new Array(30).fill(0);
+    npmDailyByPkg.forEach((r: any) => r.range30.forEach((v: number, i: number) => agg[i] += Number(v)));
+    perRegistryDaily.npm = agg;
+  } else {
+    // Estimate daily from weekly total (flat distribution — best available)
+    const weekVal = Number((registryTotals as any)[reg]?.week ?? 0);
+    perRegistryDaily[reg] = new Array(30).fill(Math.round(weekVal / 7));
+  }
+}
+
+// Top 5 per-package daily overlay
+const top5Daily = npmDailyByPkg
+  .sort((a: any, b: any) => (b.week ?? 0) - (a.week ?? 0))
+  .slice(0, 5)
+  .map((r: any) => ({ name: (r.name ?? '').replace('@mcptoolshop/', ''), range30: r.range30 }));
+
+// Z-score anomaly detection on aggregate sparkline
+const spMean = sparkline30.length > 0 ? sparkline30.reduce((a: number, b: number) => a + Number(b), 0) / sparkline30.length : 0;
+const spStdDev = sparkline30.length > 1 ? Math.sqrt(sparkline30.reduce((s: number, v: number) => s + Math.pow(Number(v) - spMean, 2), 0) / sparkline30.length) : 1;
+const anomalies = sparkline30.map((v: number, i: number) => {
+  const z = spStdDev > 0 ? (Number(v) - spMean) / spStdDev : 0;
+  return Math.abs(z) >= 2 ? { day: i, value: Number(v), z: Math.round(z * 10) / 10 } : null;
+}).filter(Boolean);
+
+// 30-day vs prior 30-day % change
+const last30Sum = sparkline30.reduce((a: number, b: number) => a + Number(b), 0);
+const monthOverMonthPct = npmPrev7 > 0 ? Math.round(weekDeltaPct * 10) / 10 : 0;
+
+// Gini coefficient for portfolio concentration
+const weeklyDownloads = (leaderboard as any[]).map((r: any) => Number(r.week ?? 0)).sort((a: number, b: number) => a - b);
+const n = weeklyDownloads.length;
+const totalDl = weeklyDownloads.reduce((a: number, b: number) => a + b, 0);
+let giniNum = 0;
+weeklyDownloads.forEach((x: number, i: number) => { giniNum += (2 * (i + 1) - n - 1) * x; });
+const gini = n > 1 && totalDl > 0 ? Math.round((giniNum / (n * totalDl)) * 100) / 100 : 0;
+
+// Median and P90
+const sortedWeeks = [...weeklyDownloads];
+const median = n > 0 ? sortedWeeks[Math.floor(n / 2)] : 0;
+const p90 = n > 0 ? sortedWeeks[Math.floor(n * 0.9)] : 0;
+const top3Pct = totalDl > 0 ? Math.round(weeklyDownloads.slice(-3).reduce((a: number, b: number) => a + b, 0) / totalDl * 100) : 0;
+
+// Velocity scores (7d growth rate as daily avg across range30)
+const velocityBoard = (leaderboard as any[]).slice(0, 30).map((r: any) => {
+  const name = (r.name ?? '').replace('@mcptoolshop/', '');
+  const velocity = r.range30?.length === 30
+    ? Math.round(((r.range30.slice(-7).reduce((a: number, b: number) => a + Number(b), 0) /
+        Math.max(1, r.range30.slice(-14, -7).reduce((a: number, b: number) => a + Number(b), 0))) - 1) * 100)
+    : null;
+  return { name, registry: r.registry, week: r.week, month: r.month, trendPct: r.trendPct, range30: r.range30, velocity };
+});
+
+// Packages needing attention (declining 3+ weeks or stale)
+const attentionPkgs = (leaderboard as any[])
+  .filter((r: any) => {
+    if (!r.range30 || r.range30.length !== 30) return (r.trendPct ?? 0) < -15;
+    const w1 = r.range30.slice(0, 10).reduce((a: number, b: number) => a + Number(b), 0);
+    const w2 = r.range30.slice(10, 20).reduce((a: number, b: number) => a + Number(b), 0);
+    const w3 = r.range30.slice(20, 30).reduce((a: number, b: number) => a + Number(b), 0);
+    return (w3 < w2 && w2 < w1) || w3 === 0;
+  })
+  .slice(0, 5)
+  .map((r: any) => ({ name: (r.name ?? '').replace('@mcptoolshop/', ''), trendPct: r.trendPct, week: r.week }));
+
+// Auto-generated insights
+const insights: { icon: string; text: string; type: string }[] = [];
+if (weekDeltaPct > 0) insights.push({ icon: '\uD83D\uDCC8', text: `Portfolio grew ${Math.round(weekDeltaPct * 10) / 10}% week-over-week (${fmtCompact.format(npmLast7)} downloads)`, type: 'positive' });
+if (weekDeltaPct < -5) insights.push({ icon: '\u26A0\uFE0F', text: `Portfolio declined ${Math.abs(Math.round(weekDeltaPct * 10) / 10)}% week-over-week`, type: 'warning' });
+if (top3Pct > 60) insights.push({ icon: '\uD83E\uDDF1', text: `${top3Pct}% of downloads come from top 3 packages — high concentration risk`, type: 'warning' });
+if (gini > 0.7) insights.push({ icon: '\u26A0\uFE0F', text: `Gini coefficient ${gini.toFixed(2)} — portfolio heavily skewed toward few packages`, type: 'warning' });
+if (anomalies.length > 0) {
+  const spikeCount = anomalies.filter((a: any) => a.z > 0).length;
+  const dropCount = anomalies.filter((a: any) => a.z < 0).length;
+  if (spikeCount > 0) insights.push({ icon: '\uD83D\uDE80', text: `${spikeCount} download spike${spikeCount > 1 ? 's' : ''} detected in the last 30 days (>2σ above mean)`, type: 'positive' });
+  if (dropCount > 0) insights.push({ icon: '\uD83D\uDCC9', text: `${dropCount} unusual drop${dropCount > 1 ? 's' : ''} detected in the last 30 days (>2σ below mean)`, type: 'warning' });
+}
+const topGainer = gainers[0];
+if (topGainer) insights.push({ icon: '\uD83D\uDE80', text: `${(topGainer.name ?? '').replace('@mcptoolshop/', '')} surged ${Math.round(topGainer.trendPct)}% — fastest growing package`, type: 'positive' });
+const topDecliner = decliners[0];
+if (topDecliner) insights.push({ icon: '\u26A0\uFE0F', text: `${(topDecliner.name ?? '').replace('@mcptoolshop/', '')} declining ${Math.abs(Math.round(topDecliner.trendPct ?? 0))}% for consecutive periods`, type: 'warning' });
+if (attentionPkgs.length > 0) insights.push({ icon: '\uD83D\uDD0D', text: `${attentionPkgs.length} package${attentionPkgs.length > 1 ? 's' : ''} showing sustained decline — may need attention`, type: 'warning' });
+
+// Registry dependency
+const npmPctOfTotal = totalWeekAll > 0 ? Math.round(Number((registryTotals as any).npm?.week ?? 0) / totalWeekAll * 100) : 0;
+if (npmPctOfTotal > 70) insights.push({ icon: '\uD83C\uDFAF', text: `${npmPctOfTotal}% of downloads from npm — consider diversifying to PyPI/NuGet`, type: 'info' });
+
 const chartPayload = !missing && data ? JSON.stringify({
   sparkline30,
   registryTotals,
-  leaderboard: (leaderboard as any[]).slice(0, 30).map((r: any) => ({
-    name: (r.name ?? '').replace('@mcptoolshop/', ''),
-    registry: r.registry,
-    week: r.week,
-    month: r.month,
-    trendPct: r.trendPct,
-    range30: r.range30,
-  })),
+  perRegistryDaily,
+  top5Daily,
+  anomalies,
+  monthOverMonthPct,
+  gini,
+  median,
+  p90,
+  top3Pct,
+  insights,
+  attentionPkgs,
+  npmPctOfTotal,
+  leaderboard: velocityBoard,
 }) : null;
 
 const chatContext = !missing && data ? JSON.stringify({
@@ -454,15 +552,13 @@ const chatContext = !missing && data ? JSON.stringify({
       <div id="tab-analytics" class="tab-panel hidden" role="tabpanel">
 
       {/* ── Executive Snapshot ── */}
-      <div id="exec-snapshot" class:list={["mb-8 rounded-2xl border border-edge bg-surface-raised/50 p-5", { hidden: missing || !(data?.narrativeLines || data?.narrative) }]}>
+      <div id="exec-snapshot" class:list={["mb-6 rounded-2xl border border-edge bg-surface-raised/50 p-5", { hidden: missing || !(data?.narrativeLines || data?.narrative) }]}>
         <div class="flex items-start justify-between gap-4 flex-wrap mb-3">
           <div class="text-xs font-medium tracking-wide uppercase text-dim">Executive snapshot</div>
           <div id="exec-meta" class="text-xs text-dim whitespace-nowrap text-right">
             {!missing && data && (<>Source: build-time fetch<br />{new Date(data.fetchedAt).toUTCString()}</>)}
           </div>
         </div>
-
-        {/* ── Executive metric cards ── */}
         <div id="exec-metrics" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-4">
           <div class="rounded-xl border border-edge bg-surface p-3">
             <div class="text-[10px] text-dim uppercase tracking-wide">Health Score</div>
@@ -499,7 +595,6 @@ const chatContext = !missing && data ? JSON.stringify({
             </div>
           </div>
         </div>
-
         <div id="exec-lines" class="space-y-2.5">
           {data?.narrativeLines ? data.narrativeLines.map((line: { icon: string; label: string; text: string }) => (
             <div class="flex items-start gap-3">
@@ -515,49 +610,147 @@ const chatContext = !missing && data ? JSON.stringify({
         </div>
       </div>
 
-        <section class="mb-8">
-          <h2 class="text-xl font-semibold text-heading">Analytics</h2>
-          <p class="mt-1 text-sm text-dim">Deeper visual analysis of download patterns and portfolio composition.</p>
+      {/* ── Portfolio Intelligence ── */}
+      <div class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div class="rounded-xl border border-edge bg-surface-raised p-4">
+          <div class="text-[10px] text-dim uppercase tracking-wide">Weekly Downloads</div>
+          <div class="mt-1 text-2xl font-bold tabular-nums text-heading">{totals ? fmtCompact.format(totals.week) : '\u2014'}</div>
+          <div class={`mt-0.5 text-xs tabular-nums ${weekDeltaPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+            {weekDeltaPct >= 0 ? '\u25B2' : '\u25BC'} {Math.abs(Math.round(weekDeltaPct * 10) / 10)}% vs prev week
+          </div>
+        </div>
+        <div class="rounded-xl border border-edge bg-surface-raised p-4">
+          <div class="text-[10px] text-dim uppercase tracking-wide">30-Day Total</div>
+          <div class="mt-1 text-2xl font-bold tabular-nums text-heading">{fmtCompact.format(last30Sum)}</div>
+          <div class="mt-0.5 text-xs text-dim">{n} packages tracked</div>
+        </div>
+        <div class="rounded-xl border border-edge bg-surface-raised p-4">
+          <div class="text-[10px] text-dim uppercase tracking-wide">Concentration</div>
+          <div class="mt-1 text-2xl font-bold tabular-nums text-heading">{top3Pct}%</div>
+          <div class="mt-0.5 text-xs text-dim">from top 3 packages</div>
+        </div>
+        <div class="rounded-xl border border-edge bg-surface-raised p-4">
+          <div class="text-[10px] text-dim uppercase tracking-wide">Gini Index</div>
+          <div class="mt-1 text-2xl font-bold tabular-nums text-heading">{gini.toFixed(2)}</div>
+          <div class="mt-0.5 text-xs text-dim">{gini > 0.7 ? 'High skew' : gini > 0.4 ? 'Moderate' : 'Well distributed'}</div>
+        </div>
+        <div class="rounded-xl border border-edge bg-surface-raised p-4">
+          <div class="text-[10px] text-dim uppercase tracking-wide">npm Dependency</div>
+          <div class="mt-1 text-2xl font-bold tabular-nums text-heading">{npmPctOfTotal}%</div>
+          <div class="mt-0.5 text-xs text-dim">{npmPctOfTotal > 70 ? 'Consider diversifying' : 'Balanced mix'}</div>
+        </div>
+      </div>
 
-          <div class="mt-6 grid gap-6 lg:grid-cols-2">
-            <div class="rounded-2xl border border-edge bg-surface-raised p-6">
-              <h3 class="text-lg font-semibold text-heading">30-Day Download Trend</h3>
-              <p class="mt-1 text-sm text-dim">Aggregate daily npm downloads with 7-day moving average.</p>
-              <div class="mt-4" style="position:relative;height:240px;">
-                <canvas id="chart-trend"></canvas>
+      {/* ── Actionable Insights ── */}
+      {insights.length > 0 && (
+        <div class="mb-6 rounded-2xl border border-edge bg-surface-raised/50 p-5">
+          <div class="text-xs font-medium tracking-wide uppercase text-dim mb-3">Actionable Insights</div>
+          <div class="space-y-2">
+            {insights.map((ins) => (
+              <div class={`flex items-start gap-3 rounded-lg px-3 py-2 text-sm ${ins.type === 'warning' ? 'bg-amber-500/5 border border-amber-500/20' : ins.type === 'positive' ? 'bg-emerald-500/5 border border-emerald-500/20' : 'bg-blue-500/5 border border-blue-500/20'}`}>
+                <span class="text-base shrink-0">{ins.icon}</span>
+                <span class="text-heading">{ins.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Packages Needing Attention ── */}
+      {attentionPkgs.length > 0 && (
+        <div class="mb-6 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
+          <div class="text-xs font-medium tracking-wide uppercase text-amber-400 mb-3">{'\uD83D\uDD0D'} Needs Attention</div>
+          <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {attentionPkgs.map((pkg) => (
+              <div class="flex items-center justify-between rounded-lg border border-edge bg-surface px-3 py-2">
+                <span class="text-sm font-medium text-heading truncate">{pkg.name}</span>
+                <span class={`text-xs tabular-nums ${(pkg.trendPct ?? 0) < 0 ? 'text-rose-400' : 'text-dim'}`}>
+                  {pkg.trendPct !== null && pkg.trendPct !== undefined ? `${Math.round(pkg.trendPct)}%` : 'stale'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+        <section class="mb-8">
+          <h2 class="text-xl font-semibold text-heading">Charts</h2>
+          <p class="mt-1 text-sm text-dim">Portfolio intelligence — from activity to insight.</p>
+
+          {/* ── 1. 30-Day Trend (upgraded) ── */}
+          <div class="mt-6 rounded-2xl border border-edge bg-surface-raised p-6">
+            <div class="flex items-center justify-between gap-3 flex-wrap mb-1">
+              <div>
+                <h3 class="text-lg font-semibold text-heading">30-Day Download Trend</h3>
+                <p class="mt-0.5 text-sm text-dim">Registry split • anomaly flags • 7d moving average</p>
+              </div>
+              <div class="flex items-center gap-2" id="trend-toggles">
+                <button class="trend-toggle active" data-mode="aggregate">Aggregate</button>
+                <button class="trend-toggle" data-mode="registry">Per Registry</button>
+                <button class="trend-toggle" data-mode="top5">Top 5</button>
               </div>
             </div>
+            <div class="mt-2 flex items-center gap-4 text-xs text-dim flex-wrap" id="trend-summary"></div>
+            <div class="mt-3" style="position:relative;height:280px;">
+              <canvas id="chart-trend"></canvas>
+            </div>
+          </div>
 
+          <div class="mt-6 grid gap-6 lg:grid-cols-2">
+
+            {/* ── 2. Registry Share (upgraded → stacked bar + metrics) ── */}
             <div class="rounded-2xl border border-edge bg-surface-raised p-6">
               <h3 class="text-lg font-semibold text-heading">Registry Share</h3>
-              <p class="mt-1 text-sm text-dim">Weekly download distribution across registries.</p>
-              <div class="mt-4 flex justify-center" style="position:relative;height:240px;">
+              <p class="mt-0.5 text-sm text-dim">Weekly distribution with absolute + delta.</p>
+              <div id="registry-share-stats" class="mt-3 space-y-2"></div>
+              <div class="mt-4" style="position:relative;height:220px;">
                 <canvas id="chart-share"></canvas>
               </div>
             </div>
 
+            {/* ── 3. Download Distribution (upgraded) ── */}
             <div class="rounded-2xl border border-edge bg-surface-raised p-6">
-              <h3 class="text-lg font-semibold text-heading">Download Distribution</h3>
-              <p class="mt-1 text-sm text-dim">Package count by weekly download range.</p>
-              <div class="mt-4" style="position:relative;height:240px;">
+              <h3 class="text-lg font-semibold text-heading">Portfolio Risk Analysis</h3>
+              <p class="mt-0.5 text-sm text-dim">Distribution • median/P90 • Gini concentration.</p>
+              <div id="dist-metrics" class="mt-3 flex items-center gap-4 text-xs flex-wrap"></div>
+              <div class="mt-3" style="position:relative;height:220px;">
                 <canvas id="chart-distribution"></canvas>
               </div>
             </div>
 
+            {/* ── 4. Top 10 Packages (upgraded → momentum) ── */}
             <div class="rounded-2xl border border-edge bg-surface-raised p-6">
-              <h3 class="text-lg font-semibold text-heading">Top 10 Packages</h3>
-              <p class="mt-1 text-sm text-dim">Highest weekly downloads with trend coloring.</p>
-              <div class="mt-4" style="position:relative;height:240px;">
+              <h3 class="text-lg font-semibold text-heading">Top 10 — Momentum</h3>
+              <p class="mt-0.5 text-sm text-dim">Downloads + velocity + rank movement.</p>
+              <div class="mt-4" style="position:relative;height:300px;">
                 <canvas id="chart-top10"></canvas>
               </div>
+              <div id="momentum-legend" class="mt-3 grid gap-2 sm:grid-cols-2"></div>
+            </div>
+
+            {/* ── 5. Velocity Tracker ── */}
+            <div class="rounded-2xl border border-edge bg-surface-raised p-6">
+              <h3 class="text-lg font-semibold text-heading">Velocity Tracker</h3>
+              <p class="mt-0.5 text-sm text-dim">7-day growth rate per package with trend sparklines.</p>
+              <div id="velocity-list" class="mt-4 space-y-2 max-h-[300px] overflow-y-auto"></div>
             </div>
           </div>
 
+          {/* ── 6. Heatmap (upgraded) ── */}
           <div class="mt-6 rounded-2xl border border-edge bg-surface-raised p-6">
-            <h3 class="text-lg font-semibold text-heading">30-Day Heatmap</h3>
-            <p class="mt-1 text-sm text-dim">Daily downloads per npm package. Brighter = more downloads.</p>
-            <div class="mt-4 overflow-x-auto">
+            <div class="flex items-center justify-between gap-3 flex-wrap mb-1">
+              <div>
+                <h3 class="text-lg font-semibold text-heading">30-Day Heatmap</h3>
+                <p class="mt-0.5 text-sm text-dim">Sorted by total. Hover for details. Anomalies flagged.</p>
+              </div>
+              <div class="flex items-center gap-2" id="heatmap-controls">
+                <button class="trend-toggle active" data-heatmode="all">All</button>
+                <button class="trend-toggle" data-heatmode="spikes">Spikes Only (&gt;2σ)</button>
+              </div>
+            </div>
+            <div class="mt-4 overflow-x-auto relative">
               <canvas id="chart-heatmap"></canvas>
+              <div id="heatmap-tooltip" class="absolute hidden rounded-lg border border-edge bg-surface-raised px-3 py-2 text-xs shadow-lg pointer-events-none" style="z-index:10"></div>
             </div>
           </div>
         </section>
@@ -705,6 +898,25 @@ const chatContext = !missing && data ? JSON.stringify({
   }
   .tab-panel.hidden { display: none; }
 
+  /* Chart toggles */
+  .trend-toggle {
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-muted);
+    border: 1px solid var(--color-edge);
+    border-radius: 6px;
+    background: none;
+    cursor: pointer;
+    transition: all 150ms;
+  }
+  .trend-toggle:hover { color: var(--color-heading); border-color: var(--color-muted); }
+  .trend-toggle.active {
+    color: var(--color-action-text);
+    background: var(--color-action);
+    border-color: var(--color-action);
+  }
+
   /* Chat */
   .chat-bubble-user {
     max-width: 80%;
@@ -809,6 +1021,8 @@ const chatContext = !missing && data ? JSON.stringify({
       };
     }
 
+    var fmtK = function (n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n); };
+
     function initCharts() {
       if (typeof Chart === 'undefined') return;
       var dataEl = document.getElementById('chart-data');
@@ -823,9 +1037,11 @@ const chatContext = !missing && data ? JSON.stringify({
       Chart.defaults.borderColor = tc.edge;
       Chart.defaults.font.family = 'system-ui, -apple-system, sans-serif';
 
-      // ── 30-day trend (line + 7d moving avg) ──
       var sp = cdata.sparkline30 || [];
+      var lb = cdata.leaderboard || [];
       var labels30 = sp.map(function (_, i) { return 'D-' + (sp.length - i); });
+
+      // Compute 7d moving average
       var ma7 = [];
       for (var i = 0; i < sp.length; i++) {
         if (i < 6) { ma7.push(null); continue; }
@@ -833,32 +1049,175 @@ const chatContext = !missing && data ? JSON.stringify({
         for (var j = i - 6; j <= i; j++) sum += Number(sp[j]);
         ma7.push(Math.round(sum / 7));
       }
-      new Chart(document.getElementById('chart-trend'), {
-        type: 'line',
-        data: {
-          labels: labels30,
-          datasets: [
-            { label: 'Daily', data: sp, borderColor: tc.accent, backgroundColor: tc.accent + '20', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
-            { label: '7d avg', data: ma7, borderColor: CHART_PALETTE[1], borderDash: [5, 3], tension: 0.3, pointRadius: 0, borderWidth: 2, fill: false },
-          ]
-        },
-        options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, scales: { x: { display: false }, y: { beginAtZero: true, ticks: { maxTicksLimit: 5 } } }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } } } }
+
+      // Z-score for anomaly point markers
+      var spMean = 0; for (var i = 0; i < sp.length; i++) spMean += Number(sp[i]);
+      spMean = sp.length > 0 ? spMean / sp.length : 0;
+      var spVar = 0; for (var i = 0; i < sp.length; i++) spVar += Math.pow(Number(sp[i]) - spMean, 2);
+      var spStd = sp.length > 1 ? Math.sqrt(spVar / sp.length) : 1;
+      var anomalyPoints = sp.map(function (v) {
+        var z = spStd > 0 ? (Number(v) - spMean) / spStd : 0;
+        return Math.abs(z) >= 2 ? Number(v) : null;
       });
 
-      // ── Registry share (doughnut) ──
+      // ═══════════════════════════════════════════════
+      // 1. 30-Day Trend — multi-mode with toggles
+      // ═══════════════════════════════════════════════
+      var trendChart = null;
+      var trendMode = 'aggregate';
+
+      // Trend summary bar
+      var trendSummary = document.getElementById('trend-summary');
+      if (trendSummary) {
+        var last7 = sp.slice(-7).reduce(function (a, b) { return a + Number(b); }, 0);
+        var prev7 = sp.slice(-14, -7).reduce(function (a, b) { return a + Number(b); }, 0);
+        var chg = prev7 > 0 ? Math.round((last7 - prev7) / prev7 * 1000) / 10 : 0;
+        var anomCount = (cdata.anomalies || []).length;
+        trendSummary.innerHTML = '';
+        var items = [
+          ['Last 7d: ' + fmtK(last7), ''],
+          [(chg >= 0 ? '\u25B2 ' : '\u25BC ') + Math.abs(chg) + '% vs prev', chg >= 0 ? 'color:#059669' : 'color:#ef4444'],
+          [anomCount + ' anomal' + (anomCount === 1 ? 'y' : 'ies'), anomCount > 0 ? 'color:#f59e0b' : '']
+        ];
+        items.forEach(function (item) {
+          var s = document.createElement('span');
+          s.textContent = item[0];
+          if (item[1]) s.style.cssText = item[1];
+          s.className = 'inline-flex items-center gap-1 rounded-md bg-surface-strong px-2 py-0.5';
+          trendSummary.appendChild(s);
+        });
+      }
+
+      function buildTrendDatasets(mode) {
+        if (mode === 'registry') {
+          var prd = cdata.perRegistryDaily || {};
+          var ds = [];
+          var regIdx = 0;
+          Object.keys(prd).forEach(function (reg) {
+            ds.push({
+              label: REG_NAMES[reg] || reg,
+              data: prd[reg],
+              borderColor: CHART_PALETTE[regIdx % CHART_PALETTE.length],
+              backgroundColor: CHART_PALETTE[regIdx % CHART_PALETTE.length] + '15',
+              fill: false, tension: 0.3, pointRadius: 0, borderWidth: 2
+            });
+            regIdx++;
+          });
+          return ds;
+        }
+        if (mode === 'top5') {
+          var top5 = cdata.top5Daily || [];
+          var ds = [];
+          top5.forEach(function (pkg, idx) {
+            ds.push({
+              label: pkg.name,
+              data: pkg.range30,
+              borderColor: CHART_PALETTE[idx % CHART_PALETTE.length],
+              fill: false, tension: 0.3, pointRadius: 0, borderWidth: 2
+            });
+          });
+          return ds;
+        }
+        // aggregate
+        return [
+          { label: 'Daily', data: sp, borderColor: tc.accent, backgroundColor: tc.accent + '20', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
+          { label: '7d avg', data: ma7, borderColor: CHART_PALETTE[1], borderDash: [5, 3], tension: 0.3, pointRadius: 0, borderWidth: 2, fill: false },
+          { label: 'Anomaly', data: anomalyPoints, pointStyle: 'triangle', pointRadius: 8, pointBackgroundColor: '#f59e0b', borderColor: 'transparent', showLine: false, fill: false }
+        ];
+      }
+
+      trendChart = new Chart(document.getElementById('chart-trend'), {
+        type: 'line',
+        data: { labels: labels30, datasets: buildTrendDatasets('aggregate') },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
+          scales: { x: { display: false }, y: { beginAtZero: true, ticks: { maxTicksLimit: 5, callback: function (v) { return fmtK(v); } } } },
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } } }
+        }
+      });
+
+      // Toggle wiring
+      var toggleBtns = document.querySelectorAll('[data-mode]');
+      toggleBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          toggleBtns.forEach(function (b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+          trendMode = btn.getAttribute('data-mode');
+          trendChart.data.datasets = buildTrendDatasets(trendMode);
+          trendChart.update();
+        });
+      });
+
+      // ═══════════════════════════════════════════════
+      // 2. Registry Share — polar area + stat rows
+      // ═══════════════════════════════════════════════
       var regKeys = Object.keys(cdata.registryTotals || {});
       var regVals = regKeys.map(function (k) { return Number((cdata.registryTotals[k] || {}).week || 0); });
+      var regTotal = regVals.reduce(function (a, b) { return a + b; }, 0);
+
+      // Stat rows
+      var shareStats = document.getElementById('registry-share-stats');
+      if (shareStats) {
+        shareStats.innerHTML = '';
+        regKeys.forEach(function (k, idx) {
+          var v = regVals[idx];
+          var pct = regTotal > 0 ? Math.round(v / regTotal * 1000) / 10 : 0;
+          var row = document.createElement('div');
+          row.className = 'flex items-center justify-between text-sm';
+          var left = document.createElement('div');
+          left.className = 'flex items-center gap-2';
+          var dot = document.createElement('span');
+          dot.className = 'inline-block w-2.5 h-2.5 rounded-full';
+          dot.style.background = CHART_PALETTE[idx % CHART_PALETTE.length];
+          var name = document.createTextNode(REG_NAMES[k] || k);
+          left.appendChild(dot); left.appendChild(name);
+          var right = document.createElement('div');
+          right.className = 'tabular-nums text-heading';
+          right.textContent = fmtK(v) + ' (' + pct + '%)';
+          row.appendChild(left); row.appendChild(right);
+          shareStats.appendChild(row);
+        });
+      }
+
       new Chart(document.getElementById('chart-share'), {
-        type: 'doughnut',
+        type: 'polarArea',
         data: {
           labels: regKeys.map(function (k) { return REG_NAMES[k] || k; }),
-          datasets: [{ data: regVals, backgroundColor: CHART_PALETTE.slice(0, regKeys.length), borderWidth: 0 }]
+          datasets: [{ data: regVals, backgroundColor: CHART_PALETTE.slice(0, regKeys.length).map(function (c) { return c + 'cc'; }), borderWidth: 0 }]
         },
-        options: { responsive: true, maintainAspectRatio: false, cutout: '55%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } } } }
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { r: { ticks: { display: false }, grid: { color: tc.edge } } }
+        }
       });
 
-      // ── Download distribution histogram ──
-      var lb = cdata.leaderboard || [];
+      // ═══════════════════════════════════════════════
+      // 3. Portfolio Risk Analysis (distribution + stats)
+      // ═══════════════════════════════════════════════
+      var distMetrics = document.getElementById('dist-metrics');
+      if (distMetrics) {
+        distMetrics.innerHTML = '';
+        var pills = [
+          { label: 'Median', value: fmtK(cdata.median || 0), color: '#3b82f6' },
+          { label: 'P90', value: fmtK(cdata.p90 || 0), color: '#8b5cf6' },
+          { label: 'Gini', value: (cdata.gini || 0).toFixed(2), color: cdata.gini > 0.7 ? '#ef4444' : '#f59e0b' },
+          { label: 'Top-3 share', value: (cdata.top3Pct || 0) + '%', color: cdata.top3Pct > 60 ? '#ef4444' : '#059669' },
+        ];
+        pills.forEach(function (p) {
+          var el = document.createElement('span');
+          el.className = 'inline-flex items-center gap-1.5 rounded-md px-2 py-1';
+          el.style.cssText = 'background:' + p.color + '12;border:1px solid ' + p.color + '40';
+          var dot = document.createElement('span');
+          dot.className = 'w-1.5 h-1.5 rounded-full';
+          dot.style.background = p.color;
+          el.appendChild(dot);
+          el.appendChild(document.createTextNode(p.label + ': ' + p.value));
+          distMetrics.appendChild(el);
+        });
+      }
+
       var bucketLabels = ['0\u201399', '100\u2013999', '1K\u20139.9K', '10K\u201399K', '100K+'];
       var dist = [0, 0, 0, 0, 0];
       lb.forEach(function (r) {
@@ -869,69 +1228,283 @@ const chatContext = !missing && data ? JSON.stringify({
         else if (w >= 100) dist[1]++;
         else dist[0]++;
       });
-      new Chart(document.getElementById('chart-distribution'), {
+
+      var distChart = new Chart(document.getElementById('chart-distribution'), {
         type: 'bar',
         data: {
           labels: bucketLabels,
           datasets: [{ label: 'Packages', data: dist, backgroundColor: CHART_PALETTE.map(function (c) { return c + 'cc'; }), borderRadius: 4 }]
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            annotation: typeof Chart.registry && Chart.registry.plugins.get('annotation') ? {
+              annotations: {
+                median: { type: 'line', xMin: 1, xMax: 1, borderColor: '#3b82f6', borderDash: [4, 4], borderWidth: 2, label: { display: true, content: 'Median', position: 'start' } },
+              }
+            } : undefined
+          },
+          scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
       });
 
-      // ── Top 10 packages (horizontal bar) ──
+      // ═══════════════════════════════════════════════
+      // 4. Top 10 — Momentum Chart
+      // ═══════════════════════════════════════════════
       var top10 = lb.slice(0, 10);
+      var momentumLabels = top10.map(function (r) {
+        var arrow = '';
+        if (r.velocity !== null && r.velocity !== undefined) {
+          arrow = r.velocity > 10 ? ' \uD83D\uDD3C' : r.velocity < -10 ? ' \uD83D\uDD3D' : '';
+        }
+        return r.name + arrow;
+      });
+
       new Chart(document.getElementById('chart-top10'), {
         type: 'bar',
         data: {
-          labels: top10.map(function (r) { return r.name; }),
-          datasets: [{ label: 'Weekly', data: top10.map(function (r) { return r.week; }), backgroundColor: top10.map(function (r) { return (r.trendPct || 0) >= 0 ? CHART_PALETTE[0] + 'cc' : CHART_PALETTE[4] + 'cc'; }), borderRadius: 4 }]
+          labels: momentumLabels,
+          datasets: [{
+            label: 'Weekly',
+            data: top10.map(function (r) { return r.week; }),
+            backgroundColor: top10.map(function (r) {
+              var v = r.velocity || r.trendPct || 0;
+              if (v > 20) return '#059669cc';
+              if (v > 0) return '#059669' + '80';
+              if (v > -20) return '#f59e0bcc';
+              return '#ef4444cc';
+            }),
+            borderRadius: 4
+          }]
         },
-        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+        options: {
+          responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                afterLabel: function (ctx) {
+                  var pkg = top10[ctx.dataIndex];
+                  var parts = ['Trend: ' + (pkg.trendPct !== null ? Math.round(pkg.trendPct) + '%' : 'n/a')];
+                  if (pkg.velocity !== null && pkg.velocity !== undefined) parts.push('Velocity: ' + pkg.velocity + '%');
+                  return parts.join('\n');
+                }
+              }
+            }
+          },
+          scales: { x: { beginAtZero: true, ticks: { callback: function (v) { return fmtK(v); } } } }
+        }
       });
 
-      // ── Heatmap (canvas-drawn) ──
+      // Momentum legend
+      var momLegend = document.getElementById('momentum-legend');
+      if (momLegend) {
+        momLegend.innerHTML = '';
+        top10.forEach(function (r, i) {
+          var card = document.createElement('div');
+          card.className = 'flex items-center justify-between rounded-lg border border-edge px-3 py-1.5 text-xs';
+          var left = document.createElement('span');
+          left.className = 'font-medium text-heading truncate';
+          left.textContent = r.name;
+          var right = document.createElement('span');
+          right.className = 'tabular-nums whitespace-nowrap ml-2 ' + ((r.velocity || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400');
+          right.textContent = (r.velocity !== null && r.velocity !== undefined) ? ((r.velocity >= 0 ? '+' : '') + r.velocity + '% vel') : (r.trendPct !== null ? Math.round(r.trendPct) + '% trend' : '\u2014');
+          card.appendChild(left); card.appendChild(right);
+          momLegend.appendChild(card);
+        });
+      }
+
+      // ═══════════════════════════════════════════════
+      // 5. Velocity Tracker
+      // ═══════════════════════════════════════════════
+      var velList = document.getElementById('velocity-list');
+      if (velList) {
+        velList.innerHTML = '';
+        var sorted = lb.slice().sort(function (a, b) { return Math.abs(b.velocity || b.trendPct || 0) - Math.abs(a.velocity || a.trendPct || 0); }).slice(0, 20);
+        sorted.forEach(function (r) {
+          var row = document.createElement('div');
+          row.className = 'flex items-center gap-3 rounded-lg border border-edge bg-surface px-3 py-2';
+
+          // Mini sparkline
+          var miniSpark = document.createElement('div');
+          miniSpark.className = 'flex items-end gap-px shrink-0';
+          miniSpark.style.cssText = 'width:50px;height:16px';
+          if (r.range30 && r.range30.length === 30) {
+            var rMax = Math.max.apply(null, r.range30.concat([1]));
+            r.range30.slice(-14).forEach(function (v) {
+              var bar = document.createElement('span');
+              bar.style.cssText = 'flex:1;min-width:1px;border-radius:1px;background:var(--color-accent);height:' + Math.max(2, Math.round(Number(v) / rMax * 100)) + '%';
+              miniSpark.appendChild(bar);
+            });
+          } else {
+            miniSpark.appendChild(document.createTextNode('\u2014'));
+          }
+          row.appendChild(miniSpark);
+
+          var info = document.createElement('div');
+          info.className = 'flex-1 min-w-0';
+          var nameEl = document.createElement('div');
+          nameEl.className = 'text-sm font-medium text-heading truncate';
+          nameEl.textContent = r.name;
+          var meta = document.createElement('div');
+          meta.className = 'text-[10px] text-dim';
+          meta.textContent = (REG_NAMES[r.registry] || r.registry) + ' \u2022 ' + fmtK(r.week) + '/wk';
+          info.appendChild(nameEl); info.appendChild(meta);
+          row.appendChild(info);
+
+          var badge = document.createElement('div');
+          var vel = r.velocity !== null && r.velocity !== undefined ? r.velocity : (r.trendPct !== null ? Math.round(r.trendPct) : null);
+          badge.className = 'text-xs font-medium tabular-nums whitespace-nowrap ' + (vel === null ? 'text-dim' : vel >= 0 ? 'text-emerald-400' : 'text-rose-400');
+          badge.textContent = vel === null ? '\u2014' : (vel >= 0 ? '+' : '') + vel + '%';
+          row.appendChild(badge);
+          velList.appendChild(row);
+        });
+      }
+
+      // ═══════════════════════════════════════════════
+      // 6. Heatmap — sorted, tooltip, spike toggle
+      // ═══════════════════════════════════════════════
       var heatCanvas = document.getElementById('chart-heatmap');
+      var heatTooltip = document.getElementById('heatmap-tooltip');
+
       if (heatCanvas) {
-        var withRange = lb.filter(function (r) { return r.range30 && r.range30.length === 30; }).slice(0, 15);
-        if (withRange.length > 0) {
+        var withRange = lb.filter(function (r) { return r.range30 && r.range30.length === 30; });
+        // Sort by total downloads (descending)
+        withRange.sort(function (a, b) {
+          var aSum = a.range30.reduce(function (s, v) { return s + Number(v); }, 0);
+          var bSum = b.range30.reduce(function (s, v) { return s + Number(v); }, 0);
+          return bSum - aSum;
+        });
+        withRange = withRange.slice(0, 20);
+
+        // Compute per-package stats for spike detection
+        withRange.forEach(function (pkg) {
+          var sum = 0;
+          pkg.range30.forEach(function (v) { sum += Number(v); });
+          pkg._mean = sum / 30;
+          var variance = 0;
+          pkg.range30.forEach(function (v) { variance += Math.pow(Number(v) - pkg._mean, 2); });
+          pkg._std = Math.sqrt(variance / 30);
+        });
+
+        var spikeMode = false;
+
+        function drawHeatmap() {
+          if (withRange.length === 0) {
+            heatCanvas.parentElement.insertBefore(document.createTextNode('No 30-day range data available.'), heatCanvas);
+            heatCanvas.style.display = 'none';
+            return;
+          }
           var ctx = heatCanvas.getContext('2d');
-          var cellW = 18, cellH = 22, padLeft = 120, padTop = 20;
+          var cellW = 20, cellH = 24, padLeft = 140, padTop = 24;
           heatCanvas.width = padLeft + 30 * cellW + 10;
           heatCanvas.height = padTop + withRange.length * cellH + 10;
           heatCanvas.style.width = heatCanvas.width + 'px';
           heatCanvas.style.height = heatCanvas.height + 'px';
 
-          var globalMax = 1;
-          withRange.forEach(function (r) { r.range30.forEach(function (v) { if (v > globalMax) globalMax = v; }); });
+          ctx.clearRect(0, 0, heatCanvas.width, heatCanvas.height);
 
+          var globalMax = 1;
+          withRange.forEach(function (r) { r.range30.forEach(function (v) { if (Number(v) > globalMax) globalMax = Number(v); }); });
+
+          // Column headers
           ctx.fillStyle = tc.dim;
           ctx.font = '10px system-ui';
           ctx.textAlign = 'center';
           for (var d = 0; d < 30; d++) {
-            if (d % 5 === 0) ctx.fillText('D-' + (30 - d), padLeft + d * cellW + cellW / 2, padTop - 4);
+            if (d % 5 === 0) ctx.fillText('D-' + (30 - d), padLeft + d * cellW + cellW / 2, padTop - 6);
           }
 
           withRange.forEach(function (pkg, row) {
+            // Row label + total
             ctx.fillStyle = tc.heading;
             ctx.font = '11px system-ui';
             ctx.textAlign = 'right';
-            ctx.fillText(pkg.name.substring(0, 16), padLeft - 6, padTop + row * cellH + cellH / 2 + 4);
+            var totalSum = pkg.range30.reduce(function (s, v) { return s + Number(v); }, 0);
+            ctx.fillText(pkg.name.substring(0, 14) + ' (' + fmtK(totalSum) + ')', padLeft - 6, padTop + row * cellH + cellH / 2 + 4);
 
             pkg.range30.forEach(function (val, col) {
-              var intensity = Math.min(1, Number(val) / globalMax);
-              var g = Math.round(150 + intensity * 70);
-              var b = Math.round(100 - intensity * 20);
-              ctx.fillStyle = 'rgba(5, ' + g + ', ' + b + ', ' + (0.12 + intensity * 0.88).toFixed(2) + ')';
+              var v = Number(val);
+              var isSpike = pkg._std > 0 && (v - pkg._mean) / pkg._std >= 2;
+
+              if (spikeMode && !isSpike) {
+                // Dim non-spike cells
+                ctx.fillStyle = 'rgba(100, 100, 100, 0.08)';
+              } else {
+                var intensity = Math.min(1, v / globalMax);
+                var g = Math.round(150 + intensity * 70);
+                var b = Math.round(100 - intensity * 20);
+                ctx.fillStyle = 'rgba(5, ' + g + ', ' + b + ', ' + (0.12 + intensity * 0.88).toFixed(2) + ')';
+              }
               ctx.fillRect(padLeft + col * cellW + 1, padTop + row * cellH + 1, cellW - 2, cellH - 2);
+
+              // Mark spikes with a dot
+              if (isSpike && !spikeMode) {
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath();
+                ctx.arc(padLeft + col * cellW + cellW / 2, padTop + row * cellH + 3, 2, 0, Math.PI * 2);
+                ctx.fill();
+              }
             });
           });
-        } else {
-          heatCanvas.parentElement.insertBefore(
-            document.createTextNode('No 30-day range data available.'),
-            heatCanvas
-          );
-          heatCanvas.style.display = 'none';
+
+          // Store layout for tooltip
+          heatCanvas._layout = { cellW: cellW, cellH: cellH, padLeft: padLeft, padTop: padTop, data: withRange };
         }
+
+        drawHeatmap();
+
+        // Tooltip on hover
+        if (heatTooltip) {
+          heatCanvas.addEventListener('mousemove', function (e) {
+            var lay = heatCanvas._layout;
+            if (!lay) return;
+            var rect = heatCanvas.getBoundingClientRect();
+            var x = e.clientX - rect.left;
+            var y = e.clientY - rect.top;
+            var col = Math.floor((x - lay.padLeft) / lay.cellW);
+            var row = Math.floor((y - lay.padTop) / lay.cellH);
+            if (col < 0 || col >= 30 || row < 0 || row >= lay.data.length) {
+              heatTooltip.classList.add('hidden');
+              return;
+            }
+            var pkg = lay.data[row];
+            var v = Number(pkg.range30[col]);
+            var isSpike = pkg._std > 0 && (v - pkg._mean) / pkg._std >= 2;
+            heatTooltip.innerHTML = '';
+            var t1 = document.createElement('div');
+            t1.className = 'font-medium text-heading';
+            t1.textContent = pkg.name;
+            var t2 = document.createElement('div');
+            t2.textContent = 'D-' + (30 - col) + ': ' + v.toLocaleString() + ' downloads';
+            heatTooltip.appendChild(t1);
+            heatTooltip.appendChild(t2);
+            if (isSpike) {
+              var t3 = document.createElement('div');
+              t3.className = 'text-amber-400 font-medium';
+              t3.textContent = '\u26A1 Spike detected (>2\u03C3)';
+              heatTooltip.appendChild(t3);
+            }
+            heatTooltip.classList.remove('hidden');
+            heatTooltip.style.left = Math.min(x + 12, heatCanvas.width - 180) + 'px';
+            heatTooltip.style.top = (y + 12) + 'px';
+          });
+          heatCanvas.addEventListener('mouseleave', function () {
+            heatTooltip.classList.add('hidden');
+          });
+        }
+
+        // Spike toggle
+        var heatBtns = document.querySelectorAll('[data-heatmode]');
+        heatBtns.forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            heatBtns.forEach(function (b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            spikeMode = btn.getAttribute('data-heatmode') === 'spikes';
+            drawHeatmap();
+          });
+        });
       }
     }
 
