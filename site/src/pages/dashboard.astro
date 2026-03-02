@@ -2943,7 +2943,7 @@ const chatContext = !missing && data ? JSON.stringify({
             npmItems.forEach(function (r) { if (r.range30) r.range30.forEach(function (v, i) { agg[i] += Number(v); }); });
             prd.npm = agg;
           } else {
-            var isCumul = CUMULATIVE.indexOf(reg) !== -1;
+            var isCumul = __CUMULATIVE.indexOf(reg) !== -1;
             var proxyVal = isCumul ? Math.round(sn(rt[reg].total) / 30) : Math.round(sn(rt[reg].week) / 7);
             prd[reg] = new Array(30).fill(proxyVal);
           }
