@@ -90,6 +90,29 @@ const chartPayload = !missing && data ? JSON.stringify({
     range30: r.range30,
   })),
 }) : null;
+
+const chatContext = !missing && data ? JSON.stringify({
+  totals: data.totals,
+  registryTotals,
+  sparkline30,
+  movers: data.movers,
+  narrative: data.narrative,
+  narrativeLines: data.narrativeLines,
+  healthScore,
+  weekDelta,
+  weekDeltaPct: Math.round(weekDeltaPct * 10) / 10,
+  diversityIndex: parseFloat(diversityIndex.toFixed(2)),
+  registryCoverage: okRegistries + '/' + totalRegistries,
+  errorCount: (data.errors || []).length,
+  fetchedAt: data.fetchedAt,
+  leaderboard: (leaderboard as any[]).slice(0, 30).map((r: any) => ({
+    name: (r.name ?? '').replace('@mcptoolshop/', ''),
+    registry: r.registry,
+    week: r.week,
+    month: r.month,
+    trendPct: r.trendPct,
+  })),
+}) : null;
 ---
 
 <AppShell
@@ -140,75 +163,50 @@ const chartPayload = !missing && data ? JSON.stringify({
 
       {/* ── Tab bar ── */}
       <nav class="flex gap-1 border-b border-edge mb-6" role="tablist" id="tab-bar">
-        <button role="tab" data-tab="overview" class="tab-btn tab-active" aria-selected="true">Overview</button>
+        <button role="tab" data-tab="home" class="tab-btn tab-active" aria-selected="true">Home</button>
         <button role="tab" data-tab="analytics" class="tab-btn" aria-selected="false">Analytics</button>
         <button role="tab" data-tab="leaderboard" class="tab-btn" aria-selected="false">Leaderboard</button>
       </nav>
 
-      {/* ── Tab: Overview ── */}
-      <div id="tab-overview" class="tab-panel" role="tabpanel">
+      {/* ── Tab: Home ── */}
+      <div id="tab-home" class="tab-panel" role="tabpanel">
 
-      {/* ── Executive Snapshot ── */}
-      <div id="exec-snapshot" class:list={["mb-8 rounded-2xl border border-edge bg-surface-raised/50 p-5", { hidden: missing || !(data?.narrativeLines || data?.narrative) }]}>
-        <div class="flex items-start justify-between gap-4 flex-wrap mb-3">
-          <div class="text-xs font-medium tracking-wide uppercase text-dim">Executive snapshot</div>
-          <div id="exec-meta" class="text-xs text-dim whitespace-nowrap text-right">
-            {!missing && data && (<>Source: build-time fetch<br />{new Date(data.fetchedAt).toUTCString()}</>)}
-          </div>
-        </div>
-
-        {/* ── Executive metric cards ── */}
-        <div id="exec-metrics" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-4">
-          <div class="rounded-xl border border-edge bg-surface p-3">
-            <div class="text-[10px] text-dim uppercase tracking-wide">Health Score</div>
-            <div class="mt-1 flex items-center gap-2">
-              <span id="exec-health" class="text-2xl font-bold tabular-nums text-heading">{healthScore}</span>
-              <div class="flex-1 h-2 rounded-full bg-surface-strong overflow-hidden">
-                <div class="h-2 rounded-full transition-all" id="exec-health-bar" style={`width:${healthScore}%;background:${healthScore >= 70 ? 'var(--color-accent)' : healthScore >= 40 ? '#f59e0b' : '#ef4444'}`} />
+      {/* ── Ollama Chat ── */}
+      <section id="chat-section" class="mb-8">
+        <div class="rounded-2xl border border-edge bg-surface-raised/50 p-5">
+          <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
+            <div>
+              <h2 class="text-lg font-semibold text-heading flex items-center gap-2">
+                <span class="text-xl">{"\uD83E\uDD99"}</span> Registry Assistant
+              </h2>
+              <p class="mt-0.5 text-xs text-dim">AI analysis of your registry data &bull; Powered by Ollama</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <div id="ollama-status" class="flex items-center gap-1.5 text-xs">
+                <span id="ollama-dot" class="inline-block w-2 h-2 rounded-full bg-zinc-500"></span>
+                <span id="ollama-label" class="text-dim">Checking…</span>
               </div>
+              <select id="ollama-model" class="rounded-lg border border-edge bg-surface px-2.5 py-1.5 text-xs text-heading disabled:opacity-50" disabled>
+                <option>No models</option>
+              </select>
+              <button id="chat-clear" class="text-xs text-dim hover:text-heading transition-colors" title="Clear history">Clear</button>
             </div>
           </div>
-          <div class="rounded-xl border border-edge bg-surface p-3">
-            <div class="text-[10px] text-dim uppercase tracking-wide">Weekly Δ (npm)</div>
-            <div class="mt-1">
-              <span id="exec-delta" class={`text-2xl font-bold tabular-nums ${weekDelta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {weekDelta >= 0 ? '+' : ''}{fmtCompact.format(weekDelta)}
-              </span>
-              <span id="exec-delta-pct" class={`ml-1 text-sm ${weekDeltaPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                ({weekDeltaPct >= 0 ? '+' : ''}{Math.round(weekDeltaPct * 10) / 10}%)
-              </span>
-            </div>
-          </div>
-          <div class="rounded-xl border border-edge bg-surface p-3">
-            <div class="text-[10px] text-dim uppercase tracking-wide">Diversity Index</div>
-            <div class="mt-1">
-              <span id="exec-diversity" class="text-2xl font-bold tabular-nums text-heading">{diversityIndex.toFixed(2)}</span>
-              <span class="ml-1 text-xs text-dim">Shannon (norm.)</span>
-            </div>
-          </div>
-          <div class="rounded-xl border border-edge bg-surface p-3">
-            <div class="text-[10px] text-dim uppercase tracking-wide">Registry Coverage</div>
-            <div class="mt-1">
-              <span id="exec-coverage" class="text-2xl font-bold tabular-nums text-heading">{okRegistries}/{totalRegistries}</span>
-              <span class="ml-1 text-xs text-dim">OK</span>
-            </div>
-          </div>
-        </div>
 
-        <div id="exec-lines" class="space-y-2.5">
-          {data?.narrativeLines ? data.narrativeLines.map((line: { icon: string; label: string; text: string }) => (
-            <div class="flex items-start gap-3">
-              <span class="text-lg leading-6 shrink-0">{line.icon}</span>
-              <div>
-                <span class="text-xs font-semibold uppercase tracking-wide text-accent">{line.label}</span>
-                <span class="text-sm text-heading ml-2">{line.text}</span>
-              </div>
-            </div>
-          )) : data?.narrative ? (
-            <div class="text-base font-medium text-heading">{data.narrative}</div>
-          ) : null}
+          <div id="chat-messages" class="rounded-xl border border-edge bg-surface p-4 min-h-[180px] max-h-[420px] overflow-y-auto space-y-3">
+            <div class="text-sm text-dim text-center py-8">Ask anything about your registry stats, package trends, or release strategy.</div>
+          </div>
+
+          <div class="mt-3 flex gap-2">
+            <input id="chat-input" type="text" placeholder="Ask about your registry data…"
+              class="flex-1 rounded-xl border border-edge bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-dim focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-50"
+              disabled />
+            <button id="chat-send" class="rounded-xl bg-action text-action-text px-5 py-2.5 text-sm font-medium hover:bg-action-hover transition-colors disabled:opacity-50" disabled>
+              Send
+            </button>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* ── Summary cards ── */}
       <section id="summary" class="mb-8">
@@ -430,10 +428,73 @@ const chartPayload = !missing && data ? JSON.stringify({
         </div>
       </section>
 
-      </div>{/* close tab-overview */}
+      </div>{/* close tab-home */}
 
       {/* ── Tab: Analytics ── */}
       <div id="tab-analytics" class="tab-panel hidden" role="tabpanel">
+
+      {/* ── Executive Snapshot ── */}
+      <div id="exec-snapshot" class:list={["mb-8 rounded-2xl border border-edge bg-surface-raised/50 p-5", { hidden: missing || !(data?.narrativeLines || data?.narrative) }]}>
+        <div class="flex items-start justify-between gap-4 flex-wrap mb-3">
+          <div class="text-xs font-medium tracking-wide uppercase text-dim">Executive snapshot</div>
+          <div id="exec-meta" class="text-xs text-dim whitespace-nowrap text-right">
+            {!missing && data && (<>Source: build-time fetch<br />{new Date(data.fetchedAt).toUTCString()}</>)}
+          </div>
+        </div>
+
+        {/* ── Executive metric cards ── */}
+        <div id="exec-metrics" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-4">
+          <div class="rounded-xl border border-edge bg-surface p-3">
+            <div class="text-[10px] text-dim uppercase tracking-wide">Health Score</div>
+            <div class="mt-1 flex items-center gap-2">
+              <span id="exec-health" class="text-2xl font-bold tabular-nums text-heading">{healthScore}</span>
+              <div class="flex-1 h-2 rounded-full bg-surface-strong overflow-hidden">
+                <div class="h-2 rounded-full transition-all" id="exec-health-bar" style={`width:${healthScore}%;background:${healthScore >= 70 ? 'var(--color-accent)' : healthScore >= 40 ? '#f59e0b' : '#ef4444'}`} />
+              </div>
+            </div>
+          </div>
+          <div class="rounded-xl border border-edge bg-surface p-3">
+            <div class="text-[10px] text-dim uppercase tracking-wide">Weekly Δ (npm)</div>
+            <div class="mt-1">
+              <span id="exec-delta" class={`text-2xl font-bold tabular-nums ${weekDelta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {weekDelta >= 0 ? '+' : ''}{fmtCompact.format(weekDelta)}
+              </span>
+              <span id="exec-delta-pct" class={`ml-1 text-sm ${weekDeltaPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                ({weekDeltaPct >= 0 ? '+' : ''}{Math.round(weekDeltaPct * 10) / 10}%)
+              </span>
+            </div>
+          </div>
+          <div class="rounded-xl border border-edge bg-surface p-3">
+            <div class="text-[10px] text-dim uppercase tracking-wide">Diversity Index</div>
+            <div class="mt-1">
+              <span id="exec-diversity" class="text-2xl font-bold tabular-nums text-heading">{diversityIndex.toFixed(2)}</span>
+              <span class="ml-1 text-xs text-dim">Shannon (norm.)</span>
+            </div>
+          </div>
+          <div class="rounded-xl border border-edge bg-surface p-3">
+            <div class="text-[10px] text-dim uppercase tracking-wide">Registry Coverage</div>
+            <div class="mt-1">
+              <span id="exec-coverage" class="text-2xl font-bold tabular-nums text-heading">{okRegistries}/{totalRegistries}</span>
+              <span class="ml-1 text-xs text-dim">OK</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="exec-lines" class="space-y-2.5">
+          {data?.narrativeLines ? data.narrativeLines.map((line: { icon: string; label: string; text: string }) => (
+            <div class="flex items-start gap-3">
+              <span class="text-lg leading-6 shrink-0">{line.icon}</span>
+              <div>
+                <span class="text-xs font-semibold uppercase tracking-wide text-accent">{line.label}</span>
+                <span class="text-sm text-heading ml-2">{line.text}</span>
+              </div>
+            </div>
+          )) : data?.narrative ? (
+            <div class="text-base font-medium text-heading">{data.narrative}</div>
+          ) : null}
+        </div>
+      </div>
+
         <section class="mb-8">
           <h2 class="text-xl font-semibold text-heading">Analytics</h2>
           <p class="mt-1 text-sm text-dim">Deeper visual analysis of download patterns and portfolio composition.</p>
@@ -562,6 +623,7 @@ const chartPayload = !missing && data ? JSON.stringify({
   </div>
 
   {chartPayload && <div id="chart-data" class="hidden" data-json={chartPayload} />}
+  {chatContext && <div id="chat-context" class="hidden" data-json={chatContext} />}
 </AppShell>
 
 <style>
@@ -622,6 +684,47 @@ const chartPayload = !missing && data ? JSON.stringify({
     border-bottom-color: var(--color-accent);
   }
   .tab-panel.hidden { display: none; }
+
+  /* Chat */
+  .chat-bubble-user {
+    max-width: 80%;
+    border-radius: 16px 16px 4px 16px;
+    background: var(--color-action);
+    color: var(--color-action-text);
+    padding: 10px 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+  .chat-bubble-ai {
+    max-width: 80%;
+    border-radius: 16px 16px 16px 4px;
+    background: var(--color-surface-strong);
+    color: var(--color-heading);
+    padding: 10px 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .chat-typing {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    padding: 10px 16px;
+  }
+  .chat-typing span {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--color-dim);
+    animation: chatBounce 1.2s infinite;
+  }
+  .chat-typing span:nth-child(2) { animation-delay: 0.2s; }
+  .chat-typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes chatBounce {
+    0%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-6px); }
+  }
 </style>
 
 <script is:inline src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
@@ -1109,5 +1212,256 @@ const chartPayload = !missing && data ? JSON.stringify({
     }).catch(function () {
       // Runtime fetch failed — build-time data is still displayed. Silent fallback.
     });
+  })();
+</script>
+
+<script is:inline>
+  // ═══════════════════════════════════════════════════
+  // Ollama Chat Engine — plug-and-play local LLM chat
+  // ═══════════════════════════════════════════════════
+  (function () {
+    var OLLAMA_BASE = 'http://localhost:11434';
+    var STORAGE_KEY = 'rp-chat-history';
+    var STORAGE_MODEL = 'rp-chat-model';
+
+    var dot = document.getElementById('ollama-dot');
+    var statusLabel = document.getElementById('ollama-label');
+    var modelSelect = document.getElementById('ollama-model');
+    var msgContainer = document.getElementById('chat-messages');
+    var chatInput = document.getElementById('chat-input');
+    var chatSend = document.getElementById('chat-send');
+    var chatClear = document.getElementById('chat-clear');
+    if (!dot || !msgContainer || !chatInput) return; // guard: chat not rendered
+
+    var connected = false;
+    var sending = false;
+    var history = [];
+
+    // ── Build system prompt with full stats context ──
+    var ctxEl = document.getElementById('chat-context');
+    var rawCtx = '';
+    if (ctxEl) { try { rawCtx = ctxEl.getAttribute('data-json') || ''; } catch (e) {} }
+
+    var SYSTEM = 'You are Registry Pulse Assistant, an expert analyst for software package registry statistics across npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub.\n\n' +
+      'Your expertise covers:\n' +
+      '- Download trend analysis, forecasting, and anomaly detection\n' +
+      '- Multi-registry distribution strategy and portfolio planning\n' +
+      '- Growth tactics for open-source packages (SEO, keywords, README optimization)\n' +
+      '- Release timing, versioning strategy, and changelog best practices\n' +
+      '- Competitive positioning and market sizing\n' +
+      '- Health scoring interpretation and improvement recommendations\n\n' +
+      'CURRENT PORTFOLIO DATA (live from the user\'s snapshot):\n' + rawCtx + '\n\n' +
+      'Guidelines:\n' +
+      '- Reference specific numbers from the data when answering.\n' +
+      '- Flag concerning trends proactively.\n' +
+      '- Suggest actionable, prioritized strategies.\n' +
+      '- Keep responses concise but insightful. Use bullet points for lists.\n' +
+      '- If the user asks something outside your data, say so honestly.';
+
+    // ── localStorage persistence ──
+    function loadHistory() {
+      try { var s = localStorage.getItem(STORAGE_KEY); if (s) history = JSON.parse(s); } catch (e) { history = []; }
+    }
+    function saveHistory() {
+      try {
+        // Keep max 60 messages to avoid quota issues
+        if (history.length > 60) history = history.slice(-60);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+      } catch (e) {}
+    }
+
+    // ── DOM helpers ──
+    function clearEl(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+
+    function renderMessages() {
+      clearEl(msgContainer);
+      if (history.length === 0) {
+        var ph = document.createElement('div');
+        ph.className = 'text-sm text-dim text-center py-8';
+        ph.textContent = 'Ask anything about your registry stats, package trends, or release strategy.';
+        msgContainer.appendChild(ph);
+        return;
+      }
+      for (var i = 0; i < history.length; i++) {
+        var msg = history[i];
+        var row = document.createElement('div');
+        row.className = msg.role === 'user' ? 'flex justify-end' : 'flex justify-start';
+        var bubble = document.createElement('div');
+        bubble.className = msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai';
+        bubble.textContent = msg.content;
+        row.appendChild(bubble);
+        msgContainer.appendChild(row);
+      }
+      msgContainer.scrollTop = msgContainer.scrollHeight;
+    }
+
+    // ── Connection check ──
+    function checkOllama() {
+      dot.className = 'inline-block w-2 h-2 rounded-full bg-zinc-500 animate-pulse';
+      statusLabel.textContent = 'Checking\u2026';
+
+      var ctrl = new AbortController();
+      var tid = setTimeout(function () { ctrl.abort(); }, 4000);
+
+      fetch(OLLAMA_BASE + '/api/tags', { signal: ctrl.signal })
+        .then(function (r) { clearTimeout(tid); return r.json(); })
+        .then(function (data) {
+          connected = true;
+          dot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
+          statusLabel.textContent = 'Connected';
+
+          var models = (data.models || []).map(function (m) { return m.name || m.model; });
+          if (models.length > 0) {
+            clearEl(modelSelect);
+            var saved = '';
+            try { saved = localStorage.getItem(STORAGE_MODEL) || ''; } catch (e) {}
+            for (var i = 0; i < models.length; i++) {
+              var opt = document.createElement('option');
+              opt.value = models[i]; opt.textContent = models[i];
+              if (models[i] === saved) opt.selected = true;
+              modelSelect.appendChild(opt);
+            }
+            modelSelect.disabled = false;
+            chatInput.disabled = false;
+            chatSend.disabled = false;
+            chatInput.focus();
+          }
+        })
+        .catch(function () {
+          clearTimeout(tid);
+          connected = false;
+          dot.className = 'inline-block w-2 h-2 rounded-full bg-rose-400';
+          statusLabel.textContent = 'Offline';
+          clearEl(msgContainer);
+          var help = document.createElement('div');
+          help.className = 'text-center py-6 space-y-2';
+          var l1 = document.createElement('div');
+          l1.className = 'text-sm text-dim';
+          l1.textContent = 'Could not connect to Ollama at localhost:11434';
+          var l2 = document.createElement('div');
+          l2.className = 'text-xs text-dim';
+          l2.textContent = 'Install from ollama.com \u2022 then run: ollama pull llama3.2';
+          var retry = document.createElement('button');
+          retry.className = 'mt-2 text-xs text-accent hover:underline cursor-pointer';
+          retry.textContent = 'Retry connection';
+          retry.addEventListener('click', checkOllama);
+          help.appendChild(l1); help.appendChild(l2); help.appendChild(retry);
+          msgContainer.appendChild(help);
+        });
+    }
+
+    // ── Send message (streaming) ──
+    function sendMessage() {
+      if (!connected || sending) return;
+      var text = chatInput.value.trim();
+      if (!text) return;
+
+      sending = true;
+      chatInput.value = '';
+      chatSend.disabled = true;
+      chatInput.disabled = true;
+
+      history.push({ role: 'user', content: text });
+      renderMessages();
+
+      // Typing indicator
+      var typingRow = document.createElement('div');
+      typingRow.className = 'flex justify-start';
+      var typingBubble = document.createElement('div');
+      typingBubble.className = 'chat-bubble-ai chat-typing';
+      for (var d = 0; d < 3; d++) typingBubble.appendChild(document.createElement('span'));
+      typingRow.appendChild(typingBubble);
+      msgContainer.appendChild(typingRow);
+      msgContainer.scrollTop = msgContainer.scrollHeight;
+
+      // Build messages: system + last 20 turns
+      var msgs = [{ role: 'system', content: SYSTEM }].concat(history.slice(-20));
+
+      var model = modelSelect.value;
+      try { localStorage.setItem(STORAGE_MODEL, model); } catch (e) {}
+
+      fetch(OLLAMA_BASE + '/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: model, messages: msgs, stream: true })
+      }).then(function (resp) {
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        // Replace typing with response bubble
+        msgContainer.removeChild(typingRow);
+        var aiRow = document.createElement('div');
+        aiRow.className = 'flex justify-start';
+        var aiBubble = document.createElement('div');
+        aiBubble.className = 'chat-bubble-ai';
+        aiBubble.textContent = '';
+        aiRow.appendChild(aiBubble);
+        msgContainer.appendChild(aiRow);
+
+        var reader = resp.body.getReader();
+        var decoder = new TextDecoder();
+        var fullText = '';
+
+        function pump() {
+          return reader.read().then(function (result) {
+            if (result.done) {
+              if (fullText) {
+                history.push({ role: 'assistant', content: fullText });
+                saveHistory();
+              }
+              sending = false;
+              chatSend.disabled = false;
+              chatInput.disabled = false;
+              chatInput.focus();
+              return;
+            }
+            var lines = decoder.decode(result.value, { stream: true }).split('\n');
+            for (var i = 0; i < lines.length; i++) {
+              if (!lines[i].trim()) continue;
+              try {
+                var json = JSON.parse(lines[i]);
+                if (json.message && json.message.content) {
+                  fullText += json.message.content;
+                  aiBubble.textContent = fullText;
+                  msgContainer.scrollTop = msgContainer.scrollHeight;
+                }
+              } catch (e) {}
+            }
+            return pump();
+          });
+        }
+        return pump();
+      }).catch(function (err) {
+        msgContainer.removeChild(typingRow);
+        var errRow = document.createElement('div');
+        errRow.className = 'flex justify-start';
+        var errBubble = document.createElement('div');
+        errBubble.className = 'chat-bubble-ai text-rose-400';
+        errBubble.textContent = 'Error: ' + (err.message || 'Could not get a response. Is the model loaded?');
+        errRow.appendChild(errBubble);
+        msgContainer.appendChild(errRow);
+
+        sending = false;
+        chatSend.disabled = false;
+        chatInput.disabled = false;
+      });
+    }
+
+    // ── Event listeners ──
+    chatSend.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
+    chatClear.addEventListener('click', function () {
+      history = [];
+      saveHistory();
+      renderMessages();
+    });
+    modelSelect.addEventListener('change', function () {
+      try { localStorage.setItem(STORAGE_MODEL, modelSelect.value); } catch (e) {}
+    });
+
+    // ── Init ──
+    loadHistory();
+    renderMessages();
+    checkOllama();
   })();
 </script>
