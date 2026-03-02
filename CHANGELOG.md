@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.2.0] - 2026-03-02
+
+### Added
+- **Live refresh** — client-side fetch from npm and PyPI APIs with progress indicator, no rebuild needed
+- **Export reports** — three-format dropdown (Executive PDF, LLM JSONL, Developer Markdown) with professional-quality output
+- **Pulse panel redesign** — separated Established Movers (prev ≥ 50) from Emerging & New, added sparklines and executive summary
+
+### Fixed
+- Package discovery now reads full manifest (132 packages) instead of leaderboard subset (78)
+- jsPDF CDN switched from cdnjs (empty 404 files) to jsdelivr
+- PDF export rewrites emoji to colored bullet dots (Helvetica can't render emoji)
+- Decliner deltas now show correct sign in Markdown export
+
+### Changed
+- Markdown export: right-aligned number columns, Top-5 concentration metric, trend labels, collapsible sparkline stats
+- JSONL export: schema v2.0 envelope, nested scope/totals/health, mover signal classification, package velocity score
+- No-data export UX: styled toast with Refresh-button pulse replaces raw alert()
+- README updated with live refresh, export, and Pulse panel documentation
+- Leaderboard cap raised from 100 to 250
+
 ## [2.1.0] - 2026-03-02
 
 ### Added
