@@ -326,6 +326,7 @@ const chatContext = !missing && data ? JSON.stringify({
         <button role="tab" data-tab="home" class="tab-btn tab-active" aria-selected="true">Home</button>
         <button role="tab" data-tab="analytics" class="tab-btn" aria-selected="false">Analytics</button>
         <button role="tab" data-tab="leaderboard" class="tab-btn" aria-selected="false">Leaderboard</button>
+        <button role="tab" data-tab="help" class="tab-btn" aria-selected="false">Help</button>
       </nav>
 
       {/* ── Tab: Home ── */}
@@ -906,6 +907,138 @@ const chatContext = !missing && data ? JSON.stringify({
 
       </div>{/* close tab-leaderboard */}
 
+      {/* ── Tab: Help ── */}
+      <div id="tab-help" class="tab-panel hidden" role="tabpanel">
+        <section class="mb-8 max-w-3xl">
+          <h2 class="text-2xl font-bold text-heading flex items-center gap-2 mb-6">
+            <span class="text-2xl">{"\uD83D\uDCD6"}</span> How to use this dashboard
+          </h2>
+
+          {/* Quick-start */}
+          <div class="rounded-2xl border border-edge bg-surface-raised p-6 mb-6">
+            <h3 class="text-lg font-semibold text-heading mb-3">Quick start</h3>
+            <ol class="list-decimal list-inside space-y-2 text-sm text-body leading-relaxed">
+              <li><strong class="text-heading">Set up your portfolio</strong> &mdash; go to the <a href={`${base}setup/`} class="text-accent underline underline-offset-2 hover:brightness-125">Setup</a> page, paste your package names (one per line), and save.</li>
+              <li><strong class="text-heading">Wait for data</strong> &mdash; registry-stats fetches download counts from npm, PyPI, VS Code Marketplace, NuGet, and Docker Hub. The first snapshot takes about a minute.</li>
+              <li><strong class="text-heading">Explore the tabs</strong> &mdash; <em>Home</em> has the AI chat assistant, <em>Analytics</em> shows charts and insights, and <em>Leaderboard</em> ranks every package.</li>
+            </ol>
+          </div>
+
+          {/* Tabs explained */}
+          <div class="rounded-2xl border border-edge bg-surface-raised p-6 mb-6">
+            <h3 class="text-lg font-semibold text-heading mb-4">What each tab does</h3>
+            <div class="space-y-4 text-sm text-body">
+              <div>
+                <h4 class="font-semibold text-heading flex items-center gap-2"><span>{"\uD83C\uDFE0"}</span> Home</h4>
+                <p class="mt-1 leading-relaxed">The landing view with the executive snapshot (total downloads, weekly change, health score, diversity) and the <strong>Registry Assistant</strong> &mdash; an AI chat powered by a local Ollama model that can answer questions about your data.</p>
+              </div>
+              <div>
+                <h4 class="font-semibold text-heading flex items-center gap-2"><span>{"\uD83D\uDCCA"}</span> Analytics</h4>
+                <p class="mt-1 leading-relaxed">Six interactive charts: <strong>30-Day Trend</strong> (toggle between aggregate, per-registry, and top-5 views), <strong>Registry Share</strong> (polar area), <strong>Portfolio Risk</strong> (distribution histogram with Gini &amp; P90), <strong>Top 10 Momentum</strong> (bar chart colour-coded by velocity), <strong>Velocity Tracker</strong> (sparkline list sorted by growth rate), and <strong>30-Day Heatmap</strong> (per-package daily grid with spike detection).</p>
+              </div>
+              <div>
+                <h4 class="font-semibold text-heading flex items-center gap-2"><span>{"\uD83C\uDFC6"}</span> Leaderboard</h4>
+                <p class="mt-1 leading-relaxed">Every package ranked by weekly downloads with inline 30-day sparklines and a smart trend badge that avoids misleading percentages for low-volume packages.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Key concepts */}
+          <div class="rounded-2xl border border-edge bg-surface-raised p-6 mb-6">
+            <h3 class="text-lg font-semibold text-heading mb-4">Key concepts</h3>
+            <dl class="space-y-3 text-sm text-body">
+              <div>
+                <dt class="font-semibold text-heading">Smart Growth Engine</dt>
+                <dd class="mt-0.5 leading-relaxed">Percentages can be misleading when the previous count is tiny (e.g., 2 &rarr; 50 = +2,400%). When the prior period is below 20 downloads the badge shows <span class="text-amber-400 font-medium">{"\uD83D\uDE80"} Emerging</span> instead of a raw percentage. Growth above 500% is capped and the real delta is shown alongside.</dd>
+              </div>
+              <div>
+                <dt class="font-semibold text-heading">Velocity Score</dt>
+                <dd class="mt-0.5 leading-relaxed">A damped growth metric: <code class="text-xs bg-surface-strong px-1 py-0.5 rounded">(curr &minus; prev) / &radic;(prev + k)</code>. It rewards genuine acceleration while keeping tiny-base packages from dominating. Used in Momentum, Velocity Tracker, and Leaderboard columns.</dd>
+              </div>
+              <div>
+                <dt class="font-semibold text-heading">Spike detection (&gt;2&sigma;)</dt>
+                <dd class="mt-0.5 leading-relaxed">On the heatmap, any day where a package&rsquo;s downloads are more than two standard deviations above its 30-day mean is flagged with an amber dot. The &ldquo;Spikes Only&rdquo; toggle dims everything else so anomalies stand out.</dd>
+              </div>
+              <div>
+                <dt class="font-semibold text-heading">Health Score (0&ndash;100)</dt>
+                <dd class="mt-0.5 leading-relaxed">A composite index combining registry coverage (how many sources responded), error count, week-over-week growth direction, and Shannon diversity (how evenly downloads spread across registries).</dd>
+              </div>
+              <div>
+                <dt class="font-semibold text-heading">Confidence badges</dt>
+                <dd class="mt-0.5 leading-relaxed">{"\u2705"} <strong>ok</strong> = fresh data, {"\u26A0\uFE0F"} <strong>partial</strong> = some endpoints failed, {"\u26D4"} <strong>error</strong> = provider unreachable. Shown on the home executive snapshot and the setup page.</dd>
+              </div>
+            </dl>
+          </div>
+
+          {/* AI assistant */}
+          <div class="rounded-2xl border border-edge bg-surface-raised p-6 mb-6">
+            <h3 class="text-lg font-semibold text-heading mb-3">Using the AI assistant</h3>
+            <div class="text-sm text-body space-y-2 leading-relaxed">
+              <p>The <strong>Registry Assistant</strong> on the Home tab talks to a local <a href="https://ollama.com" class="text-accent underline underline-offset-2 hover:brightness-125" target="_blank" rel="noopener">Ollama</a> instance on <code class="text-xs bg-surface-strong px-1 py-0.5 rounded">localhost:11434</code>. It automatically injects a snapshot of your registry data into every prompt so the model can answer questions like:</p>
+              <ul class="list-disc list-inside space-y-1 ml-2">
+                <li>&ldquo;Which package grew the fastest this week?&rdquo;</li>
+                <li>&ldquo;Summarise the npm vs PyPI split.&rdquo;</li>
+                <li>&ldquo;Why did site-theme spike on day 27?&rdquo;</li>
+              </ul>
+              <p class="mt-2"><strong>Requirements:</strong> Ollama running locally with at least one model pulled (e.g., <code class="text-xs bg-surface-strong px-1 py-0.5 rounded">ollama pull llama3.2</code>). If Ollama is offline the chat shows a friendly fallback message &mdash; everything else works normally.</p>
+            </div>
+          </div>
+
+          {/* Companion tools */}
+          <div class="rounded-2xl border border-edge bg-surface-raised p-6 mb-6">
+            <h3 class="text-lg font-semibold text-heading mb-4">Companion tools</h3>
+            <div class="space-y-3 text-sm text-body">
+              <div class="flex items-start gap-3">
+                <span class="text-lg shrink-0">{"\uD83D\uDCE6"}</span>
+                <div>
+                  <a href="https://www.npmjs.com/package/@mcptoolshop/registry-sync" class="font-semibold text-heading hover:text-accent" target="_blank" rel="noopener">registry-sync</a>
+                  <p class="mt-0.5 leading-relaxed">Desired-state sync engine for multi-registry publishing. Detects drift, missing packages, and orphaned entries. Use <code class="text-xs bg-surface-strong px-1 py-0.5 rounded">registry-sync audit</code> to check and <code class="text-xs bg-surface-strong px-1 py-0.5 rounded">registry-sync plan</code> to preview changes.</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="text-lg shrink-0">{"\uD83D\uDDA5\uFE0F"}</span>
+                <div>
+                  <span class="font-semibold text-heading">Desktop app (MAUI WebView2)</span>
+                  <p class="mt-0.5 leading-relaxed">When served inside the .NET MAUI host the dashboard auto-refreshes from a local cache. The <code class="text-xs bg-surface-strong px-1 py-0.5 rounded">window.__registryStatsBridge</code> API lets the native layer push fresh snapshots.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Data pipeline */}
+          <div class="rounded-2xl border border-edge bg-surface-raised p-6 mb-6">
+            <h3 class="text-lg font-semibold text-heading mb-3">How data flows</h3>
+            <div class="text-sm text-body leading-relaxed">
+              <p class="mb-3">The pipeline runs each time you build the site (or on a schedule in CI):</p>
+              <div class="flex flex-wrap items-center gap-2 text-xs font-mono">
+                <span class="rounded-md bg-surface-strong px-2 py-1 border border-edge">portfolio.txt</span>
+                <span class="text-dim">&rarr;</span>
+                <span class="rounded-md bg-surface-strong px-2 py-1 border border-edge">fetch providers</span>
+                <span class="text-dim">&rarr;</span>
+                <span class="rounded-md bg-surface-strong px-2 py-1 border border-edge">stats.json</span>
+                <span class="text-dim">&rarr;</span>
+                <span class="rounded-md bg-surface-strong px-2 py-1 border border-edge">Astro build</span>
+                <span class="text-dim">&rarr;</span>
+                <span class="rounded-md bg-surface-strong px-2 py-1 border border-edge">static HTML</span>
+              </div>
+              <p class="mt-3">The engine queries five registries in parallel: <strong>npm</strong> (weekly + 30-day range), <strong>PyPI</strong> (weekly), <strong>VS Code Marketplace</strong> (installs), <strong>NuGet</strong> (total), and <strong>Docker Hub</strong> (pulls). Each provider has retries with exponential back-off.</p>
+            </div>
+          </div>
+
+          {/* Links */}
+          <div class="rounded-2xl border border-edge bg-surface-raised p-6">
+            <h3 class="text-lg font-semibold text-heading mb-3">Useful links</h3>
+            <ul class="space-y-2 text-sm">
+              <li><a href="https://github.com/mcp-tool-shop-org/registry-stats" class="text-accent underline underline-offset-2 hover:brightness-125" target="_blank" rel="noopener">registry-stats on GitHub</a> &mdash; source code, issues, CI config</li>
+              <li><a href="https://github.com/mcp-tool-shop-org/registry-sync" class="text-accent underline underline-offset-2 hover:brightness-125" target="_blank" rel="noopener">registry-sync on GitHub</a> &mdash; multi-registry publishing sync</li>
+              <li><a href="https://ollama.com" class="text-accent underline underline-offset-2 hover:brightness-125" target="_blank" rel="noopener">Ollama</a> &mdash; local LLM runtime for the chat assistant</li>
+              <li><a href={`${base}setup/`} class="text-accent underline underline-offset-2 hover:brightness-125">Setup page</a> &mdash; portfolio editor, refresh, advanced settings</li>
+              <li><a href={`${base}privacy/`} class="text-accent underline underline-offset-2 hover:brightness-125">Privacy policy</a></li>
+            </ul>
+          </div>
+        </section>
+      </div>{/* close tab-help */}
+
     </div>
   </div>
 
@@ -1096,6 +1229,32 @@ const chatContext = !missing && data ? JSON.stringify({
     }
 
     var fmtK = function (n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n); };
+
+    // Smart growth display — must live in this IIFE so initCharts() can use it
+    var BASELINE_THRESHOLD_C = 20;
+    var PCT_CAP_C = 500;
+    var fmtCompactC = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+    function formatGrowth(pct, prev, curr) {
+      if (pct === null || pct === undefined) {
+        if ((prev === 0 || prev === null || prev === undefined) && (curr || 0) > 0) {
+          return { text: '\uD83D\uDE80 New (+' + fmtCompactC.format(curr || 0) + ')', cls: 'text-amber-400', isEmerging: true };
+        }
+        return { text: '\u2014', cls: 'text-dim', isEmerging: false };
+      }
+      var absDelta = (curr || 0) - (prev || 0);
+      if ((prev || 0) < BASELINE_THRESHOLD_C) {
+        return { text: '\uD83D\uDE80 Emerging (+' + fmtCompactC.format(Math.max(0, absDelta)) + ')', cls: 'text-amber-400', isEmerging: true };
+      }
+      var r = Math.round(pct * 10) / 10;
+      var arrow = r > 0 ? '\u25B2' : r < 0 ? '\u25BC' : '';
+      var absR = Math.abs(r);
+      if (absR > PCT_CAP_C) {
+        return { text: arrow + ' ' + PCT_CAP_C + '%+ (+' + fmtCompactC.format(Math.abs(absDelta)) + ')', cls: r > 0 ? 'text-emerald-400' : 'text-rose-400', isEmerging: false };
+      }
+      if (r > 0) return { text: arrow + ' ' + absR + '%', cls: 'text-emerald-400', isEmerging: false };
+      if (r < 0) return { text: arrow + ' ' + absR + '%', cls: 'text-rose-400', isEmerging: false };
+      return { text: '0%', cls: 'text-dim', isEmerging: false };
+    }
 
     function initCharts() {
       if (typeof Chart === 'undefined') return;
