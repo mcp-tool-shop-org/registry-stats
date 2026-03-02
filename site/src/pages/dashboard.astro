@@ -85,6 +85,31 @@ const decliners = movers?.topDecliners ?? [];
 const awakening = movers?.newlyActive ?? [];
 const concentrationPct = Math.round(movers?.concentrationTop5Pct ?? 0);
 
+// ── Categorize movers: Established (prev ≥ 50) vs Emerging (prev < 50) ──
+const ESTABLISHED_FLOOR = 50;
+function moverPrev(r: any): number { return r.delta7 !== undefined ? (r.week ?? 0) - r.delta7 : 0; }
+function moverCurr(r: any): number { return r.week ?? 0; }
+const establishedGainers = gainers.filter((r: any) => moverPrev(r) >= ESTABLISHED_FLOOR);
+const emergingGainers = gainers.filter((r: any) => moverPrev(r) < ESTABLISHED_FLOOR);
+// Merge newly-active into emerging pool for display
+const emergingAll = [...emergingGainers, ...awakening.filter((a: any) => !emergingGainers.some((g: any) => g.name === a.name))].sort((a: any, b: any) => (b.week ?? 0) - (a.week ?? 0)).slice(0, 5);
+const establishedDecliners = decliners.filter((r: any) => moverPrev(r) >= ESTABLISHED_FLOOR);
+const emergingDecliners = decliners.filter((r: any) => moverPrev(r) < ESTABLISHED_FLOOR);
+
+// Summary line
+const accelCount = gainers.filter((r: any) => (r.trendPct ?? 0) > 10).length;
+const stabilCount = gainers.length - accelCount;
+const pulseSummary = `Top 5 packages drive ${concentrationPct}% of weekly downloads. ${accelCount} accelerating, ${stabilCount > 0 ? stabilCount + ' stabilizing' : '0 stabilizing'}.`;
+
+// Mini sparkline SVG helper (7-day from range30)
+function miniSparkSvg(range30: number[] | null): string {
+  if (!range30 || range30.length < 7) return '';
+  const vals = range30.slice(-7);
+  const mx = Math.max(1, ...vals);
+  const pts = vals.map((v, i) => `${(i / 6) * 48},${16 - (v / mx) * 14}`).join(' ');
+  return `<svg viewBox="0 0 48 18" class="inline-block w-12 h-4 ml-1 align-middle" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="${pts}" /></svg>`;
+}
+
 // ── Expanded executive metrics ──
 const npmLast7 = sparkline30.slice(-7).reduce((a: number, b: number) => a + Number(b), 0);
 const npmPrev7 = sparkline30.slice(-14, -7).reduce((a: number, b: number) => a + Number(b), 0);
@@ -432,77 +457,149 @@ const chatContext = !missing && data ? JSON.stringify({
         <p class="mt-1 text-sm text-dim">Growth signals and data reliability at a glance.</p>
         <div class="mt-4 grid gap-6 lg:grid-cols-2">
 
-          {/* Growth Pulse */}
+          {/* Growth Pulse — redesigned for clarity */}
           <div class="rounded-2xl border border-edge bg-surface-raised p-6">
             <div class="flex items-center justify-between gap-3 flex-wrap">
               <h3 class="text-lg font-semibold text-heading">Growth Pulse</h3>
-              <div class="text-sm text-dim">
-                Top-5: <span id="pulse-conc" class="font-medium text-muted">{concentrationPct}%</span> of weekly
-              </div>
             </div>
 
-            <div class="mt-5 grid gap-4 sm:grid-cols-3">
-              <div class="rounded-xl border border-edge p-4">
-                <div class="text-xs font-semibold text-emerald-400 flex items-center gap-1">
-                  <span>{'\u25B2'}</span> Top Gainers
+            {/* One-line executive summary */}
+            <p id="pulse-summary" class="mt-2 text-sm text-muted leading-relaxed">
+              <span id="pulse-conc" data-value={concentrationPct} class="hidden">{concentrationPct}</span>
+              {pulseSummary}
+            </p>
+
+            <div class="mt-5 grid gap-5 sm:grid-cols-2">
+              {/* ── Column A: Established Movers (prev ≥ 50) ── */}
+              <div>
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Established Movers</span>
+                  <span class="text-[10px] text-dim">(prev &ge; 50/wk)</span>
                 </div>
-                <ul id="pulse-gainers" class="mt-2 space-y-2">
-                  {gainers.length > 0 ? gainers.map((r: any) => {
-                    const gCurr = r.week ?? 0;
-                    const gPrev = r.delta7 !== undefined ? gCurr - r.delta7 : null;
-                    const sg = smartGrowth(r.trendPct, gPrev, gCurr);
+
+                <ul id="pulse-established" class="space-y-3">
+                  {establishedGainers.length > 0 ? establishedGainers.map((r: any) => {
+                    const curr = moverCurr(r); const prev = moverPrev(r);
+                    const delta = curr - prev; const pct = r.trendPct;
+                    const name = (r.name ?? '').replace('@mcptoolshop/', '');
+                    const dispName = name.length > 22 ? name.slice(0, 20) + '\u2026' : name;
+                    const pctR = pct !== null && pct !== undefined ? Math.round(Math.min(Math.abs(pct), PCT_CAP) * 10) / 10 : null;
+                    const arrow = delta >= 0 ? '\u25B2' : '\u25BC';
+                    const color = delta >= 0 ? 'text-emerald-400' : 'text-rose-400';
+                    // Find range30 from leaderboard for sparkline
+                    const lb = leaderboard.find((x: any) => x.name === r.name);
+                    const spark = lb?.range30 ? miniSparkSvg(lb.range30) : '';
                     return (
-                    <li class="flex items-center justify-between gap-2 text-sm">
-                      <span class="truncate text-heading">{r.name.replace('@mcptoolshop/', '')}</span>
-                      <span class={`${sg.cls} tabular-nums whitespace-nowrap text-xs`}>{sg.text}</span>
+                    <li class="pulse-row">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="pulse-name text-heading" title={r.name}>{dispName}</span>
+                        <span class={`pulse-delta tabular-nums font-semibold ${color}`}>
+                          {delta >= 0 ? '+' : ''}{fmt.format(delta)}
+                        </span>
+                      </div>
+                      <div class="flex items-center justify-between gap-2 mt-0.5">
+                        <span class="text-[11px] text-dim tabular-nums">
+                          {pctR !== null ? `${arrow} ${pctR}${Math.abs(pct ?? 0) > PCT_CAP ? '+' : ''}% vs prior week` : ''}
+                        </span>
+                        <span class="text-[11px] text-dim tabular-nums">
+                          {fmt.format(prev)} &rarr; {fmt.format(curr)}
+                          <Fragment set:html={spark} />
+                        </span>
+                      </div>
                     </li>
                     );
                   }) : (
-                    <li class="text-xs text-dim">No gainers this week</li>
+                    <li class="text-xs text-dim">No established gainers this week</li>
                   )}
                 </ul>
+
+                {/* Established decliners */}
+                {establishedDecliners.length > 0 && (
+                  <div class="mt-4">
+                    <div class="text-xs font-semibold text-rose-400 mb-2 flex items-center gap-1">
+                      <span>{'\u25BC'}</span> Decliners
+                    </div>
+                    <ul id="pulse-decliners" class="space-y-3">
+                      {establishedDecliners.map((r: any) => {
+                        const curr = moverCurr(r); const prev = moverPrev(r);
+                        const delta = curr - prev;
+                        const pctR = r.trendPct !== null && r.trendPct !== undefined ? Math.round(Math.min(Math.abs(r.trendPct), PCT_CAP) * 10) / 10 : null;
+                        const name = (r.name ?? '').replace('@mcptoolshop/', '');
+                        const dispName = name.length > 22 ? name.slice(0, 20) + '\u2026' : name;
+                        const lb = leaderboard.find((x: any) => x.name === r.name);
+                        const spark = lb?.range30 ? miniSparkSvg(lb.range30) : '';
+                        return (
+                        <li class="pulse-row">
+                          <div class="flex items-center justify-between gap-2">
+                            <span class="pulse-name text-heading" title={r.name}>{dispName}</span>
+                            <span class="pulse-delta tabular-nums font-semibold text-rose-400">
+                              {fmt.format(delta)}
+                            </span>
+                          </div>
+                          <div class="flex items-center justify-between gap-2 mt-0.5">
+                            <span class="text-[11px] text-dim tabular-nums">
+                              {pctR !== null ? `\u25BC ${pctR}% vs prior week` : ''}
+                            </span>
+                            <span class="text-[11px] text-dim tabular-nums">
+                              {fmt.format(prev)} &rarr; {fmt.format(curr)}
+                              <Fragment set:html={spark} />
+                            </span>
+                          </div>
+                        </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
               </div>
 
-              <div class="rounded-xl border border-edge p-4">
-                <div class="text-xs font-semibold text-rose-400 flex items-center gap-1">
-                  <span>{'\u25BC'}</span> Decliners
+              {/* ── Column B: Emerging + Newly Active ── */}
+              <div>
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="text-xs font-semibold uppercase tracking-wider text-amber-400">Emerging &amp; New</span>
+                  <span class="text-[10px] text-dim">(prev &lt; 50 or first week)</span>
                 </div>
-                <ul id="pulse-decliners" class="mt-2 space-y-2">
-                  {decliners.length > 0 ? decliners.map((r: any) => {
-                    const curr = r.week ?? 0;
-                    const prev = r.delta7 !== undefined ? curr - r.delta7 : null;
-                    const sg = smartGrowth(r.trendPct, prev, curr);
+
+                <ul id="pulse-emerging" class="space-y-3">
+                  {emergingAll.length > 0 ? emergingAll.map((r: any) => {
+                    const curr = moverCurr(r); const prev = moverPrev(r);
+                    const delta = curr - prev;
+                    const isNew = r.trendPct === null && prev === 0 && curr > 0;
+                    const name = (r.name ?? '').replace('@mcptoolshop/', '');
+                    const dispName = name.length > 22 ? name.slice(0, 20) + '\u2026' : name;
+                    const lb = leaderboard.find((x: any) => x.name === r.name);
+                    const spark = lb?.range30 ? miniSparkSvg(lb.range30) : '';
                     return (
-                    <li class="flex items-center justify-between gap-2 text-sm">
-                      <span class="truncate text-heading">{r.name.replace('@mcptoolshop/', '')}</span>
-                      <span class={`${sg.cls} tabular-nums whitespace-nowrap text-xs`}>{sg.text}</span>
+                    <li class="pulse-row">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="pulse-name text-heading" title={r.name}>
+                          {dispName}
+                          {isNew && <span class="ml-1.5 text-[10px] font-semibold uppercase bg-amber-400/15 text-amber-400 px-1.5 py-0.5 rounded">new</span>}
+                        </span>
+                        <span class="pulse-delta tabular-nums font-semibold text-amber-400">
+                          +{fmt.format(delta > 0 ? delta : curr)}
+                        </span>
+                      </div>
+                      <div class="flex items-center justify-between gap-2 mt-0.5">
+                        <span class="text-[11px] text-dim tabular-nums">
+                          {isNew ? 'zero \u2192 active this week' : prev > 0 ? `from base of ${fmt.format(prev)}/wk` : 'first activity'}
+                        </span>
+                        <span class="text-[11px] text-dim tabular-nums">
+                          {fmt.format(curr)}/wk
+                          <Fragment set:html={spark} />
+                        </span>
+                      </div>
                     </li>
                     );
                   }) : (
-                    <li class="text-xs text-dim">No decliners this week</li>
-                  )}
-                </ul>
-              </div>
-
-              <div class="rounded-xl border border-edge p-4">
-                <div class="text-xs font-semibold text-amber-400 flex items-center gap-1">
-                  <span>{'\u2728'}</span> Newly Active
-                </div>
-                <ul id="pulse-new" class="mt-2 space-y-2">
-                  {awakening.length > 0 ? awakening.map((r: any) => (
-                    <li class="flex items-center justify-between gap-2 text-sm">
-                      <span class="truncate text-heading">{r.name.replace('@mcptoolshop/', '')}</span>
-                      <span class="text-amber-400 tabular-nums whitespace-nowrap">{fmt.format(r.week)}/wk</span>
-                    </li>
-                  )) : (
-                    <li class="text-xs text-dim">No new activity</li>
+                    <li class="text-xs text-dim">No emerging packages this week</li>
                   )}
                 </ul>
               </div>
             </div>
 
-            <div class="mt-4 text-xs text-dim">
-              Movers computed from npm 30-day ranges (last 7 vs prior 7).
+            <div class="mt-5 text-[11px] text-dim">
+              Movers computed from npm 30-day ranges (last 7 vs prior 7). Established = prior week &ge; 50 downloads. Inline sparklines show 7-day trend.
             </div>
           </div>
 
@@ -1134,6 +1231,26 @@ const chatContext = !missing && data ? JSON.stringify({
     color: var(--color-action-text);
     background: var(--color-action);
     border-color: var(--color-action);
+  }
+
+  /* Pulse rows */
+  .pulse-row {
+    padding: 8px 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-edge) 40%, transparent);
+  }
+  .pulse-row:last-child { border-bottom: none; }
+  .pulse-name {
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 60%;
+  }
+  .pulse-delta {
+    font-size: 15px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
   }
 
   /* Chat */
@@ -1932,37 +2049,139 @@ const chatContext = !missing && data ? JSON.stringify({
       var content = document.getElementById('dashboard-content');
       if (content) content.classList.remove('hidden');
 
-      function renderMoverList(id, items, colorCls, arrow, suffix) {
-        var ul = document.getElementById(id);
-        if (!ul) return;
-        ul.textContent = '';
-        if (!items || items.length === 0) {
-          ul.appendChild(el('li', 'text-xs text-dim', 'No data this week'));
-          return;
-        }
-        items.forEach(function (r) {
-          var name = String(r.name || '').replace('@mcptoolshop/', '');
-          if (suffix === '/wk') {
-            // Newly active — show absolute downloads
-            ul.appendChild(el('li', 'flex items-center justify-between gap-2 text-sm', [
-              el('span', 'truncate text-heading', name),
-              el('span', colorCls + ' tabular-nums whitespace-nowrap', fmt.format(r.week) + '/wk')
-            ]));
-          } else {
-            // Gainers/decliners — use smart growth formatting
-            var curr = r.week || 0;
-            var prev = r.delta7 !== undefined ? curr - r.delta7 : null;
-            var sg = formatGrowth(r.trendPct, prev, curr);
-            ul.appendChild(el('li', 'flex items-center justify-between gap-2 text-sm', [
-              el('span', 'truncate text-heading', name),
-              el('span', sg.cls + ' tabular-nums whitespace-nowrap text-xs', sg.text)
-            ]));
-          }
-        });
+      // ── Build categorized mover lists (established vs emerging) ──
+      var ESTAB_FLOOR = 50;
+      function mPrev(r) { return r.delta7 !== undefined ? (r.week || 0) - r.delta7 : 0; }
+      function mCurr(r) { return r.week || 0; }
+      function clipName(n) { return n.length > 22 ? n.slice(0, 20) + '\u2026' : n; }
+      function sparkSvg(range30) {
+        if (!range30 || range30.length < 7) return null;
+        var v = range30.slice(-7);
+        var mx = Math.max.apply(null, v.map(Number)) || 1;
+        var pts = v.map(function (d, i) { return (i / 6 * 48) + ',' + (16 - Number(d) / mx * 14); }).join(' ');
+        var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        s.setAttribute('viewBox', '0 0 48 18');
+        s.setAttribute('class', 'inline-block w-12 h-4 ml-1 align-middle');
+        s.setAttribute('fill', 'none');
+        s.setAttribute('stroke', 'currentColor');
+        s.setAttribute('stroke-width', '1.5');
+        s.setAttribute('stroke-linecap', 'round');
+        s.setAttribute('stroke-linejoin', 'round');
+        var pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        pl.setAttribute('points', pts);
+        s.appendChild(pl);
+        return s;
       }
-      renderMoverList('pulse-gainers', movers.topGainers, 'text-emerald-400', '\u25B2', '%');
-      renderMoverList('pulse-decliners', movers.topDecliners, 'text-rose-400', '\u25BC', '%');
-      renderMoverList('pulse-new', movers.newlyActive, 'text-amber-400', '', '/wk');
+
+      function renderPulseRow(parent, r, colorCls, isNew, lbData) {
+        var name = String(r.name || '').replace('@mcptoolshop/', '');
+        var curr = mCurr(r), prev = mPrev(r);
+        var delta = curr - prev;
+        var pct = r.trendPct;
+        var pctR = pct !== null && pct !== undefined ? Math.round(Math.min(Math.abs(pct), 500) * 10) / 10 : null;
+        var arrow = delta >= 0 ? '\u25B2' : '\u25BC';
+
+        // Row 1: name + absolute delta
+        var row1 = el('div', 'flex items-center justify-between gap-2', []);
+        var nameSpan = el('span', 'pulse-name text-heading', '');
+        nameSpan.title = r.name || name;
+        nameSpan.appendChild(document.createTextNode(clipName(name)));
+        if (isNew) {
+          var badge = el('span', 'ml-1.5 text-[10px] font-semibold uppercase rounded', 'new');
+          badge.style.cssText = 'background:rgba(251,191,36,0.15);color:#fbbf24;padding:1px 6px;';
+          nameSpan.appendChild(badge);
+        }
+        row1.appendChild(nameSpan);
+        var deltaStr = (delta >= 0 ? '+' : '') + fmt.format(delta);
+        if (isNew) deltaStr = '+' + fmt.format(delta > 0 ? delta : curr);
+        row1.appendChild(el('span', 'pulse-delta tabular-nums font-semibold ' + colorCls, deltaStr));
+
+        // Row 2: percent + baseline + sparkline
+        var row2 = el('div', 'flex items-center justify-between gap-2 mt-0.5', []);
+        var leftTxt = '';
+        if (isNew) leftTxt = prev === 0 ? 'zero \u2192 active this week' : 'first activity';
+        else if (pctR !== null) leftTxt = arrow + ' ' + pctR + (Math.abs(pct || 0) > 500 ? '+' : '') + '% vs prior week';
+        row2.appendChild(el('span', 'text-[11px] text-dim tabular-nums', leftTxt));
+
+        var rightSpan = el('span', 'text-[11px] text-dim tabular-nums', '');
+        if (isNew) {
+          rightSpan.appendChild(document.createTextNode(fmt.format(curr) + '/wk'));
+        } else {
+          rightSpan.appendChild(document.createTextNode(fmt.format(prev) + ' \u2192 ' + fmt.format(curr)));
+        }
+        // Sparkline from leaderboard data
+        var lbRow = lbData ? lbData.find(function (x) { return x.name === r.name || x.name === name; }) : null;
+        var svg = lbRow ? sparkSvg(lbRow.range30) : null;
+        if (svg) rightSpan.appendChild(svg);
+        row2.appendChild(rightSpan);
+
+        var li = el('li', 'pulse-row', [row1, row2]);
+        parent.appendChild(li);
+      }
+
+      function renderPulsePanel(data, movers, lbData) {
+        var allGainers = movers.topGainers || [];
+        var allDecliners = movers.topDecliners || [];
+        var newlyActive = movers.newlyActive || [];
+        var concPctVal = Math.round(movers.concentrationTop5Pct || 0);
+
+        var estGainers = allGainers.filter(function (r) { return mPrev(r) >= ESTAB_FLOOR; });
+        var emGainers = allGainers.filter(function (r) { return mPrev(r) < ESTAB_FLOOR; });
+        var estDecliners = allDecliners.filter(function (r) { return mPrev(r) >= ESTAB_FLOOR; });
+
+        // Merge newly-active into emerging
+        var emMap = {};
+        emGainers.forEach(function (r) { emMap[r.name] = true; });
+        var emAll = emGainers.concat(newlyActive.filter(function (a) { return !emMap[a.name]; }));
+        emAll.sort(function (a, b) { return (b.week || 0) - (a.week || 0); });
+        emAll = emAll.slice(0, 5);
+
+        // Summary
+        var accel = allGainers.filter(function (r) { return (r.trendPct || 0) > 10; }).length;
+        var stabil = allGainers.length - accel;
+        var sumEl = document.getElementById('pulse-summary');
+        if (sumEl) sumEl.textContent = 'Top 5 packages drive ' + concPctVal + '% of weekly downloads. ' + accel + ' accelerating, ' + (stabil > 0 ? stabil + ' stabilizing' : '0 stabilizing') + '.';
+        var concEl = document.getElementById('pulse-conc');
+        if (concEl) { concEl.textContent = String(concPctVal); concEl.setAttribute('data-value', String(concPctVal)); }
+
+        // Established column
+        var estUl = document.getElementById('pulse-established');
+        if (estUl) {
+          estUl.textContent = '';
+          if (estGainers.length === 0) {
+            estUl.appendChild(el('li', 'text-xs text-dim', 'No established gainers this week'));
+          } else {
+            estGainers.forEach(function (r) { renderPulseRow(estUl, r, 'text-emerald-400', false, lbData); });
+          }
+        }
+
+        // Established decliners
+        var decUl = document.getElementById('pulse-decliners');
+        if (decUl) {
+          decUl.textContent = '';
+          if (estDecliners.length > 0) {
+            estDecliners.forEach(function (r) { renderPulseRow(decUl, r, 'text-rose-400', false, lbData); });
+            decUl.parentElement.classList.remove('hidden');
+          } else if (decUl.parentElement) {
+            decUl.parentElement.classList.add('hidden');
+          }
+        }
+
+        // Emerging column
+        var emUl = document.getElementById('pulse-emerging');
+        if (emUl) {
+          emUl.textContent = '';
+          if (emAll.length === 0) {
+            emUl.appendChild(el('li', 'text-xs text-dim', 'No emerging packages this week'));
+          } else {
+            emAll.forEach(function (r) {
+              var isN = r.trendPct === null && mPrev(r) === 0 && mCurr(r) > 0;
+              renderPulseRow(emUl, r, 'text-amber-400', isN, lbData);
+            });
+          }
+        }
+      }
+      renderPulsePanel(data, movers, data.leaderboard || []);
 
       var healthRows = document.getElementById('health-rows');
       if (healthRows && data.manifestCounts) {
