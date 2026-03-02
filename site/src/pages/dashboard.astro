@@ -2883,7 +2883,7 @@ const chatContext = !missing && data ? JSON.stringify({
         // Leaderboard
         var lb = all.map(function (x) {
           return { registry: x.registry, name: x.name, week: sn(x.week), month: sn(x.month), day: sn(x.day), total: sn(x.total), trendPct: x.trendPct, last7: x.last7, prev7: x.prev7, delta7: x.delta7, range30: x.range30, extra: x.extra };
-        }).sort(function (a, b) { return regDisplayVal(b.registry, b) - regDisplayVal(a.registry, a) || b.month - a.month; }).slice(0, 250);
+        }).sort(function (a, b) { return b.week - a.week || b.month - a.month; }).slice(0, 250);
 
         // Sparkline30
         var sp30 = new Array(30).fill(0);
@@ -2901,14 +2901,12 @@ const chatContext = !missing && data ? JSON.stringify({
           .map(function (r) { return { name: r.name, registry: 'npm', week: r.week, month: r.month, trendPct: r.trendPct, delta7: r.delta7 }; });
         var na = nwr.filter(function (r) { return r.isNew; }).sort(function (a, b) { return b.week - a.week; }).slice(0, 5)
           .map(function (r) { return { name: r.name, registry: 'npm', week: r.week, month: r.month, trendPct: r.trendPct, delta7: r.delta7 }; });
-        var t5w = all.slice().sort(function (a, b) { return regDisplayVal(b.registry, b) - regDisplayVal(a.registry, a); }).slice(0, 5).reduce(function (s, x) { return s + regDisplayVal(x.registry, x); }, 0);
-        var totalDisp = Object.values(rt).reduce(function (s, r, i) { return s + regDisplayVal(Object.keys(rt)[i], r); }, 0);
-        var conc5 = totalDisp ? (t5w / totalDisp * 100) : 0;
+        var t5w = all.slice().sort(function (a, b) { return b.week - a.week; }).slice(0, 5).reduce(function (s, x) { return s + sn(x.week); }, 0);
+        var conc5 = totals.week ? (t5w / totals.week * 100) : 0;
         var movers = { topGainers: tg, topDecliners: td, newlyActive: na, concentrationTop5Pct: conc5 };
 
         // Narrative
-        var totalDisp2 = Object.entries(rt).reduce(function (s, e) { return s + regDisplayVal(e[0], e[1]); }, 0);
-        var regShares = Object.entries(rt).map(function (e) { var v = regDisplayVal(e[0], e[1]); return { reg: e[0], week: v, pct: totalDisp2 ? v / totalDisp2 * 100 : 0 }; }).sort(function (a, b) { return b.week - a.week; });
+        var regShares = Object.entries(rt).map(function (e) { return { reg: e[0], week: sn(e[1].week), pct: totals.week ? sn(e[1].week) / totals.week * 100 : 0 }; }).sort(function (a, b) { return b.week - a.week; });
         var lr = regShares[0], lp = lb[0];
         var narr = (lr ? (RN[lr.reg] || lr.reg) + ' led with ' + Math.round(lr.pct) + '% of weekly downloads' : 'Updated') + '. ' +
           (lp ? 'Top: ' + lp.name + ' (' + fi(lp.week) + '/wk)' : '') + '. ' +
