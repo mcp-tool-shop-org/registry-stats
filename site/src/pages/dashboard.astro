@@ -197,12 +197,32 @@ const chatContext = !missing && data ? JSON.stringify({
             <div class="text-sm text-dim text-center py-8">Ask anything about your registry stats, package trends, or release strategy.</div>
           </div>
 
+          <div id="chat-progress" class="mt-2 hidden">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs text-dim flex items-center gap-1.5">
+                <svg class="chat-spinner" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+                  <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
+                </svg>
+                <span id="chat-progress-label">Thinking…</span>
+              </span>
+              <span id="chat-elapsed" class="text-xs text-dim tabular-nums">0.0s</span>
+            </div>
+            <div class="h-1 rounded-full bg-surface-strong overflow-hidden">
+              <div id="chat-progress-bar" class="h-1 rounded-full bg-accent chat-progress-bar"></div>
+            </div>
+          </div>
+
           <div class="mt-3 flex gap-2">
             <input id="chat-input" type="text" placeholder="Ask about your registry data…"
               class="flex-1 rounded-xl border border-edge bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-dim focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-50"
               disabled />
-            <button id="chat-send" class="rounded-xl bg-action text-action-text px-5 py-2.5 text-sm font-medium hover:bg-action-hover transition-colors disabled:opacity-50" disabled>
-              Send
+            <button id="chat-send" class="rounded-xl bg-action text-action-text px-5 py-2.5 text-sm font-medium hover:bg-action-hover transition-colors disabled:opacity-50 flex items-center gap-2" disabled>
+              <svg id="send-spinner" class="chat-spinner hidden" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+                <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
+              </svg>
+              <span id="send-label">Send</span>
             </button>
           </div>
         </div>
@@ -725,6 +745,21 @@ const chatContext = !missing && data ? JSON.stringify({
     0%, 80%, 100% { transform: translateY(0); }
     40% { transform: translateY(-6px); }
   }
+  .chat-spinner {
+    animation: chatSpin 0.8s linear infinite;
+  }
+  @keyframes chatSpin {
+    to { transform: rotate(360deg); }
+  }
+  .chat-progress-bar {
+    width: 0%;
+    animation: chatProgressPulse 2.5s ease-in-out infinite;
+  }
+  @keyframes chatProgressPulse {
+    0% { width: 5%; opacity: 0.7; }
+    50% { width: 85%; opacity: 1; }
+    100% { width: 5%; opacity: 0.7; }
+  }
 </style>
 
 <script is:inline src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
@@ -1231,11 +1266,17 @@ const chatContext = !missing && data ? JSON.stringify({
     var chatInput = document.getElementById('chat-input');
     var chatSend = document.getElementById('chat-send');
     var chatClear = document.getElementById('chat-clear');
+    var chatProgress = document.getElementById('chat-progress');
+    var chatElapsed = document.getElementById('chat-elapsed');
+    var chatProgressLabel = document.getElementById('chat-progress-label');
+    var sendSpinner = document.getElementById('send-spinner');
+    var sendLabel = document.getElementById('send-label');
     if (!dot || !msgContainer || !chatInput) return; // guard: chat not rendered
 
     var connected = false;
     var sending = false;
     var history = [];
+    var elapsedTimer = null;
 
     // ── Build system prompt with full stats context ──
     var ctxEl = document.getElementById('chat-context');
@@ -1325,6 +1366,14 @@ const chatContext = !missing && data ? JSON.stringify({
             chatInput.disabled = false;
             chatSend.disabled = false;
             chatInput.focus();
+
+            // Pre-warm: keep selected model loaded in VRAM for instant responses
+            var warmModel = modelSelect.value;
+            fetch(OLLAMA_BASE + '/api/generate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ model: warmModel, prompt: '', keep_alive: '30m', stream: false })
+            }).catch(function () {});
           }
         })
         .catch(function () {
@@ -1361,6 +1410,18 @@ const chatContext = !missing && data ? JSON.stringify({
       chatSend.disabled = true;
       chatInput.disabled = true;
 
+      // Show loading UI
+      if (sendSpinner) sendSpinner.classList.remove('hidden');
+      if (sendLabel) sendLabel.textContent = 'Thinking…';
+      if (chatProgress) chatProgress.classList.remove('hidden');
+      if (chatProgressLabel) chatProgressLabel.textContent = 'Thinking…';
+      var startTime = Date.now();
+      if (elapsedTimer) clearInterval(elapsedTimer);
+      elapsedTimer = setInterval(function () {
+        var s = ((Date.now() - startTime) / 1000).toFixed(1);
+        if (chatElapsed) chatElapsed.textContent = s + 's';
+      }, 100);
+
       history.push({ role: 'user', content: text });
       renderMessages();
 
@@ -1383,9 +1444,21 @@ const chatContext = !missing && data ? JSON.stringify({
       fetch(OLLAMA_BASE + '/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: model, messages: msgs, stream: true })
+        body: JSON.stringify({
+          model: model,
+          messages: msgs,
+          stream: true,
+          keep_alive: '30m',
+          options: {
+            num_ctx: 4096,
+            temperature: 0.7,
+            num_predict: 1024
+          }
+        })
       }).then(function (resp) {
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        // Switch progress label to streaming
+        if (chatProgressLabel) chatProgressLabel.textContent = 'Streaming response…';
         // Replace typing with response bubble
         msgContainer.removeChild(typingRow);
         var aiRow = document.createElement('div');
@@ -1411,6 +1484,10 @@ const chatContext = !missing && data ? JSON.stringify({
               chatSend.disabled = false;
               chatInput.disabled = false;
               chatInput.focus();
+              if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
+              if (chatProgress) chatProgress.classList.add('hidden');
+              if (sendSpinner) sendSpinner.classList.add('hidden');
+              if (sendLabel) sendLabel.textContent = 'Send';
               return;
             }
             var lines = decoder.decode(result.value, { stream: true }).split('\n');
@@ -1430,7 +1507,7 @@ const chatContext = !missing && data ? JSON.stringify({
         }
         return pump();
       }).catch(function (err) {
-        msgContainer.removeChild(typingRow);
+        if (typingRow.parentNode) msgContainer.removeChild(typingRow);
         var errRow = document.createElement('div');
         errRow.className = 'flex justify-start';
         var errBubble = document.createElement('div');
@@ -1442,6 +1519,10 @@ const chatContext = !missing && data ? JSON.stringify({
         sending = false;
         chatSend.disabled = false;
         chatInput.disabled = false;
+        if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
+        if (chatProgress) chatProgress.classList.add('hidden');
+        if (sendSpinner) sendSpinner.classList.add('hidden');
+        if (sendLabel) sendLabel.textContent = 'Send';
       });
     }
 
