@@ -77,7 +77,7 @@ const leaderboard = data?.leaderboard ?? [];
 const sparkline30 = data?.sparkline30 ?? [];
 const movers = data?.movers;
 
-const maxBar = Math.max(1, ...Object.values(registryTotals).map((r: any) => Number(r?.week ?? 0)));
+const maxBar = Math.max(1, ...Object.entries(registryTotals).map(([k, r]: [string, any]) => ['vscode','nuget','docker'].includes(k) ? Number(r?.total ?? r?.week ?? 0) : Number(r?.week ?? 0)));
 const sparkMax = Math.max(1, ...sparkline30.map((n: number) => Number(n ?? 0)));
 
 const gainers = movers?.topGainers ?? [];
@@ -978,7 +978,7 @@ const chatContext = !missing && data ? JSON.stringify({
       {/* ── Leaderboard ── */}
       <section id="leaderboard" class="mb-8">
         <h2 class="text-xl font-semibold text-heading">Leaderboard</h2>
-        <p class="mt-1 text-sm text-dim">Sorted by weekly downloads. Trend = last 7 vs prior 7 (npm only).</p>
+        <p class="mt-1 text-sm text-dim">Sorted by downloads. npm/PyPI = weekly; VS Code/NuGet/Docker = all-time total. Trend = last 7 vs prior 7 (npm only).</p>
         <div class="mt-4 rounded-2xl border border-edge overflow-hidden">
           <div class="p-4 flex items-center justify-between gap-4 flex-wrap bg-surface-raised">
             <div class="text-sm text-dim">
@@ -996,7 +996,7 @@ const chatContext = !missing && data ? JSON.stringify({
                   <th class="text-left font-medium px-5 py-3">#</th>
                   <th class="text-left font-medium px-5 py-3">Package</th>
                   <th class="text-left font-medium px-5 py-3">Registry</th>
-                  <th class="text-right font-medium px-5 py-3">Week</th>
+                  <th class="text-right font-medium px-5 py-3">Downloads</th>
                   <th class="text-right font-medium px-5 py-3">Month</th>
                   <th class="text-center font-medium px-3 py-3">30d</th>
                   <th class="text-right font-medium px-5 py-3">Trend</th>
@@ -1014,7 +1014,7 @@ const chatContext = !missing && data ? JSON.stringify({
                       <td class="px-5 py-3 text-dim tabular-nums">{i + 1}</td>
                       <td class="px-5 py-3 font-medium text-heading">{row.name}</td>
                       <td class="px-5 py-3 text-dim">{registryLabel(row.registry)}</td>
-                      <td class="px-5 py-3 text-right tabular-nums text-body">{fmt.format(row.week)}</td>
+                      <td class="px-5 py-3 text-right tabular-nums text-body">{fmt.format(['vscode','nuget','docker'].includes(row.registry) ? (row.total ?? row.week) : row.week)}</td>
                       <td class="px-5 py-3 text-right tabular-nums text-body">{fmt.format(row.month)}</td>
                       <td class="px-3 py-3">
                         {hasSparkline ? (
@@ -1595,7 +1595,7 @@ const chatContext = !missing && data ? JSON.stringify({
       // 2. Registry Share — polar area + stat rows
       // ═══════════════════════════════════════════════
       var regKeys = Object.keys(cdata.registryTotals || {});
-      var regVals = regKeys.map(function (k) { return Number((cdata.registryTotals[k] || {}).week || 0); });
+      var regVals = regKeys.map(function (k) { return regDisplayVal(k, cdata.registryTotals[k] || {}); });
       var regTotal = regVals.reduce(function (a, b) { return a + b; }, 0);
 
       // Stat rows
@@ -2396,7 +2396,7 @@ const chatContext = !missing && data ? JSON.stringify({
           tr.appendChild(td('px-5 py-3 text-dim tabular-nums', String(i + 1)));
           tr.appendChild(td('px-5 py-3 font-medium text-heading', String(row.name)));
           tr.appendChild(td('px-5 py-3 text-dim', regLabel(row.registry)));
-          tr.appendChild(td('px-5 py-3 text-right tabular-nums text-body', fmt.format(row.week)));
+          tr.appendChild(td('px-5 py-3 text-right tabular-nums text-body', fmt.format(regDisplayVal(row.registry, row))));
           tr.appendChild(td('px-5 py-3 text-right tabular-nums text-body', fmt.format(row.month)));
           tr.appendChild(td('px-3 py-3', sparkCell));
           tr.appendChild(td('px-5 py-3 text-right tabular-nums ' + tb.cls, tb.text));
@@ -2878,7 +2878,7 @@ const chatContext = !missing && data ? JSON.stringify({
         // Leaderboard
         var lb = all.map(function (x) {
           return { registry: x.registry, name: x.name, week: sn(x.week), month: sn(x.month), day: sn(x.day), total: sn(x.total), trendPct: x.trendPct, last7: x.last7, prev7: x.prev7, delta7: x.delta7, range30: x.range30, extra: x.extra };
-        }).sort(function (a, b) { return b.week - a.week || b.month - a.month; }).slice(0, 100);
+        }).sort(function (a, b) { return regDisplayVal(b.registry, b) - regDisplayVal(a.registry, a) || b.month - a.month; }).slice(0, 250);
 
         // Sparkline30
         var sp30 = new Array(30).fill(0);
@@ -2896,12 +2896,14 @@ const chatContext = !missing && data ? JSON.stringify({
           .map(function (r) { return { name: r.name, registry: 'npm', week: r.week, month: r.month, trendPct: r.trendPct, delta7: r.delta7 }; });
         var na = nwr.filter(function (r) { return r.isNew; }).sort(function (a, b) { return b.week - a.week; }).slice(0, 5)
           .map(function (r) { return { name: r.name, registry: 'npm', week: r.week, month: r.month, trendPct: r.trendPct, delta7: r.delta7 }; });
-        var t5w = all.slice().sort(function (a, b) { return b.week - a.week; }).slice(0, 5).reduce(function (s, x) { return s + sn(x.week); }, 0);
-        var conc5 = totals.week ? (t5w / totals.week * 100) : 0;
+        var t5w = all.slice().sort(function (a, b) { return regDisplayVal(b.registry, b) - regDisplayVal(a.registry, a); }).slice(0, 5).reduce(function (s, x) { return s + regDisplayVal(x.registry, x); }, 0);
+        var totalDisp = Object.values(rt).reduce(function (s, r, i) { return s + regDisplayVal(Object.keys(rt)[i], r); }, 0);
+        var conc5 = totalDisp ? (t5w / totalDisp * 100) : 0;
         var movers = { topGainers: tg, topDecliners: td, newlyActive: na, concentrationTop5Pct: conc5 };
 
         // Narrative
-        var regShares = Object.entries(rt).map(function (e) { return { reg: e[0], week: sn(e[1].week), pct: totals.week ? sn(e[1].week) / totals.week * 100 : 0 }; }).sort(function (a, b) { return b.week - a.week; });
+        var totalDisp2 = Object.entries(rt).reduce(function (s, e) { return s + regDisplayVal(e[0], e[1]); }, 0);
+        var regShares = Object.entries(rt).map(function (e) { var v = regDisplayVal(e[0], e[1]); return { reg: e[0], week: v, pct: totalDisp2 ? v / totalDisp2 * 100 : 0 }; }).sort(function (a, b) { return b.week - a.week; });
         var lr = regShares[0], lp = lb[0];
         var narr = (lr ? (RN[lr.reg] || lr.reg) + ' led with ' + Math.round(lr.pct) + '% of weekly downloads' : 'Updated') + '. ' +
           (lp ? 'Top: ' + lp.name + ' (' + fi(lp.week) + '/wk)' : '') + '. ' +
@@ -2935,7 +2937,11 @@ const chatContext = !missing && data ? JSON.stringify({
             var agg = new Array(30).fill(0);
             npmItems.forEach(function (r) { if (r.range30) r.range30.forEach(function (v, i) { agg[i] += Number(v); }); });
             prd.npm = agg;
-          } else { prd[reg] = new Array(30).fill(Math.round(sn(rt[reg].week) / 7)); }
+          } else {
+            var isCumul = CUMULATIVE.indexOf(reg) !== -1;
+            var proxyVal = isCumul ? Math.round(sn(rt[reg].total) / 30) : Math.round(sn(rt[reg].week) / 7);
+            prd[reg] = new Array(30).fill(proxyVal);
+          }
         });
         var t5d = npmItems.filter(function (r) { return r.range30; }).sort(function (a, b) { return (b.week || 0) - (a.week || 0); }).slice(0, 5)
           .map(function (r) { return { name: (r.name || '').replace('@mcptoolshop/', ''), range30: r.range30 }; });
