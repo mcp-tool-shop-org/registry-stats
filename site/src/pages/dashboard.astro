@@ -305,20 +305,32 @@ const chatContext = !missing && data ? JSON.stringify({
     <div id="dashboard-content" class:list={[{ hidden: missing || !data }]}>
       {/* ── Title ── */}
       <div class="mt-8 mb-6">
-        <h1 class="text-3xl font-semibold tracking-tight text-heading">Dashboard</h1>
-        <p class="mt-2 text-dim">
-          Weekly + monthly stats across registries.
-          {!missing && data && (
-            <span
-              id="updated-at"
-              class="ml-2 text-muted cursor-help"
-              title={new Date(data.fetchedAt).toUTCString()}
-              data-fetched={data.fetchedAt}
-            >
-              Updated {relativeTime(data.fetchedAt)}.
-            </span>
-          )}
-        </p>
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 class="text-3xl font-semibold tracking-tight text-heading">Dashboard</h1>
+            <p class="mt-2 text-dim">
+              Weekly + monthly stats across registries.
+              {!missing && data && (
+                <span
+                  id="updated-at"
+                  class="ml-2 text-muted cursor-help"
+                  title={new Date(data.fetchedAt).toUTCString()}
+                  data-fetched={data.fetchedAt}
+                >
+                  Updated {relativeTime(data.fetchedAt)}.
+                </span>
+              )}
+            </p>
+          </div>
+          <button
+            id="refresh-btn"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-edge bg-surface-raised px-3 py-1.5 text-xs font-medium text-muted hover:text-heading hover:border-accent transition-colors shrink-0"
+            title="Fetch live data from npm and PyPI"
+          >
+            <span id="refresh-icon">{"\uD83D\uDD04"}</span> Refresh
+          </button>
+        </div>
+        <div id="refresh-status" class="mt-2 text-xs text-dim hidden"></div>
       </div>
 
       {/* ── Tab bar ── */}
@@ -1258,6 +1270,11 @@ const chatContext = !missing && data ? JSON.stringify({
 
     function initCharts() {
       if (typeof Chart === 'undefined') return;
+      // Destroy existing Chart.js instances for clean re-init
+      ['chart-trend', 'chart-share', 'chart-distribution', 'chart-top10'].forEach(function (id) {
+        var c = document.getElementById(id);
+        if (c && typeof Chart.getChart === 'function') { var ch = Chart.getChart(c); if (ch) ch.destroy(); }
+      });
       var dataEl = document.getElementById('chart-data');
       if (!dataEl) return;
       var cdata;
@@ -2120,6 +2137,16 @@ const chatContext = !missing && data ? JSON.stringify({
     }).catch(function () {
       // Runtime fetch failed — build-time data is still displayed. Silent fallback.
     });
+
+    // Expose refresh API for live data engine
+    window.__rpRefresh = function (statsData, chartJson) {
+      if (!validateStats(statsData)) return false;
+      var chartEl = document.getElementById('chart-data');
+      if (chartEl && chartJson) chartEl.setAttribute('data-json', chartJson);
+      renderDashboard(statsData);
+      if (typeof window.__rpInitCharts === 'function') window.__rpInitCharts();
+      return true;
+    };
   })();
 </script>
 
@@ -2417,5 +2444,237 @@ const chatContext = !missing && data ? JSON.stringify({
     loadHistory();
     renderMessages();
     checkOllama();
+  })();
+</script>
+
+<script is:inline>
+  // ═══════════════════════════════════════════════════
+  // Live Refresh Engine — fetch fresh data from npm & PyPI APIs
+  // ═══════════════════════════════════════════════════
+  (function () {
+    var refreshBtn = document.getElementById('refresh-btn');
+    if (!refreshBtn) return;
+
+    var CONC = 5;
+    var RN = { npm: 'npm', pypi: 'PyPI', vscode: 'VS Code', nuget: 'NuGet', docker: 'Docker Hub' };
+    function sn(n) { return Number.isFinite(n) ? n : 0; }
+    function pctCh(c, p) { if (!Number.isFinite(c) || !Number.isFinite(p)) return null; if (p === 0) return c === 0 ? 0 : 100; return ((c - p) / p) * 100; }
+    function dStr(ago) { var d = new Date(); d.setDate(d.getDate() - ago); return d.toISOString().slice(0, 10); }
+    function fi(n) { return new Intl.NumberFormat('en-US').format(Math.round(Number(n || 0))); }
+    function setStatus(t) { var el = document.getElementById('refresh-status'); if (el) { el.textContent = t; el.classList.remove('hidden'); } }
+
+    async function fj(url) {
+      try { var r = await fetch(url); return r.ok ? await r.json() : null; } catch { return null; }
+    }
+
+    async function batch(items, fn, conc) {
+      var results = []; var idx = { v: 0 };
+      async function w() { while (idx.v < items.length) { var i = idx.v++; results[i] = await fn(items[i], i); } }
+      await Promise.all(Array.from({ length: Math.min(conc, items.length) }, function () { return w(); }));
+      return results;
+    }
+
+    // Session cache: apply if fresh (< 5 min)
+    try {
+      var cached = sessionStorage.getItem('rs-live');
+      if (cached) {
+        var c = JSON.parse(cached);
+        if (c.ts && Date.now() - c.ts < 300000 && window.__rpRefresh) {
+          window.__rpRefresh(c.stats, JSON.stringify(c.chart));
+          setStatus('\u2705 Showing cached live data (' + new Date(c.stats.fetchedAt).toLocaleTimeString() + ')');
+          setTimeout(function () { var el = document.getElementById('refresh-status'); if (el) el.classList.add('hidden'); }, 4000);
+        }
+      }
+    } catch (e) { /* ignore */ }
+
+    refreshBtn.addEventListener('click', doRefresh);
+
+    async function doRefresh() {
+      refreshBtn.disabled = true;
+      var orig = refreshBtn.innerHTML;
+      refreshBtn.innerHTML = '\u23F3 Refreshing\u2026';
+
+      try {
+        setStatus('Loading baseline\u2026');
+        var bm = document.querySelector('meta[name="base-url"]');
+        var bp = (bm ? bm.getAttribute('content') : '/registry-stats') + '/';
+        var bRes = await fetch(bp + 'data/stats.json?_=' + Date.now());
+        if (!bRes.ok) throw new Error('No baseline data');
+        var base = await bRes.json();
+        if (!base.leaderboard) throw new Error('Invalid baseline');
+
+        var npmPkgs = [], pypiPkgs = [], others = [];
+        base.leaderboard.forEach(function (r) {
+          if (r.registry === 'npm') npmPkgs.push(r.name);
+          else if (r.registry === 'pypi') pypiPkgs.push(r.name);
+          else others.push(r);
+        });
+
+        // ── npm 30-day ranges (gives daily + weekly + monthly) ──
+        setStatus('Fetching npm data (' + npmPkgs.length + ' packages)\u2026');
+        var today = dStr(0), ago30 = dStr(30);
+        var done = 0;
+        var npmItems = await batch(npmPkgs, async function (pkg) {
+          var d = await fj('https://api.npmjs.org/downloads/range/' + ago30 + ':' + today + '/' + encodeURIComponent(pkg));
+          done++;
+          setStatus('npm: ' + done + '/' + npmPkgs.length);
+          var r30 = null, wk = 0, mo = 0, l7 = null, p7 = null, d7 = null, isN = false, tp = null;
+          if (d && d.downloads) {
+            r30 = d.downloads.map(function (x) { return sn(x.downloads); }).slice(-30);
+            while (r30.length < 30) r30.unshift(0);
+            l7 = r30.slice(-7).reduce(function (a, b) { return a + b; }, 0);
+            p7 = r30.slice(-14, -7).reduce(function (a, b) { return a + b; }, 0);
+            wk = l7; mo = r30.reduce(function (a, b) { return a + b; }, 0);
+            d7 = l7 - p7; isN = p7 === 0 && l7 > 0;
+            tp = isN ? null : pctCh(l7, p7);
+          }
+          return { registry: 'npm', name: pkg, week: wk, month: mo, day: 0, total: 0, range30: r30, trendPct: tp, last7: l7, prev7: p7, delta7: d7, isNew: isN, extra: null };
+        }, CONC);
+
+        // ── PyPI ──
+        setStatus('Fetching PyPI data (' + pypiPkgs.length + ' packages)\u2026');
+        done = 0;
+        var pypiItems = await batch(pypiPkgs, async function (pkg) {
+          var d = await fj('https://pypistats.org/api/packages/' + pkg.toLowerCase() + '/recent');
+          done++;
+          setStatus('pypi: ' + done + '/' + pypiPkgs.length);
+          var wk = 0, mo = 0, dy = 0;
+          if (d && d.data) { wk = sn(d.data.last_week); mo = sn(d.data.last_month); dy = sn(d.data.last_day); }
+          return { registry: 'pypi', name: pkg, week: wk, month: mo, day: dy, total: 0, range30: null, trendPct: null, last7: null, prev7: null, delta7: null, isNew: false, extra: null };
+        }, 3);
+
+        // ── Build payload ──
+        setStatus('Computing dashboard\u2026');
+        var fetchedAt = new Date().toISOString();
+        var all = npmItems.concat(pypiItems).concat(others);
+
+        // Registry totals
+        var rt = {};
+        all.forEach(function (it) {
+          if (!rt[it.registry]) rt[it.registry] = { packages: 0, week: 0, month: 0, total: 0 };
+          var r = rt[it.registry]; r.packages++; r.week += sn(it.week); r.month += sn(it.month); r.total += sn(it.total);
+        });
+        var totals = {
+          packages: all.length,
+          week: Object.values(rt).reduce(function (s, r) { return s + sn(r.week); }, 0),
+          month: Object.values(rt).reduce(function (s, r) { return s + sn(r.month); }, 0),
+          activeRegistries: Object.keys(rt).length,
+        };
+
+        // Leaderboard
+        var lb = all.map(function (x) {
+          return { registry: x.registry, name: x.name, week: sn(x.week), month: sn(x.month), day: sn(x.day), total: sn(x.total), trendPct: x.trendPct, last7: x.last7, prev7: x.prev7, delta7: x.delta7, range30: x.range30, extra: x.extra };
+        }).sort(function (a, b) { return b.week - a.week || b.month - a.month; }).slice(0, 100);
+
+        // Sparkline30
+        var sp30 = new Array(30).fill(0);
+        npmItems.forEach(function (it) { if (it.range30) for (var i = 0; i < 30; i++) sp30[i] += sn(it.range30[i]); });
+
+        // Confidence
+        var conf = {};
+        Object.keys(rt).forEach(function (reg) { conf[reg] = (reg === 'npm' || reg === 'pypi') ? 'ok' : (base.confidence || {})[reg] || 'ok'; });
+
+        // Movers
+        var nwr = npmItems.filter(function (r) { return r.range30; });
+        var tg = nwr.filter(function (r) { return r.trendPct !== null && !r.isNew; }).sort(function (a, b) { return b.trendPct - a.trendPct; }).slice(0, 5)
+          .map(function (r) { return { name: r.name, registry: 'npm', week: r.week, month: r.month, trendPct: r.trendPct, delta7: r.delta7 }; });
+        var td = nwr.filter(function (r) { return r.trendPct !== null && !r.isNew; }).sort(function (a, b) { return a.trendPct - b.trendPct; }).slice(0, 5)
+          .map(function (r) { return { name: r.name, registry: 'npm', week: r.week, month: r.month, trendPct: r.trendPct, delta7: r.delta7 }; });
+        var na = nwr.filter(function (r) { return r.isNew; }).sort(function (a, b) { return b.week - a.week; }).slice(0, 5)
+          .map(function (r) { return { name: r.name, registry: 'npm', week: r.week, month: r.month, trendPct: r.trendPct, delta7: r.delta7 }; });
+        var t5w = all.slice().sort(function (a, b) { return b.week - a.week; }).slice(0, 5).reduce(function (s, x) { return s + sn(x.week); }, 0);
+        var conc5 = totals.week ? (t5w / totals.week * 100) : 0;
+        var movers = { topGainers: tg, topDecliners: td, newlyActive: na, concentrationTop5Pct: conc5 };
+
+        // Narrative
+        var regShares = Object.entries(rt).map(function (e) { return { reg: e[0], week: sn(e[1].week), pct: totals.week ? sn(e[1].week) / totals.week * 100 : 0 }; }).sort(function (a, b) { return b.week - a.week; });
+        var lr = regShares[0], lp = lb[0];
+        var narr = (lr ? (RN[lr.reg] || lr.reg) + ' led with ' + Math.round(lr.pct) + '% of weekly downloads' : 'Updated') + '. ' +
+          (lp ? 'Top: ' + lp.name + ' (' + fi(lp.week) + '/wk)' : '') + '. ' +
+          (tg[0] ? 'Gainer: ' + tg[0].name + ' (+' + Math.round((tg[0].trendPct || 0) * 10) / 10 + '%)' : '') + '.';
+        var nLines = [];
+        if (lr) nLines.push({ icon: '\uD83D\uDCCA', label: 'Registry Lead', text: (RN[lr.reg] || lr.reg) + ' led with ' + Math.round(lr.pct) + '% of ' + fi(totals.week) + ' weekly downloads.' });
+        if (lp) nLines.push({ icon: '\uD83C\uDFC6', label: 'Top Package', text: lp.name + ' with ' + fi(lp.week) + ' downloads this week.' });
+        if (tg[0]) nLines.push({ icon: '\uD83D\uDE80', label: 'Top Mover', text: tg[0].name + ' surged ' + Math.round((tg[0].trendPct || 0) * 10) / 10 + '% WoW.' });
+        nLines.push({ icon: '\u2705', label: 'Data Source', text: 'Live refresh from npm and PyPI APIs.' });
+
+        var statsPayload = { fetchedAt: fetchedAt, totals: totals, registryTotals: rt, confidence: conf, narrative: narr, narrativeLines: nLines, movers: movers, leaderboard: lb, sparkline30: sp30, errors: [] };
+
+        // ── Chart payload ──
+        var VK = 10;
+        var vb = lb.slice(0, 30).map(function (r) {
+          var nm = (r.name || '').replace('@mcptoolshop/', '');
+          var vel = null, pw = null, ise = false;
+          if (r.range30 && r.range30.length === 30) {
+            pw = r.range30.slice(-14, -7).reduce(function (a, b) { return a + Number(b); }, 0);
+            var cw = r.range30.slice(-7).reduce(function (a, b) { return a + Number(b); }, 0);
+            if (pw < 20) ise = true; else vel = Math.round((cw - pw) / Math.sqrt(pw + VK) * 10) / 10;
+          }
+          var ad = r.range30 && r.range30.length === 30 ? r.range30.slice(-7).reduce(function (a, b) { return a + Number(b); }, 0) - r.range30.slice(-14, -7).reduce(function (a, b) { return a + Number(b); }, 0) : null;
+          return { name: nm, registry: r.registry, week: r.week, month: r.month, trendPct: r.trendPct, prevWeek: pw, absDelta: ad, range30: r.range30, velocity: vel, isEmerging: ise };
+        });
+
+        // Per-registry daily
+        var prd = {};
+        Object.keys(rt).forEach(function (reg) {
+          if (reg === 'npm') {
+            var agg = new Array(30).fill(0);
+            npmItems.forEach(function (r) { if (r.range30) r.range30.forEach(function (v, i) { agg[i] += Number(v); }); });
+            prd.npm = agg;
+          } else { prd[reg] = new Array(30).fill(Math.round(sn(rt[reg].week) / 7)); }
+        });
+        var t5d = npmItems.filter(function (r) { return r.range30; }).sort(function (a, b) { return (b.week || 0) - (a.week || 0); }).slice(0, 5)
+          .map(function (r) { return { name: (r.name || '').replace('@mcptoolshop/', ''), range30: r.range30 }; });
+
+        // Anomalies
+        var spM = sp30.length > 0 ? sp30.reduce(function (a, b) { return a + Number(b); }, 0) / sp30.length : 0;
+        var spS = sp30.length > 1 ? Math.sqrt(sp30.reduce(function (s, v) { return s + Math.pow(Number(v) - spM, 2); }, 0) / sp30.length) : 1;
+        var anom = sp30.map(function (v, i) { var z = spS > 0 ? (Number(v) - spM) / spS : 0; return Math.abs(z) >= 2 ? { day: i, value: Number(v), z: Math.round(z * 10) / 10 } : null; }).filter(Boolean);
+
+        // MoM, Gini, Median, P90
+        var nl7 = sp30.slice(-7).reduce(function (a, b) { return a + Number(b); }, 0);
+        var np7 = sp30.slice(-14, -7).reduce(function (a, b) { return a + Number(b); }, 0);
+        var mom = np7 > 0 ? Math.round((nl7 - np7) / np7 * 1000) / 10 : 0;
+        var wd = lb.map(function (r) { return Number(r.week || 0); }).sort(function (a, b) { return a - b; });
+        var nn = wd.length, ttl = wd.reduce(function (a, b) { return a + b; }, 0);
+        var gn = 0; wd.forEach(function (x, i) { gn += (2 * (i + 1) - nn - 1) * x; });
+        var gini = nn > 1 && ttl > 0 ? Math.round((gn / (nn * ttl)) * 100) / 100 : 0;
+        var med = nn > 0 ? wd[Math.floor(nn / 2)] : 0;
+        var p90v = nn > 0 ? wd[Math.floor(nn * 0.9)] : 0;
+        var t3p = ttl > 0 ? Math.round(wd.slice(-3).reduce(function (a, b) { return a + b; }, 0) / ttl * 100) : 0;
+        var npmPct = totals.week > 0 ? Math.round(sn((rt.npm || {}).week || 0) / totals.week * 100) : 0;
+
+        // Insights + Attention
+        var ins = [];
+        if (tg[0]) ins.push('\uD83D\uDCC8 ' + tg[0].name + ' is accelerating (+' + Math.round((tg[0].trendPct || 0) * 10) / 10 + '% WoW)');
+        if (gini > 0.7) ins.push('\u26A0\uFE0F Portfolio is heavily concentrated (Gini ' + gini.toFixed(2) + ')');
+        if (anom.length > 0) ins.push('\u26A1 ' + anom.length + ' anomal' + (anom.length === 1 ? 'y' : 'ies') + ' in the 30-day trend');
+        var att = lb.filter(function (r) {
+          if (!r.range30 || r.range30.length !== 30) return (r.trendPct || 0) < -15;
+          var w1 = r.range30.slice(0, 10).reduce(function (a, b) { return a + Number(b); }, 0);
+          var w2 = r.range30.slice(10, 20).reduce(function (a, b) { return a + Number(b); }, 0);
+          var w3 = r.range30.slice(20, 30).reduce(function (a, b) { return a + Number(b); }, 0);
+          return (w3 < w2 && w2 < w1) || w3 === 0;
+        }).slice(0, 5).map(function (r) { return { name: (r.name || '').replace('@mcptoolshop/', ''), trendPct: r.trendPct, week: r.week, growthText: '', growthCls: '' }; });
+
+        var cp = { sparkline30: sp30, registryTotals: rt, perRegistryDaily: prd, top5Daily: t5d, anomalies: anom, monthOverMonthPct: mom, gini: gini, median: med, p90: p90v, top3Pct: t3p, insights: ins, attentionPkgs: att, npmPctOfTotal: npmPct, leaderboard: vb };
+
+        // Apply
+        if (window.__rpRefresh) window.__rpRefresh(statsPayload, JSON.stringify(cp));
+
+        // Cache in sessionStorage
+        try { sessionStorage.setItem('rs-live', JSON.stringify({ ts: Date.now(), stats: statsPayload, chart: cp })); } catch (e) { /* ignore */ }
+
+        setStatus('\u2705 Live data loaded \u2014 updated just now.');
+        setTimeout(function () { var el = document.getElementById('refresh-status'); if (el) el.classList.add('hidden'); }, 8000);
+
+      } catch (err) {
+        console.error('Refresh failed:', err);
+        setStatus('\u274C ' + (err.message || 'Refresh failed'));
+      }
+
+      refreshBtn.disabled = false;
+      refreshBtn.innerHTML = orig;
+    }
   })();
 </script>
