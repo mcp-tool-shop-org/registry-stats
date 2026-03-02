@@ -1388,6 +1388,14 @@ const chatContext = !missing && data ? JSON.stringify({
 <script is:inline src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 
 <script is:inline>
+  // Shared helper — cumulative registries show total instead of weekly
+  var __CUMULATIVE = ['vscode', 'nuget', 'docker'];
+  function regDisplayVal(key, r) {
+    return __CUMULATIVE.indexOf(key) !== -1 ? Number((r || {}).total || (r || {}).week || 0) : Number((r || {}).week || 0);
+  }
+</script>
+
+<script is:inline>
   // Tab switching (hash-based) + Chart.js initialization
   (function () {
     var tabs = document.querySelectorAll('[data-tab]');
@@ -2057,10 +2065,7 @@ const chatContext = !missing && data ? JSON.stringify({
       return e;
     }
 
-    var CUMULATIVE = ['vscode', 'nuget', 'docker'];
-    function regDisplayVal(key, r) {
-      return CUMULATIVE.indexOf(key) !== -1 ? Number(r.total || r.week || 0) : Number(r.week || 0);
-    }
+    // regDisplayVal is defined globally (above all IIFEs)
 
     // Lightweight schema check — rejects clearly malformed payloads
     function validateStats(data) {
