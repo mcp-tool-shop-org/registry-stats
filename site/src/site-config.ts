@@ -2,7 +2,7 @@ import type { SiteConfig } from '@mcptoolshop/site-theme';
 
 export const config: SiteConfig = {
   title: '@mcptoolshop/registry-stats',
-  description: 'Multi-registry download stats for npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub',
+  description: 'Multi-registry download stats — engine, dashboard, and desktop app for npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub',
   logoBadge: 'RS',
   brandName: 'registry-stats',
   repoUrl: 'https://github.com/mcp-tool-shop-org/registry-stats',
@@ -12,33 +12,33 @@ export const config: SiteConfig = {
   hero: {
     badge: 'Zero dependencies · Node 18+',
     headline: 'Five registries,',
-    headlineAccent: 'one API.',
-    description: 'Fetch download stats from npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub with a single interface. CLI, programmatic API, and REST server included.',
-    primaryCta: { href: '#usage', label: 'Get started' },
-    secondaryCta: { href: '#api', label: 'API reference' },
+    headlineAccent: 'one platform.',
+    description: 'Engine, dashboard, and desktop app — all from one repo. Query npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub through a single CLI, API, or live dashboard.',
+    primaryCta: { href: '/registry-stats/dashboard/', label: 'Open dashboard' },
+    secondaryCta: { href: '#usage', label: 'Get started' },
     previews: [
       { label: 'Install', code: 'npm install @mcptoolshop/registry-stats' },
       { label: 'Query', code: "await stats('npm', 'express')" },
-      { label: 'Compare', code: "await stats.compare('express')" },
+      { label: 'Dashboard', code: 'https://...github.io/registry-stats/dashboard/' },
     ],
   },
 
   sections: [
     {
       kind: 'features',
-      id: 'features',
-      title: 'Features',
-      subtitle: 'Everything you need to track downloads across registries.',
+      id: 'platform',
+      title: 'The platform',
+      subtitle: 'Three layers, one repo.',
       features: [
+        { title: 'Engine', desc: 'TypeScript library + CLI + REST server. Published to npm. Zero dependencies, native fetch().' },
+        { title: 'Dashboard', desc: 'Astro-powered web app with executive snapshots, growth pulse, data health, and sparkline leaderboard.' },
+        { title: 'Desktop', desc: 'WinUI 3 + WebView2 native Windows app. Offline-capable, live stats refresh, CSV export.' },
         { title: 'Five registries', desc: 'npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub — all through one interface.' },
         { title: 'Time series', desc: 'Daily download history for npm (549 days) and PyPI (180 days) with trend detection.' },
-        { title: 'Zero dependencies', desc: 'Uses native fetch() on Node 18+. No bloat, no supply-chain risk.' },
-        { title: 'CLI + API + REST', desc: 'Use as a command-line tool, import as a library, or run as an HTTP microservice.' },
-        { title: 'Calc utilities', desc: 'Built-in totals, averages, monthly grouping, trends, moving averages, and popularity scores.' },
+        { title: 'Snapshot deltas', desc: 'Week-over-week tracking for cumulative-only registries (Docker, VS Code, NuGet).' },
         { title: 'Bulk & comparison', desc: 'Fetch multiple packages at once or compare the same package across registries.' },
-        { title: 'Export formats', desc: 'Output as CSV, Chart.js-compatible JSON, or raw data for your dashboards.' },
-        { title: 'Built-in caching', desc: '5-minute TTL cache out of the box. Pluggable interface for Redis or file backends.' },
-        { title: 'Retry & backoff', desc: 'Automatic retry with exponential backoff on 429/5xx. Respects Retry-After headers.' },
+        { title: 'Export formats', desc: 'Output as CSV, Chart.js-compatible JSON, or raw data for your own dashboards.' },
+        { title: 'Retry & caching', desc: 'Automatic retry with exponential backoff. 5-minute TTL cache, pluggable for Redis.' },
       ],
     },
     {

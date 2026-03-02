@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.md">English</a> | <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <strong>Español</strong> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português</a>
+  <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.md">English</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
 <p align="center">
@@ -7,31 +7,65 @@
 </p>
 
 <p align="center">
-  One command. Five registries. All your download stats.
+  Five registries. One engine. Dashboard included.
 </p>
 
 <p align="center">
   <a href="https://github.com/mcp-tool-shop-org/registry-stats/actions/workflows/pages.yml"><img src="https://github.com/mcp-tool-shop-org/registry-stats/actions/workflows/pages.yml/badge.svg" alt="CI"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"></a>
   <a href="https://www.npmjs.com/package/@mcptoolshop/registry-stats"><img src="https://img.shields.io/npm/v/@mcptoolshop/registry-stats" alt="npm version"></a>
+  <a href="https://mcp-tool-shop-org.github.io/registry-stats/dashboard/"><img src="https://img.shields.io/badge/Dashboard-live-green" alt="Dashboard"></a>
   <a href="https://mcp-tool-shop-org.github.io/registry-stats/"><img src="https://img.shields.io/badge/Landing_Page-live-blue" alt="Landing Page"></a>
 </p>
 
 <p align="center">
-  <a href="https://mcp-tool-shop-org.github.io/registry-stats/">Docs</a> &middot;
+  <a href="#dashboard">Dashboard</a> &middot;
+  <a href="#desktop-app">Desktop App</a> &middot;
   <a href="#install">Install</a> &middot;
   <a href="#cli">CLI</a> &middot;
-  <a href="#config-file">Config</a> &middot;
   <a href="#programmatic-api">API</a> &middot;
   <a href="#rest-api-server">REST Server</a> &middot;
+  <a href="#config-file">Config</a> &middot;
   <a href="#license">License</a>
 </p>
 
 ---
 
-Si publicas en npm, PyPI, NuGet, el Marketplace de VS Code o Docker Hub, actualmente necesitas cinco API diferentes para responder a la pregunta "¿cuántas descargas he tenido este mes?". Esta biblioteca te proporciona una única interfaz para todas ellas, ya sea como una herramienta de línea de comandos (CLI) o como una API programática.
+Publica en npm, PyPI, NuGet, el Marketplace de VS Code y Docker Hub. Actualmente, responder a la pregunta "¿cómo le están yendo a mis paquetes?" implica consultar cinco sitios diferentes. **registry-stats** es la plataforma completa: un motor de TypeScript (CLI + API + servidor REST), un panel web en tiempo real y una aplicación de escritorio nativa para Windows, todo desde un único repositorio.
 
-Sin dependencias. Utiliza la función nativa `fetch()`. Node 18+.
+No tiene dependencias de tiempo de ejecución. Utiliza `fetch()` nativo. Node 18+.
+
+## ¿Qué hay dentro?
+
+| Capa | ¿Qué hace? |
+|-------|-------------|
+| **Engine** | Biblioteca de TypeScript + CLI + servidor REST. Consulta cinco registros con una única interfaz. Publicado en npm como `@mcptoolshop/registry-stats`. |
+| **Dashboard** | Aplicación web impulsada por Astro. Resúmenes ejecutivos, indicadores de crecimiento, estado de los datos, tabla de clasificación con gráficos. Se reconstruye semanalmente mediante CI. |
+| **Desktop** | Aplicación nativa para Windows con WinUI 3 + WebView2. Incluye el panel sin conexión y descarga las estadísticas en tiempo real bajo demanda. |
+
+## Panel
+
+Un panel de estadísticas que se actualiza automáticamente se encuentra en [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
+
+- **Resumen ejecutivo** — Narrativa semanal en una frase: registro principal, paquete principal, mayor crecimiento, concentración de la cartera, confianza de los datos.
+- **Indicador de crecimiento** — Paquetes con mayor crecimiento, mayor disminución y nuevos paquetes activos (npm 7 días vs. los 7 días anteriores).
+- **Estado de los datos** — Cobertura por registro, insignias de confianza (correcto / parcial / faltante), detalles de errores ampliables.
+- **Deltas de instantáneas** — Seguimiento semanal para registros solo acumulativos (Docker, VS Code, NuGet).
+- **Tabla de clasificación** — Todos los paquetes clasificados por descargas semanales con gráficos de 30 días por fila.
+- **Tema claro/oscuro** — Sigue la preferencia del sistema.
+
+Los datos se obtienen en el momento de la compilación y se reconstruyen semanalmente mediante CI (los lunes a las 06:00 UTC). Configure los paquetes rastreados en `site/src/data/packages.json`.
+
+## Aplicación de escritorio
+
+Una aplicación nativa para Windows que integra el panel en un entorno WebView2 local:
+
+- **Funciona sin conexión** — Incluye HTML/CSS/JS empaquetados; funciona sin internet.
+- **Actualización en tiempo real** — Descarga `stats.json` de GitHub Pages bajo demanda.
+- **Exportación a CSV** — Exporta los datos de la tabla de clasificación con un solo clic.
+- **Empaquetado MSIX** — Se construye y firma en CI mediante `desktop-ci.yml`.
+
+El código fuente de la aplicación de escritorio se encuentra en `desktop/`. Se construyó con .NET 10 MAUI y apunta a WinUI 3.
 
 ## Instalación
 
@@ -52,10 +86,6 @@ registry-stats express
 
 # Time series with monthly breakdown + trend
 registry-stats express -r npm --range 2025-01-01:2025-06-30
-#  2025-01  142,359,021
-#  2025-02  147,522,528
-#  ...
-#  Total: 448,383,383  Avg/day: 4,982,038  Trend: flat (-0.46%)
 
 # Raw JSON output
 registry-stats express -r npm --json
@@ -74,14 +104,6 @@ registry-stats
 
 # Compare across registries
 registry-stats express --compare
-#  express — comparison
-#
-#  Metric        npm         pypi
-#  ─────────────────────────────────
-#  Total         -           -
-#  Month         283,472     47,201
-#  Week          67,367      11,800
-#  Day           11,566      1,686
 
 # Export as CSV or chart-friendly JSON
 registry-stats express -r npm --range 2025-01-01:2025-06-30 --format csv
@@ -161,7 +183,6 @@ calc.toChartData(daily, 'express');        // { labels: [...], datasets: [{ labe
 
 // Comparison — same package across registries
 const comparison = await stats.compare('express');
-// → { package: 'express', registries: { npm: {...}, pypi: {...} }, fetchedAt: '...' }
 await stats.compare('express', ['npm', 'pypi']);  // specific registries only
 
 // Caching (5 min TTL, in-memory)
@@ -173,7 +194,7 @@ await stats('npm', 'express', { cache });  // cache hit
 ## Soporte para registros
 
 | Registro | Formato del paquete | Series de tiempo | Datos disponibles |
-| ---------- | --------------- | ------------- | ---------------- |
+|----------|---------------|-------------|----------------|
 | `npm` | `express`, `@scope/pkg` | Sí (549 días) | último día, última semana, último mes |
 | `pypi` | `requests` | Sí (180 días) | último día, última semana, último mes, total |
 | `nuget` | `Newtonsoft.Json` | No | total |
@@ -192,7 +213,6 @@ await stats('npm', 'express', { cache });  // cache hit
 Ejecútalo como un microservicio o intégralo en tu propio servidor:
 
 ```bash
-# CLI
 registry-stats serve --port 3000
 ```
 
@@ -240,13 +260,53 @@ registerProvider(cargo);
 await stats('cargo', 'serde');
 ```
 
-## Sitio web
+## Estructura del repositorio
 
-La documentación y la página de inicio se encuentran en el directorio `site/`.
+```
+registry-stats/
+├── src/        # TypeScript engine (published to npm)
+├── site/       # Astro dashboard + landing page (deployed to GitHub Pages)
+├── desktop/    # WinUI 3 desktop app (.NET 10 MAUI)
+└── test/       # Library tests (vitest)
+```
 
-- Desarrollo: `npm run site:dev`
-- Compilación: `npm run site:build`
-- Previsualización: `npm run site:preview`
+## Desarrollo
+
+```bash
+# Engine
+npm install && npm run build && npm test
+
+# Dashboard (dev server)
+npm run site:dev
+
+# Dashboard (production build)
+npm run site:build
+```
+
+## Seguridad y alcance de los datos
+
+| Aspecto | Detalle |
+|--------|--------|
+| **Data touched** | Estadísticas de descarga pública de npm, PyPI, NuGet, Marketplace de VS Code, Docker Hub. Caché en memoria (opcional). |
+| **Data NOT touched** | Sin telemetría. Sin análisis. Sin almacenamiento de credenciales. Sin datos de usuario. Sin escrituras de archivos. |
+| **Permissions** | Lectura: APIs públicas de registros a través de HTTPS. Escritura: solo stdout/stderr. |
+| **Network** | Conexiones HTTPS salientes a APIs públicas de registros. Servidor REST opcional en localhost. |
+| **Telemetry** | Ninguno recopilado ni enviado. |
+
+Consulte [SECURITY.md](SECURITY.md) para informar sobre vulnerabilidades.
+
+## Tabla de puntuación
+
+| Categoría | Puntuación |
+|----------|-------|
+| A. Seguridad | 10 |
+| B. Manejo de errores | 10 |
+| C. Documentación para operadores | 10 |
+| D. Higiene de implementación | 10 |
+| E. Identidad (suave) | 10 |
+| **Overall** | **50/50** |
+
+> Auditoría completa: [SHIP_GATE.md](SHIP_GATE.md) · [SCORECARD.md](SCORECARD.md)
 
 ## Licencia
 

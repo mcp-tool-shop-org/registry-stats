@@ -5,19 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [1.3.0] - 2026-03-02
+## [2.0.0] - 2026-03-02
 
 ### Added
-- Merged registry-pulse dashboard + desktop app into monorepo
+- Merged registry-pulse dashboard + desktop app into monorepo — registry-stats is now a complete platform (engine + dashboard + desktop)
 - Snapshot-delta tracking for cumulative registries (Docker, VS Code, NuGet)
 - Privacy policy and setup pages for dashboard
 - AppNav and AppShell components for dashboard navigation
-- WinUI 3 desktop app (MSIX) with WebView2 dashboard viewer
+- WinUI 3 desktop app (MSIX) with WebView2 dashboard viewer — offline-capable with live stats refresh
 - Desktop CI workflow for MSIX builds
+- Repo structure section in README
 
 ### Changed
+- Major version bump: scope expanded from library-only to full stats platform
 - Dashboard upgraded to pulse version with richer UI and more tracked packages
 - `fetch-stats.mjs` now persists snapshots for delta computation across builds
+- README rewritten to reflect engine + dashboard + desktop architecture
+- Package description updated for broader scope
 
 ## [1.2.1] - 2026-03-01
 

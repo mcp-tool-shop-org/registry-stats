@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.md">English</a> | <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <strong>Français</strong> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português</a>
+  <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.md">English</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
 <p align="center">
@@ -7,31 +7,65 @@
 </p>
 
 <p align="center">
-  One command. Five registries. All your download stats.
+  Five registries. One engine. Dashboard included.
 </p>
 
 <p align="center">
   <a href="https://github.com/mcp-tool-shop-org/registry-stats/actions/workflows/pages.yml"><img src="https://github.com/mcp-tool-shop-org/registry-stats/actions/workflows/pages.yml/badge.svg" alt="CI"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"></a>
   <a href="https://www.npmjs.com/package/@mcptoolshop/registry-stats"><img src="https://img.shields.io/npm/v/@mcptoolshop/registry-stats" alt="npm version"></a>
+  <a href="https://mcp-tool-shop-org.github.io/registry-stats/dashboard/"><img src="https://img.shields.io/badge/Dashboard-live-green" alt="Dashboard"></a>
   <a href="https://mcp-tool-shop-org.github.io/registry-stats/"><img src="https://img.shields.io/badge/Landing_Page-live-blue" alt="Landing Page"></a>
 </p>
 
 <p align="center">
-  <a href="https://mcp-tool-shop-org.github.io/registry-stats/">Docs</a> &middot;
+  <a href="#dashboard">Dashboard</a> &middot;
+  <a href="#desktop-app">Desktop App</a> &middot;
   <a href="#install">Install</a> &middot;
   <a href="#cli">CLI</a> &middot;
-  <a href="#config-file">Config</a> &middot;
   <a href="#programmatic-api">API</a> &middot;
   <a href="#rest-api-server">REST Server</a> &middot;
+  <a href="#config-file">Config</a> &middot;
   <a href="#license">License</a>
 </p>
 
 ---
 
-Si vous publiez sur npm, PyPI, NuGet, le marché de VS Code ou Docker Hub, vous avez actuellement besoin de cinq API différentes pour répondre à la question : "Combien de téléchargements ai-je eu ce mois-ci ?" Cette bibliothèque vous offre une interface unique pour tous ces services, sous forme d'interface en ligne de commande ou d'API programmatique.
+Vous publiez sur npm, PyPI, NuGet, le Marketplace de VS Code et Docker Hub. Actuellement, répondre à la question "comment vont mes paquets ?" nécessite de consulter cinq sites différents. **registry-stats** est une plateforme complète : un moteur TypeScript (CLI + API + serveur REST), un tableau de bord web interactif et une application de bureau Windows native, le tout regroupé dans un seul dépôt.
 
-Aucune dépendance. Utilise la fonction native `fetch()`. Compatible avec Node 18 et versions ultérieures.
+Aucune dépendance d'exécution. Utilise la fonction native `fetch()`. Node 18+.
+
+## Contenu
+
+| Couche | Fonctionnalités |
+|-------|-------------|
+| **Engine** | Bibliothèque TypeScript + CLI + serveur REST. Interrogez cinq registres avec une seule interface. Publié sur npm sous le nom `@mcptoolshop/registry-stats`. |
+| **Dashboard** | Application web basée sur Astro. Aperçus, indicateurs de croissance, état des données, classement avec des graphiques. Reconstruite chaque semaine par CI. |
+| **Desktop** | Application Windows native utilisant WinUI 3 + WebView2. Inclut le tableau de bord hors ligne et récupère les statistiques en direct à la demande. |
+
+## Tableau de bord
+
+Un tableau de bord de statistiques qui se met à jour automatiquement est disponible à l'adresse [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
+
+- **Aperçu** — récit hebdomadaire en une phrase : registre principal, paquet principal, progression la plus importante, répartition des paquets, fiabilité des données.
+- **Indicateurs de croissance** — paquets avec la progression la plus importante, les baisses les plus importantes et les nouveaux paquets actifs (npm sur 7 jours par rapport aux 7 jours précédents).
+- **État des données** — couverture par registre, badges de fiabilité (OK / partiel / manquant), détails des erreurs pouvant être développés.
+- **Évolution des données** — suivi semaine par semaine pour les registres cumulatifs uniquement (Docker, VS Code, NuGet).
+- **Classement** — tous les paquets classés par nombre de téléchargements hebdomadaires, avec des graphiques sur 30 jours pour chaque ligne.
+- **Thème clair/sombre** — suit les préférences du système.
+
+Les données sont récupérées au moment de la construction et le tableau de bord est reconstruit chaque semaine par CI (lundi à 06h00 UTC). Configurez les paquets suivis dans `site/src/data/packages.json`.
+
+## Application de bureau
+
+Une application Windows native qui intègre le tableau de bord dans un environnement WebView2 local :
+
+- **Fonctionne hors ligne** — inclut les fichiers HTML/CSS/JS ; fonctionne sans connexion Internet.
+- **Actualisation en direct** — récupère le fichier `stats.json` depuis GitHub Pages à la demande.
+- **Exportation CSV** — exportez les données du classement en un seul clic.
+- **Paquet MSIX** — construit et signé par CI via `desktop-ci.yml`.
+
+Le code source de l'application de bureau se trouve dans le répertoire `desktop/`. Développé avec .NET 10 MAUI et ciblant WinUI 3.
 
 ## Installer
 
@@ -52,10 +86,6 @@ registry-stats express
 
 # Time series with monthly breakdown + trend
 registry-stats express -r npm --range 2025-01-01:2025-06-30
-#  2025-01  142,359,021
-#  2025-02  147,522,528
-#  ...
-#  Total: 448,383,383  Avg/day: 4,982,038  Trend: flat (-0.46%)
 
 # Raw JSON output
 registry-stats express -r npm --json
@@ -74,14 +104,6 @@ registry-stats
 
 # Compare across registries
 registry-stats express --compare
-#  express — comparison
-#
-#  Metric        npm         pypi
-#  ─────────────────────────────────
-#  Total         -           -
-#  Month         283,472     47,201
-#  Week          67,367      11,800
-#  Day           11,566      1,686
 
 # Export as CSV or chart-friendly JSON
 registry-stats express -r npm --range 2025-01-01:2025-06-30 --format csv
@@ -161,7 +183,6 @@ calc.toChartData(daily, 'express');        // { labels: [...], datasets: [{ labe
 
 // Comparison — same package across registries
 const comparison = await stats.compare('express');
-// → { package: 'express', registries: { npm: {...}, pypi: {...} }, fetchedAt: '...' }
 await stats.compare('express', ['npm', 'pypi']);  // specific registries only
 
 // Caching (5 min TTL, in-memory)
@@ -173,45 +194,7 @@ await stats('npm', 'express', { cache });  // cache hit
 ## Support technique pour les registres
 
 | Registre. | Format du paquet. | Séries temporelles. | Données disponibles. |
-| Bien sûr, veuillez me fournir le texte que vous souhaitez que je traduise. | "The quick brown fox jumps over the lazy dog."
-"This is a sample text."
-"Please provide more context."
-"Thank you for your cooperation."
-"We look forward to hearing from you soon."
-"The meeting will be held on Tuesday."
-"The deadline is Friday."
-"Please contact us if you have any questions."
-"We are committed to providing excellent service."
-"Your satisfaction is our priority."
----------------
-"Le rapide renard brun saute par-dessus le chien paresseux."
-"Ceci est un exemple de texte."
-"Veuillez fournir plus de contexte."
-"Nous vous remercions de votre coopération."
-"Nous espérons avoir de vos nouvelles prochainement."
-"La réunion se tiendra le mardi."
-"La date limite est le vendredi."
-"N'hésitez pas à nous contacter si vous avez des questions."
-"Nous nous engageons à fournir un excellent service."
-"Votre satisfaction est notre priorité." | "Please provide the text you would like me to translate." | "The company is committed to providing high-quality products and services."
-
-"We are looking for a motivated and experienced candidate."
-
-"The meeting will take place on Tuesday at 2:00 PM."
-
-"Please submit your application by the end of the week."
-
-"For more information, please contact us."
-----------------
-"L'entreprise s'engage à fournir des produits et services de haute qualité."
-
-"Nous recherchons un candidat motivé et expérimenté."
-
-"La réunion aura lieu mardi à 14h00."
-
-"Veuillez soumettre votre candidature avant la fin de la semaine."
-
-"Pour plus d'informations, veuillez nous contacter." |
+|----------|---------------|-------------|----------------|
 | `npm` | `express`, `@scope/pkg` | Oui (549 jours). | dernier jour, dernière semaine, dernier mois. |
 | `pypi` | `requests` | Oui (180 jours). | dernier jour, dernière semaine, dernier mois, total. |
 | `nuget` | `Newtonsoft.Json` | No | total |
@@ -230,7 +213,6 @@ await stats('npm', 'express', { cache });  // cache hit
 Fonctionnez en tant que microservice ou intégrez-le à votre propre serveur :
 
 ```bash
-# CLI
 registry-stats serve --port 3000
 ```
 
@@ -278,13 +260,53 @@ registerProvider(cargo);
 await stats('cargo', 'serde');
 ```
 
-## Site web
+## Structure du dépôt
 
-Les pages de documentation et la page d'accueil se trouvent dans le répertoire `site/`.
+```
+registry-stats/
+├── src/        # TypeScript engine (published to npm)
+├── site/       # Astro dashboard + landing page (deployed to GitHub Pages)
+├── desktop/    # WinUI 3 desktop app (.NET 10 MAUI)
+└── test/       # Library tests (vitest)
+```
 
-- Développement : `npm run site:dev`
-- Construction : `npm run site:build`
-- Aperçu : `npm run site:preview`
+## Développement
+
+```bash
+# Engine
+npm install && npm run build && npm test
+
+# Dashboard (dev server)
+npm run site:dev
+
+# Dashboard (production build)
+npm run site:build
+```
+
+## Sécurité et portée des données
+
+| Aspect | Détail |
+|--------|--------|
+| **Data touched** | Statistiques de téléchargement publiques provenant de npm, PyPI, NuGet, VS Code Marketplace, Docker Hub. Cache en mémoire (facultatif). |
+| **Data NOT touched** | Aucune télémétrie. Aucune analyse. Aucun stockage d'informations d'identification. Aucune donnée utilisateur. Aucune écriture de fichiers. |
+| **Permissions** | Lecture : API publiques des registres via HTTPS. Écriture : uniquement vers la sortie standard/erreur standard. |
+| **Network** | Sorties HTTPS vers les API publiques des registres. Serveur REST localhost facultatif. |
+| **Telemetry** | Aucune donnée collectée ou envoyée. |
+
+Consultez le fichier [SECURITY.md](SECURITY.md) pour signaler les vulnérabilités.
+
+## Tableau de bord
+
+| Catégorie | Score |
+|----------|-------|
+| A. Sécurité | 10 |
+| B. Gestion des erreurs | 10 |
+| C. Documentation pour les administrateurs | 10 |
+| D. Bonnes pratiques de déploiement | 10 |
+| E. Identité (facultatif) | 10 |
+| **Overall** | **50/50** |
+
+> Audit complet : [SHIP_GATE.md](SHIP_GATE.md) · [SCORECARD.md](SCORECARD.md)
 
 ## Licence
 

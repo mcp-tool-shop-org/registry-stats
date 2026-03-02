@@ -1,5 +1,5 @@
 <p align="center">
-  <strong>English</strong> | <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português</a>
+  <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
 <p align="center">
@@ -7,32 +7,65 @@
 </p>
 
 <p align="center">
-  One command. Five registries. All your download stats.
+  Five registries. One engine. Dashboard included.
 </p>
 
 <p align="center">
   <a href="https://github.com/mcp-tool-shop-org/registry-stats/actions/workflows/pages.yml"><img src="https://github.com/mcp-tool-shop-org/registry-stats/actions/workflows/pages.yml/badge.svg" alt="CI"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"></a>
   <a href="https://www.npmjs.com/package/@mcptoolshop/registry-stats"><img src="https://img.shields.io/npm/v/@mcptoolshop/registry-stats" alt="npm version"></a>
+  <a href="https://mcp-tool-shop-org.github.io/registry-stats/dashboard/"><img src="https://img.shields.io/badge/Dashboard-live-green" alt="Dashboard"></a>
   <a href="https://mcp-tool-shop-org.github.io/registry-stats/"><img src="https://img.shields.io/badge/Landing_Page-live-blue" alt="Landing Page"></a>
 </p>
 
 <p align="center">
-  <a href="https://mcp-tool-shop-org.github.io/registry-stats/">Docs</a> &middot;
+  <a href="#dashboard">Dashboard</a> &middot;
+  <a href="#desktop-app">Desktop App</a> &middot;
   <a href="#install">Install</a> &middot;
   <a href="#cli">CLI</a> &middot;
-  <a href="#config-file">Config</a> &middot;
   <a href="#programmatic-api">API</a> &middot;
   <a href="#rest-api-server">REST Server</a> &middot;
-  <a href="#dashboard">Dashboard</a> &middot;
+  <a href="#config-file">Config</a> &middot;
   <a href="#license">License</a>
 </p>
 
 ---
 
-If you publish to npm, PyPI, NuGet, VS Code Marketplace, or Docker Hub, you currently need five different APIs to answer "how many downloads did I get this month?" This library gives you one interface for all of them — as a CLI or programmatic API.
+You publish to npm, PyPI, NuGet, the VS Code Marketplace, and Docker Hub. Right now, answering "how are my packages doing?" means checking five different sites. **registry-stats** is the complete platform: a TypeScript engine (CLI + API + REST server), a live web dashboard, and a native Windows desktop app — all from one repo.
 
-Zero dependencies. Uses native `fetch()`. Node 18+.
+Zero runtime dependencies. Uses native `fetch()`. Node 18+.
+
+## What's inside
+
+| Layer | What it does |
+|-------|-------------|
+| **Engine** | TypeScript library + CLI + REST server. Query five registries with one interface. Published to npm as `@mcptoolshop/registry-stats`. |
+| **Dashboard** | Astro-powered web app. Executive snapshots, growth pulse, data health, leaderboard with sparklines. Rebuilt weekly by CI. |
+| **Desktop** | WinUI 3 + WebView2 native Windows app. Bundles the dashboard offline, fetches live stats on demand. |
+
+## Dashboard
+
+A self-updating stats dashboard lives at [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
+
+- **Executive snapshot** — one-sentence weekly narrative: top registry, top package, top gainer, portfolio concentration, data confidence
+- **Growth Pulse** — top gainers, decliners, and newly active packages (npm 7d vs prior 7d)
+- **Data Health** — per-registry coverage, confidence badges (ok / partial / missing), expandable error details
+- **Snapshot deltas** — week-over-week tracking for cumulative-only registries (Docker, VS Code, NuGet)
+- **Leaderboard** — all packages ranked by weekly downloads with per-row 30-day sparklines
+- **Dark / light theme** — follows system preference
+
+Data is fetched at build time and rebuilt weekly by CI (Mondays 06:00 UTC). Configure tracked packages in `site/src/data/packages.json`.
+
+## Desktop App
+
+A native Windows app that wraps the dashboard in a local WebView2 shell:
+
+- **Offline-capable** — ships bundled HTML/CSS/JS; works without internet
+- **Live refresh** — fetches `stats.json` from GitHub Pages on demand
+- **CSV export** — export leaderboard data with one click
+- **MSIX packaged** — built and signed in CI via `desktop-ci.yml`
+
+The desktop source lives in `desktop/`. Built with .NET 10 MAUI targeting WinUI 3.
 
 ## Install
 
@@ -53,10 +86,6 @@ registry-stats express
 
 # Time series with monthly breakdown + trend
 registry-stats express -r npm --range 2025-01-01:2025-06-30
-#  2025-01  142,359,021
-#  2025-02  147,522,528
-#  ...
-#  Total: 448,383,383  Avg/day: 4,982,038  Trend: flat (-0.46%)
 
 # Raw JSON output
 registry-stats express -r npm --json
@@ -75,14 +104,6 @@ registry-stats
 
 # Compare across registries
 registry-stats express --compare
-#  express — comparison
-#
-#  Metric        npm         pypi
-#  ─────────────────────────────────
-#  Total         -           -
-#  Month         283,472     47,201
-#  Week          67,367      11,800
-#  Day           11,566      1,686
 
 # Export as CSV or chart-friendly JSON
 registry-stats express -r npm --range 2025-01-01:2025-06-30 --format csv
@@ -162,7 +183,6 @@ calc.toChartData(daily, 'express');        // { labels: [...], datasets: [{ labe
 
 // Comparison — same package across registries
 const comparison = await stats.compare('express');
-// → { package: 'express', registries: { npm: {...}, pypi: {...} }, fetchedAt: '...' }
 await stats.compare('express', ['npm', 'pypi']);  // specific registries only
 
 // Caching (5 min TTL, in-memory)
@@ -193,7 +213,6 @@ await stats('npm', 'express', { cache });  // cache hit
 Run as a microservice or embed in your own server:
 
 ```bash
-# CLI
 registry-stats serve --port 3000
 ```
 
@@ -241,25 +260,28 @@ registerProvider(cargo);
 await stats('cargo', 'serde');
 ```
 
-## Dashboard
+## Repo Structure
 
-A self-updating stats dashboard ships with the library at [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
+```
+registry-stats/
+├── src/        # TypeScript engine (published to npm)
+├── site/       # Astro dashboard + landing page (deployed to GitHub Pages)
+├── desktop/    # WinUI 3 desktop app (.NET 10 MAUI)
+└── test/       # Library tests (vitest)
+```
 
-- **Executive snapshot** — one-sentence weekly narrative (top registry, top package, top gainer, concentration, data confidence)
-- **Growth Pulse** — top gainers, decliners, and newly active packages (npm 7d vs prior 7d)
-- **Data Health** — per-registry coverage, confidence badges, expandable error details
-- **Breakdown** — per-registry bars and 30-day aggregate sparkline
-- **Leaderboard** — all packages ranked by weekly downloads with per-row 30d sparklines
+## Development
 
-Data is fetched at build time via `npm run fetch-stats` and rebuilt weekly by CI (Mondays 06:00 UTC). Dark and light themes supported.
+```bash
+# Engine
+npm install && npm run build && npm test
 
-## Website
+# Dashboard (dev server)
+npm run site:dev
 
-Docs / landing page lives in `site/`.
-
-- Dev: `npm run site:dev`
-- Build: `npm run site:build`
-- Preview: `npm run site:preview`
+# Dashboard (production build)
+npm run site:build
+```
 
 ## Security & Data Scope
 

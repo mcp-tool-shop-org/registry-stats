@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.md">English</a> | <a href="README.ja.md">日本語</a> | <strong>中文</strong> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português</a>
+  <a href="README.ja.md">日本語</a> | <a href="README.md">English</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
 <p align="center">
@@ -7,31 +7,65 @@
 </p>
 
 <p align="center">
-  One command. Five registries. All your download stats.
+  Five registries. One engine. Dashboard included.
 </p>
 
 <p align="center">
   <a href="https://github.com/mcp-tool-shop-org/registry-stats/actions/workflows/pages.yml"><img src="https://github.com/mcp-tool-shop-org/registry-stats/actions/workflows/pages.yml/badge.svg" alt="CI"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"></a>
   <a href="https://www.npmjs.com/package/@mcptoolshop/registry-stats"><img src="https://img.shields.io/npm/v/@mcptoolshop/registry-stats" alt="npm version"></a>
+  <a href="https://mcp-tool-shop-org.github.io/registry-stats/dashboard/"><img src="https://img.shields.io/badge/Dashboard-live-green" alt="Dashboard"></a>
   <a href="https://mcp-tool-shop-org.github.io/registry-stats/"><img src="https://img.shields.io/badge/Landing_Page-live-blue" alt="Landing Page"></a>
 </p>
 
 <p align="center">
-  <a href="https://mcp-tool-shop-org.github.io/registry-stats/">Docs</a> &middot;
+  <a href="#dashboard">Dashboard</a> &middot;
+  <a href="#desktop-app">Desktop App</a> &middot;
   <a href="#install">Install</a> &middot;
   <a href="#cli">CLI</a> &middot;
-  <a href="#config-file">Config</a> &middot;
   <a href="#programmatic-api">API</a> &middot;
   <a href="#rest-api-server">REST Server</a> &middot;
+  <a href="#config-file">Config</a> &middot;
   <a href="#license">License</a>
 </p>
 
 ---
 
-如果您将软件包发布到 npm、PyPI、NuGet、VS Code Marketplace 或 Docker Hub，目前您需要使用五个不同的 API 来回答“我这个月下载了多少次？”。这个库为您提供一个统一的接口，用于访问所有这些平台，可以通过命令行界面 (CLI) 或编程 API 使用。
+您可以在 npm、PyPI、NuGet、VS Code Marketplace 以及 Docker Hub 上发布。目前，要了解“我的软件包表现如何？”，您需要查看五个不同的网站。**registry-stats** 是一个完整的平台：一个 TypeScript 引擎（命令行工具 + API + REST 服务器），一个实时 Web 控制面板，以及一个原生 Windows 桌面应用程序——所有这些都来自一个代码仓库。
 
-无任何依赖。使用原生的 `fetch()` 方法。Node 18 及以上版本。
+没有运行时依赖。使用原生的 `fetch()` 方法。Node 18 或更高版本。
+
+## 包含内容
+
+| 层级 | 功能 |
+|-------|-------------|
+| **Engine** | TypeScript 库 + 命令行工具 + REST 服务器。使用一个界面查询五个注册中心。已在 npm 上发布为 `@mcptoolshop/registry-stats`。 |
+| **Dashboard** | 基于 Astro 的 Web 应用程序。提供关键指标概览、增长趋势、数据健康状况以及带有折线图的排行榜。每周通过 CI 自动重建。 |
+| **Desktop** | 基于 WinUI 3 + WebView2 的原生 Windows 应用程序。将控制面板打包到本地，按需获取实时统计数据。 |
+
+## 控制面板
+
+一个自动更新的统计信息控制面板位于 [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/)。
+
+- **关键指标概览**：每周的简短叙述：顶级注册中心、顶级软件包、增长最快的软件包、软件包组合集中度、数据可靠性。
+- **增长趋势**：增长最快的软件包、下降最快的软件包以及新活跃的软件包（npm 7 天 vs 前 7 天）。
+- **数据健康状况**：每个注册中心的覆盖率、可靠性标识（正常/部分/缺失）、可展开的错误详细信息。
+- **快照差异**：用于仅累积统计数据的注册中心（Docker、VS Code、NuGet）的每周跟踪数据。
+- **排行榜**：所有软件包按每周下载量排序，并显示 30 天的折线图。
+- **深色/浅色主题**：根据系统偏好设置自动切换。
+
+数据在构建时获取，并每周通过 CI 自动重建（每周一 06:00 UTC）。在 `site/src/data/packages.json` 文件中配置要跟踪的软件包。
+
+## 桌面应用程序
+
+一个原生 Windows 应用程序，它将控制面板封装在一个本地 WebView2 容器中：
+
+- **离线可用**：包含打包的 HTML/CSS/JS 文件；无需互联网连接即可使用。
+- **实时刷新**：从 GitHub Pages 上的 `stats.json` 文件获取实时统计数据。
+- **CSV 导出**：一键导出排行榜数据。
+- **MSIX 软件包**：通过 `desktop-ci.yml` 在 CI 环境中构建和签名。
+
+桌面应用程序的源代码位于 `desktop/` 目录中。使用 .NET 10 MAUI 构建，目标是 WinUI 3。
 
 ## 安装
 
@@ -52,10 +86,6 @@ registry-stats express
 
 # Time series with monthly breakdown + trend
 registry-stats express -r npm --range 2025-01-01:2025-06-30
-#  2025-01  142,359,021
-#  2025-02  147,522,528
-#  ...
-#  Total: 448,383,383  Avg/day: 4,982,038  Trend: flat (-0.46%)
 
 # Raw JSON output
 registry-stats express -r npm --json
@@ -74,14 +104,6 @@ registry-stats
 
 # Compare across registries
 registry-stats express --compare
-#  express — comparison
-#
-#  Metric        npm         pypi
-#  ─────────────────────────────────
-#  Total         -           -
-#  Month         283,472     47,201
-#  Week          67,367      11,800
-#  Day           11,566      1,686
 
 # Export as CSV or chart-friendly JSON
 registry-stats express -r npm --range 2025-01-01:2025-06-30 --format csv
@@ -161,7 +183,6 @@ calc.toChartData(daily, 'express');        // { labels: [...], datasets: [{ labe
 
 // Comparison — same package across registries
 const comparison = await stats.compare('express');
-// → { package: 'express', registries: { npm: {...}, pypi: {...} }, fetchedAt: '...' }
 await stats.compare('express', ['npm', 'pypi']);  // specific registries only
 
 // Caching (5 min TTL, in-memory)
@@ -173,7 +194,7 @@ await stats('npm', 'express', { cache });  // cache hit
 ## 仓库支持
 
 | 仓库 | 软件包格式 | 时间序列 | 可用数据 |
-| ---------- | --------------- | ------------- | ---------------- |
+|----------|---------------|-------------|----------------|
 | `npm` | `express`, `@scope/pkg` | 是 (549 天) | 最近一天、最近一周、最近一个月 |
 | `pypi` | `requests` | 是 (180 天) | 最近一天、最近一周、最近一个月、总数 |
 | `nuget` | `Newtonsoft.Json` | No | 总数 |
@@ -192,7 +213,6 @@ await stats('npm', 'express', { cache });  // cache hit
 可以作为微服务运行，也可以嵌入到您自己的服务器中：
 
 ```bash
-# CLI
 registry-stats serve --port 3000
 ```
 
@@ -240,13 +260,53 @@ registerProvider(cargo);
 await stats('cargo', 'serde');
 ```
 
-## 网站
+## 代码仓库结构
 
-网站和主页位于 `site/` 目录下。
+```
+registry-stats/
+├── src/        # TypeScript engine (published to npm)
+├── site/       # Astro dashboard + landing page (deployed to GitHub Pages)
+├── desktop/    # WinUI 3 desktop app (.NET 10 MAUI)
+└── test/       # Library tests (vitest)
+```
 
-- 开发：`npm run site:dev`
-- 构建：`npm run site:build`
-- 预览：`npm run site:preview`
+## 开发
+
+```bash
+# Engine
+npm install && npm run build && npm test
+
+# Dashboard (dev server)
+npm run site:dev
+
+# Dashboard (production build)
+npm run site:build
+```
+
+## 安全性和数据范围
+
+| 方面 | 详细信息 |
+|--------|--------|
+| **Data touched** | 从 npm、PyPI、NuGet、VS Code Marketplace 和 Docker Hub 获取公开的下载统计数据。可选的内存缓存。 |
+| **Data NOT touched** | 没有遥测。没有分析。没有凭证存储。没有用户数据。没有文件写入。 |
+| **Permissions** | 读取：通过 HTTPS 的公开注册中心 API。写入：仅 stdout/stderr。 |
+| **Network** | 向公开注册中心 API 的 HTTPS 出站连接。可选的本地 REST 服务器。 |
+| **Telemetry** | 未收集或发送任何数据。 |
+
+请参阅 [SECURITY.md](SECURITY.md) 以获取漏洞报告。
+
+## 评分卡
+
+| 类别 | 评分 |
+|----------|-------|
+| A. 安全性 | 10 |
+| B. 错误处理 | 10 |
+| C. 运维文档 | 10 |
+| D. 发布规范 | 10 |
+| E. 身份验证（软性） | 10 |
+| **Overall** | **50/50** |
+
+> 完整审计：[SHIP_GATE.md](SHIP_GATE.md) · [SCORECARD.md](SCORECARD.md)
 
 ## 许可证
 
