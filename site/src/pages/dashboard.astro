@@ -350,7 +350,7 @@ const chatContext = !missing && data ? JSON.stringify({
           <button
             id="refresh-btn"
             class="inline-flex items-center gap-1.5 rounded-lg border border-edge bg-surface-raised px-3 py-1.5 text-xs font-medium text-muted hover:text-heading hover:border-accent transition-colors shrink-0"
-            title="Fetch live data from npm and PyPI"
+            title="Fetch live data from npm and PyPI (via CORS proxy)"
           >
             <span id="refresh-icon">{"\uD83D\uDD04"}</span> Refresh
           </button>
@@ -2809,17 +2809,15 @@ const chatContext = !missing && data ? JSON.stringify({
 
         var npmPkgs = [], pypiPkgs = [], others = [];
         if (manifest && (manifest.npm || manifest.pypi)) {
-          // Use manifest as the source of truth
           npmPkgs = manifest.npm || [];
           pypiPkgs = manifest.pypi || [];
-          // For non-CORS registries, keep build-time data from stats.json
+          // NuGet, VS Code, Docker have no browser-accessible API — keep build-time data
           if (base && base.leaderboard) {
             base.leaderboard.forEach(function (r) {
               if (r.registry !== 'npm' && r.registry !== 'pypi') others.push(r);
             });
           }
         } else if (base && base.leaderboard) {
-          // Fallback: extract from stats.json leaderboard (old behaviour)
           base.leaderboard.forEach(function (r) {
             if (r.registry === 'npm') npmPkgs.push(r.name);
             else if (r.registry === 'pypi') pypiPkgs.push(r.name);
@@ -2829,7 +2827,7 @@ const chatContext = !missing && data ? JSON.stringify({
           throw new Error('No package data available');
         }
 
-        // ── npm 30-day ranges (gives daily + weekly + monthly) ──
+        // ── npm 30-day ranges (native CORS support) ──
         setStatus('Fetching npm data (' + npmPkgs.length + ' packages)\u2026');
         var today = dStr(0), ago30 = dStr(30);
         var done = 0;
@@ -2850,17 +2848,42 @@ const chatContext = !missing && data ? JSON.stringify({
           return { registry: 'npm', name: pkg, week: wk, month: mo, day: 0, total: 0, range30: r30, trendPct: tp, last7: l7, prev7: p7, delta7: d7, isNew: isN, extra: null };
         }, CONC);
 
-        // ── PyPI ──
-        setStatus('Fetching PyPI data (' + pypiPkgs.length + ' packages)\u2026');
-        done = 0;
-        var pypiItems = await batch(pypiPkgs, async function (pkg) {
-          var d = await fj('https://pypistats.org/api/packages/' + pkg.toLowerCase() + '/recent');
-          done++;
-          setStatus('pypi: ' + done + '/' + pypiPkgs.length);
-          var wk = 0, mo = 0, dy = 0;
-          if (d && d.data) { wk = sn(d.data.last_week); mo = sn(d.data.last_month); dy = sn(d.data.last_day); }
-          return { registry: 'pypi', name: pkg, week: wk, month: mo, day: dy, total: 0, range30: null, trendPct: null, last7: null, prev7: null, delta7: null, isNew: false, extra: null };
-        }, 3);
+        // ── PyPI (via CORS proxy — pypistats.org has no Access-Control-Allow-Origin) ──
+        // Proxy list: try in order until one works. corsproxy.io blocks curl but
+        // works from browsers; codetabs is a reliable fallback.
+        var PYPI_PROXIES = [
+          function (u) { return 'https://corsproxy.io/?' + encodeURIComponent(u); },
+          function (u) { return 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent(u); }
+        ];
+        // Probe: pick the first working proxy with a single test request
+        var pypiProxy = null;
+        if (pypiPkgs.length > 0) {
+          for (var pi = 0; pi < PYPI_PROXIES.length; pi++) {
+            var probe = await fj(PYPI_PROXIES[pi]('https://pypistats.org/api/packages/' + pypiPkgs[0].toLowerCase() + '/recent'));
+            if (probe && probe.data) { pypiProxy = PYPI_PROXIES[pi]; break; }
+          }
+        }
+
+        var pypiItems = [];
+        if (pypiProxy && pypiPkgs.length > 0) {
+          setStatus('Fetching PyPI data (' + pypiPkgs.length + ' packages)\u2026');
+          done = 0;
+          pypiItems = await batch(pypiPkgs, async function (pkg) {
+            var url = 'https://pypistats.org/api/packages/' + pkg.toLowerCase() + '/recent';
+            var d = await fj(pypiProxy(url));
+            done++;
+            setStatus('pypi: ' + done + '/' + pypiPkgs.length);
+            var wk = 0, mo = 0, dy = 0;
+            if (d && d.data) { wk = sn(d.data.last_week); mo = sn(d.data.last_month); dy = sn(d.data.last_day); }
+            return { registry: 'pypi', name: pkg, week: wk, month: mo, day: dy, total: 0, range30: null, trendPct: null, last7: null, prev7: null, delta7: null, isNew: false, extra: null };
+          }, 3);
+        } else if (base && base.leaderboard) {
+          // All proxies failed — fall back to build-time PyPI data
+          setStatus('PyPI proxy unavailable \u2014 using build-time data');
+          base.leaderboard.forEach(function (r) {
+            if (r.registry === 'pypi') pypiItems.push(r);
+          });
+        }
 
         // ── Build payload ──
         setStatus('Computing dashboard\u2026');
