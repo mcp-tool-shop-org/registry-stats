@@ -354,6 +354,40 @@ const chatContext = !missing && data ? JSON.stringify({
           >
             <span id="refresh-icon">{"\uD83D\uDD04"}</span> Refresh
           </button>
+
+          {/* Export dropdown */}
+          <div class="export-wrap relative">
+            <button
+              id="export-btn"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-edge bg-surface-raised px-3 py-1.5 text-xs font-medium text-muted hover:text-heading hover:border-accent transition-colors shrink-0"
+              title="Export current report"
+            >
+              <span>{"\uD83D\uDCE4"}</span> Export <span class="text-[10px] opacity-60">{'\u25BC'}</span>
+            </button>
+            <div id="export-menu" class="export-menu hidden">
+              <button data-export="pdf" class="export-item">
+                <span class="export-icon">{"\uD83D\uDCC4"}</span>
+                <span class="export-label">
+                  <strong>Exec — PDF</strong>
+                  <span class="export-desc">Polished summary for stakeholders</span>
+                </span>
+              </button>
+              <button data-export="jsonl" class="export-item">
+                <span class="export-icon">{"\uD83E\uDD16"}</span>
+                <span class="export-label">
+                  <strong>LLM — JSONL</strong>
+                  <span class="export-desc">Machine-readable for AI ingestion</span>
+                </span>
+              </button>
+              <button data-export="md" class="export-item">
+                <span class="export-icon">{"\uD83D\uDCDD"}</span>
+                <span class="export-label">
+                  <strong>Dev — Markdown</strong>
+                  <span class="export-desc">Copy-paste into issues or docs</span>
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
         <div id="refresh-status" class="mt-2 text-xs text-dim hidden"></div>
       </div>
@@ -1253,6 +1287,47 @@ const chatContext = !missing && data ? JSON.stringify({
     text-align: right;
   }
 
+  /* Export dropdown */
+  .export-wrap { position: relative; display: inline-block; }
+  .export-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    z-index: 50;
+    min-width: 260px;
+    border-radius: 12px;
+    border: 1px solid var(--color-edge);
+    background: var(--color-surface-raised);
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .export-menu.hidden { display: none; }
+  .export-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    color: var(--color-muted);
+    cursor: pointer;
+    text-align: left;
+    transition: background 120ms, color 120ms;
+    width: 100%;
+  }
+  .export-item:hover {
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    color: var(--color-heading);
+  }
+  .export-icon { font-size: 18px; line-height: 1; flex-shrink: 0; margin-top: 1px; }
+  .export-label { display: flex; flex-direction: column; gap: 1px; }
+  .export-label strong { font-size: 13px; font-weight: 600; color: var(--color-heading); }
+  .export-desc { font-size: 11px; color: var(--color-dim); line-height: 1.3; }
+
   /* Chat */
   .chat-bubble-user {
     max-width: 80%;
@@ -2001,6 +2076,7 @@ const chatContext = !missing && data ? JSON.stringify({
 
     function renderDashboard(data) {
       if (!data || !data.totals) return;
+      window.__rpCurrentData = data;
       var t = data.totals;
       var movers = data.movers || {};
       var concPct = Math.round(movers.concentrationTop5Pct || 0);
@@ -2914,5 +2990,460 @@ const chatContext = !missing && data ? JSON.stringify({
       refreshBtn.disabled = false;
       refreshBtn.innerHTML = orig;
     }
+  })();
+</script>
+
+<script is:inline>
+  // ═══════════════════════════════════════════════════
+  // Export Engine — PDF (exec), JSONL (LLM), Markdown (dev)
+  // ═══════════════════════════════════════════════════
+  (function () {
+    var exportBtn = document.getElementById('export-btn');
+    var exportMenu = document.getElementById('export-menu');
+    if (!exportBtn || !exportMenu) return;
+
+    // Toggle dropdown
+    exportBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      exportMenu.classList.toggle('hidden');
+    });
+    document.addEventListener('click', function () {
+      exportMenu.classList.add('hidden');
+    });
+    exportMenu.addEventListener('click', function (e) { e.stopPropagation(); });
+
+    // Helpers
+    var fmt = new Intl.NumberFormat('en-US');
+    var fmtC = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+    function fi(n) { return fmt.format(Math.round(Number(n || 0))); }
+    function fc(n) { return fmtC.format(Number(n || 0)); }
+    function pct(v) { return v !== null && v !== undefined ? (Math.round(Math.abs(v) * 10) / 10) + '%' : 'N/A'; }
+    function iso() { return new Date().toISOString(); }
+    function regL(k) { return ({ npm: 'npm', pypi: 'PyPI', vscode: 'VS Code', nuget: 'NuGet', docker: 'Docker Hub' })[k] || k; }
+
+    function getData() {
+      return window.__rpCurrentData || null;
+    }
+
+    function download(content, filename, mime) {
+      var blob = new Blob([content], { type: mime });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+    }
+
+    function dateStamp() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    // ─── Markdown Export ───
+    function exportMarkdown() {
+      var d = getData();
+      if (!d) { alert('No data loaded yet. Wait for the dashboard to load.'); return; }
+      var t = d.totals || {};
+      var rt = d.registryTotals || {};
+      var lb = d.leaderboard || [];
+      var movers = d.movers || {};
+      var sp = d.sparkline30 || [];
+      var narr = d.narrativeLines || [];
+      var conf = d.confidence || {};
+
+      var lines = [];
+      lines.push('# Registry Stats Report');
+      lines.push('');
+      lines.push('**Generated:** ' + new Date().toUTCString() + '  ');
+      lines.push('**Data as of:** ' + (d.fetchedAt ? new Date(d.fetchedAt).toUTCString() : 'unknown') + '  ');
+      lines.push('**Packages:** ' + fi(t.packages) + ' across ' + (t.activeRegistries || Object.keys(rt).length) + ' registries');
+      lines.push('');
+
+      // Narrative
+      lines.push('## Executive Summary');
+      lines.push('');
+      if (narr.length > 0) {
+        narr.forEach(function (n) { lines.push('- ' + (n.icon || '') + ' **' + (n.label || '') + ':** ' + (n.text || '')); });
+      } else if (d.narrative) {
+        lines.push(d.narrative);
+      }
+      lines.push('');
+
+      // Totals
+      lines.push('## Totals');
+      lines.push('');
+      lines.push('| Metric | Value |');
+      lines.push('|--------|-------|');
+      lines.push('| Weekly | ' + fi(t.week) + ' |');
+      lines.push('| Monthly | ' + fi(t.month) + ' |');
+      lines.push('| Packages | ' + fi(t.packages) + ' |');
+      lines.push('| Registries | ' + (t.activeRegistries || Object.keys(rt).length) + ' |');
+      lines.push('');
+
+      // Per-registry
+      lines.push('## Per-Registry Breakdown');
+      lines.push('');
+      lines.push('| Registry | Packages | Weekly | Monthly | Status |');
+      lines.push('|----------|----------|--------|---------|--------|');
+      Object.keys(rt).forEach(function (reg) {
+        var r = rt[reg];
+        var c = conf[reg] || 'unknown';
+        lines.push('| ' + regL(reg) + ' | ' + fi(r.packages) + ' | ' + fi(r.week) + ' | ' + fi(r.month) + ' | ' + c + ' |');
+      });
+      lines.push('');
+
+      // Movers
+      lines.push('## Growth Pulse');
+      lines.push('');
+      if ((movers.topGainers || []).length > 0) {
+        lines.push('### Top Gainers');
+        lines.push('');
+        lines.push('| Package | Weekly | \u0394 7d | Trend |');
+        lines.push('|---------|--------|------|-------|');
+        (movers.topGainers || []).forEach(function (r) {
+          var name = String(r.name || '').replace('@mcptoolshop/', '');
+          lines.push('| ' + name + ' | ' + fi(r.week) + ' | ' + (r.delta7 >= 0 ? '+' : '') + fi(r.delta7) + ' | ' + pct(r.trendPct) + ' |');
+        });
+        lines.push('');
+      }
+      if ((movers.topDecliners || []).length > 0) {
+        lines.push('### Decliners');
+        lines.push('');
+        lines.push('| Package | Weekly | \u0394 7d | Trend |');
+        lines.push('|---------|--------|------|-------|');
+        (movers.topDecliners || []).forEach(function (r) {
+          var name = String(r.name || '').replace('@mcptoolshop/', '');
+          lines.push('| ' + name + ' | ' + fi(r.week) + ' | ' + fi(r.delta7) + ' | ' + pct(r.trendPct) + ' |');
+        });
+        lines.push('');
+      }
+      if ((movers.newlyActive || []).length > 0) {
+        lines.push('### Newly Active');
+        lines.push('');
+        lines.push('| Package | Weekly | \u0394 7d |');
+        lines.push('|---------|--------|------|');
+        (movers.newlyActive || []).forEach(function (r) {
+          var name = String(r.name || '').replace('@mcptoolshop/', '');
+          lines.push('| ' + name + ' | ' + fi(r.week) + ' | +' + fi(r.delta7) + ' |');
+        });
+        lines.push('');
+      }
+
+      // Leaderboard (top 30)
+      lines.push('## Leaderboard (Top 30)');
+      lines.push('');
+      lines.push('| # | Package | Registry | Weekly | Monthly | Trend |');
+      lines.push('|---|---------|----------|--------|---------|-------|');
+      lb.slice(0, 30).forEach(function (r, i) {
+        var name = String(r.name || '').replace('@mcptoolshop/', '');
+        lines.push('| ' + (i + 1) + ' | ' + name + ' | ' + regL(r.registry) + ' | ' + fi(r.week) + ' | ' + fi(r.month) + ' | ' + pct(r.trendPct) + ' |');
+      });
+      lines.push('');
+
+      // Sparkline as numbers
+      if (sp.length > 0) {
+        lines.push('## 30-Day npm Aggregate (daily)');
+        lines.push('');
+        lines.push('```');
+        var spLine = sp.map(function (v) { return fi(v); }).join(', ');
+        lines.push(spLine);
+        lines.push('```');
+        lines.push('');
+      }
+
+      lines.push('---');
+      lines.push('*Exported from [MCP Tool Shop Dashboard](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/)*');
+
+      download(lines.join('\n'), 'registry-stats-' + dateStamp() + '.md', 'text/markdown;charset=utf-8');
+    }
+
+    // ─── JSONL Export ───
+    function exportJSONL() {
+      var d = getData();
+      if (!d) { alert('No data loaded yet. Wait for the dashboard to load.'); return; }
+      var t = d.totals || {};
+      var rt = d.registryTotals || {};
+      var lb = d.leaderboard || [];
+      var movers = d.movers || {};
+      var sp = d.sparkline30 || [];
+      var lines = [];
+
+      // Line 1: metadata
+      lines.push(JSON.stringify({ type: 'metadata', fetchedAt: d.fetchedAt, exportedAt: iso(), packages: t.packages, registries: t.activeRegistries || Object.keys(rt).length, weeklyTotal: t.week, monthlyTotal: t.month }));
+
+      // Line 2: narrative
+      lines.push(JSON.stringify({ type: 'narrative', text: d.narrative || '', lines: (d.narrativeLines || []).map(function (n) { return { label: n.label, text: n.text }; }) }));
+
+      // Line 3: registry totals
+      Object.keys(rt).forEach(function (reg) {
+        lines.push(JSON.stringify({ type: 'registry', name: reg, label: regL(reg), packages: rt[reg].packages, week: rt[reg].week, month: rt[reg].month, total: rt[reg].total, confidence: (d.confidence || {})[reg] || 'unknown' }));
+      });
+
+      // Movers
+      (movers.topGainers || []).forEach(function (r) {
+        lines.push(JSON.stringify({ type: 'mover', category: 'gainer', name: r.name, registry: r.registry, week: r.week, month: r.month, delta7: r.delta7, trendPct: r.trendPct }));
+      });
+      (movers.topDecliners || []).forEach(function (r) {
+        lines.push(JSON.stringify({ type: 'mover', category: 'decliner', name: r.name, registry: r.registry, week: r.week, month: r.month, delta7: r.delta7, trendPct: r.trendPct }));
+      });
+      (movers.newlyActive || []).forEach(function (r) {
+        lines.push(JSON.stringify({ type: 'mover', category: 'newly_active', name: r.name, registry: r.registry, week: r.week, month: r.month, delta7: r.delta7, trendPct: r.trendPct }));
+      });
+
+      // Leaderboard entries
+      lb.forEach(function (r, i) {
+        lines.push(JSON.stringify({ type: 'package', rank: i + 1, name: r.name, registry: r.registry, week: r.week, month: r.month, day: r.day, total: r.total, trendPct: r.trendPct, last7: r.last7, prev7: r.prev7, delta7: r.delta7, range30: r.range30 }));
+      });
+
+      // Sparkline
+      if (sp.length > 0) {
+        lines.push(JSON.stringify({ type: 'sparkline30', values: sp }));
+      }
+
+      // Errors
+      if (d.errors && d.errors.length > 0) {
+        d.errors.forEach(function (err) {
+          lines.push(JSON.stringify({ type: 'error', scope: err.scope, message: err.message }));
+        });
+      }
+
+      download(lines.join('\n') + '\n', 'registry-stats-' + dateStamp() + '.jsonl', 'application/jsonl;charset=utf-8');
+    }
+
+    // ─── PDF Export ───
+    var jsPDFLoaded = false;
+    function loadJsPDF(cb) {
+      if (jsPDFLoaded && window.jspdf) { cb(); return; }
+      var s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js';
+      s.onload = function () { jsPDFLoaded = true; cb(); };
+      s.onerror = function () { alert('Failed to load PDF library. Check your connection.'); };
+      document.head.appendChild(s);
+    }
+
+    function exportPDF() {
+      var d = getData();
+      if (!d) { alert('No data loaded yet. Wait for the dashboard to load.'); return; }
+
+      loadJsPDF(function () {
+        var jsPDF = window.jspdf.jsPDF;
+        var doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        var W = 210, M = 18, CW = W - 2 * M;
+        var y = 20;
+        var t = d.totals || {};
+        var rt = d.registryTotals || {};
+        var movers = d.movers || {};
+        var lb = d.leaderboard || [];
+        var narr = d.narrativeLines || [];
+
+        function checkPage(need) {
+          if (y + need > 275) { doc.addPage(); y = 20; }
+        }
+
+        // ── Header ──
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 30, 30);
+        doc.text('Registry Stats Report', M, y);
+        y += 8;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(120, 120, 120);
+        doc.text('Generated: ' + new Date().toUTCString(), M, y);
+        y += 5;
+        doc.text('Data as of: ' + (d.fetchedAt ? new Date(d.fetchedAt).toUTCString() : 'unknown'), M, y);
+        y += 5;
+        doc.text(fi(t.packages) + ' packages across ' + (t.activeRegistries || Object.keys(rt).length) + ' registries', M, y);
+        y += 3;
+
+        // Divider
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.3);
+        doc.line(M, y, W - M, y);
+        y += 8;
+
+        // ── Executive summary ──
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 30, 30);
+        doc.text('Executive Summary', M, y);
+        y += 7;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(60, 60, 60);
+        if (narr.length > 0) {
+          narr.forEach(function (n) {
+            checkPage(6);
+            var line = (n.icon || '') + ' ' + (n.label || '') + ': ' + (n.text || '');
+            var split = doc.splitTextToSize(line, CW);
+            doc.text(split, M, y);
+            y += split.length * 4.5 + 2;
+          });
+        } else if (d.narrative) {
+          var split = doc.splitTextToSize(d.narrative, CW);
+          doc.text(split, M, y);
+          y += split.length * 4.5 + 2;
+        }
+        y += 4;
+
+        // ── KPI cards ──
+        checkPage(22);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 30, 30);
+        doc.text('Key Metrics', M, y);
+        y += 8;
+        var kpis = [
+          { label: 'Weekly Downloads', value: fc(t.week) },
+          { label: 'Monthly Downloads', value: fc(t.month) },
+          { label: 'Packages', value: fi(t.packages) },
+          { label: 'Top-5 Concentration', value: Math.round(movers.concentrationTop5Pct || 0) + '%' },
+        ];
+        var boxW = (CW - 9) / 4;
+        kpis.forEach(function (kpi, i) {
+          var bx = M + i * (boxW + 3);
+          doc.setFillColor(245, 245, 250);
+          doc.roundedRect(bx, y, boxW, 16, 2, 2, 'F');
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(30, 30, 30);
+          doc.text(kpi.value, bx + boxW / 2, y + 7, { align: 'center' });
+          doc.setFontSize(7);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(120, 120, 120);
+          doc.text(kpi.label, bx + boxW / 2, y + 13, { align: 'center' });
+        });
+        y += 22;
+
+        // ── Registry breakdown ──
+        checkPage(30);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 30, 30);
+        doc.text('Per-Registry Breakdown', M, y);
+        y += 7;
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(80, 80, 80);
+        var cols = [M, M + 35, M + 60, M + 90, M + 120];
+        doc.text('Registry', cols[0], y);
+        doc.text('Packages', cols[1], y);
+        doc.text('Weekly', cols[2], y);
+        doc.text('Monthly', cols[3], y);
+        doc.text('Status', cols[4], y);
+        y += 2;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(M, y, W - M, y);
+        y += 4;
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(60, 60, 60);
+        Object.keys(rt).forEach(function (reg) {
+          checkPage(6);
+          var r = rt[reg];
+          doc.text(regL(reg), cols[0], y);
+          doc.text(fi(r.packages), cols[1], y);
+          doc.text(fi(r.week), cols[2], y);
+          doc.text(fi(r.month), cols[3], y);
+          doc.text((d.confidence || {})[reg] || '?', cols[4], y);
+          y += 5;
+        });
+        y += 6;
+
+        // ── Top Gainers ──
+        var tg = movers.topGainers || [];
+        if (tg.length > 0) {
+          checkPage(20);
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(30, 30, 30);
+          doc.text('Top Gainers', M, y);
+          y += 7;
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(80, 80, 80);
+          doc.text('Package', cols[0], y);
+          doc.text('Weekly', cols[1], y);
+          doc.text('\u0394 7d', cols[2], y);
+          doc.text('Trend', cols[3], y);
+          y += 2;
+          doc.line(M, y, W - M, y);
+          y += 4;
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(60, 60, 60);
+          tg.forEach(function (r) {
+            checkPage(6);
+            var name = String(r.name || '').replace('@mcptoolshop/', '');
+            doc.text(name.length > 28 ? name.slice(0, 26) + '\u2026' : name, cols[0], y);
+            doc.text(fi(r.week), cols[1], y);
+            doc.setTextColor(r.delta7 >= 0 ? 34 : 200, r.delta7 >= 0 ? 139 : 60, r.delta7 >= 0 ? 34 : 60);
+            doc.text((r.delta7 >= 0 ? '+' : '') + fi(r.delta7), cols[2], y);
+            doc.setTextColor(60, 60, 60);
+            doc.text(pct(r.trendPct), cols[3], y);
+            y += 5;
+          });
+          y += 6;
+        }
+
+        // ── Leaderboard top 20 ──
+        checkPage(30);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(30, 30, 30);
+        doc.text('Leaderboard (Top 20)', M, y);
+        y += 7;
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(80, 80, 80);
+        var lc = [M, M + 8, M + 55, M + 80, M + 105, M + 130];
+        doc.text('#', lc[0], y);
+        doc.text('Package', lc[1], y);
+        doc.text('Registry', lc[2], y);
+        doc.text('Weekly', lc[3], y);
+        doc.text('Monthly', lc[4], y);
+        doc.text('Trend', lc[5], y);
+        y += 2;
+        doc.line(M, y, W - M, y);
+        y += 4;
+        doc.setFont('helvetica', 'normal');
+        lb.slice(0, 20).forEach(function (r, i) {
+          checkPage(5);
+          var name = String(r.name || '').replace('@mcptoolshop/', '');
+          doc.setTextColor(120, 120, 120);
+          doc.text(String(i + 1), lc[0], y);
+          doc.setTextColor(60, 60, 60);
+          doc.text(name.length > 28 ? name.slice(0, 26) + '\u2026' : name, lc[1], y);
+          doc.text(regL(r.registry), lc[2], y);
+          doc.text(fi(r.week), lc[3], y);
+          doc.text(fi(r.month), lc[4], y);
+          doc.text(pct(r.trendPct), lc[5], y);
+          y += 4.5;
+        });
+        y += 4;
+
+        // ── Footer ──
+        var pages = doc.internal.getNumberOfPages();
+        for (var p = 1; p <= pages; p++) {
+          doc.setPage(p);
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(160, 160, 160);
+          doc.text('MCP Tool Shop \u2022 Registry Stats Dashboard', M, 290);
+          doc.text('Page ' + p + ' of ' + pages, W - M, 290, { align: 'right' });
+        }
+
+        doc.save('registry-stats-' + dateStamp() + '.pdf');
+      });
+    }
+
+    // Dispatch export clicks
+    exportMenu.querySelectorAll('[data-export]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var type = btn.getAttribute('data-export');
+        exportMenu.classList.add('hidden');
+        if (type === 'pdf') exportPDF();
+        else if (type === 'jsonl') exportJSONL();
+        else if (type === 'md') exportMarkdown();
+      });
+    });
   })();
 </script>
