@@ -1,0 +1,556 @@
+---
+import AppShell from '../components/AppShell.astro';
+import AppNav from '../components/AppNav.astro';
+
+let currentPackages = '';
+try {
+  const raw = await import('../data/packages.json');
+  currentPackages = JSON.stringify(raw.default, null, 2);
+} catch {
+  // Will load sample on client side
+}
+
+let hasSnapshot = false;
+try {
+  await import('../data/stats.json');
+  hasSnapshot = true;
+} catch {}
+
+const baseUrl = import.meta.env.BASE_URL;
+const notice = Astro.url.searchParams.get('notice');
+---
+
+<AppShell title="Portfolio Configuration — Registry Pulse">
+  <AppNav active="setup" hasSnapshot={hasSnapshot} />
+
+  <div class="mx-auto max-w-6xl px-6">
+    <main class="pb-12">
+      {/* ── Notice banner ── */}
+      {notice === 'no-snapshot' && (
+        <div class="mt-4 rounded-md border border-edge bg-surface-raised px-4 py-3 text-sm text-dim">
+          Dashboard is unavailable until a snapshot is generated.
+        </div>
+      )}
+
+      {/* ── Title ── */}
+      <div class="mt-5 mb-5 pb-4 border-b border-edge">
+        <h1 class="text-lg font-semibold tracking-tight text-heading">Portfolio Configuration</h1>
+        <p class="mt-1 text-xs text-dim/60 max-w-md">
+          Select the registries and packages included in reporting.
+          All data remains local to this installation.
+        </p>
+      </div>
+
+      {/* ── Two-column layout ── */}
+      <div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+
+        {/* ── Left: Portfolio Editor ── */}
+        <section class="rounded border border-edge bg-surface-raised">
+          <div class="flex items-center justify-between px-3 py-2 border-b border-edge" style="background: color-mix(in srgb, var(--color-surface-strong) 40%, transparent);">
+            <div class="text-[11px]">
+              <span class="font-medium text-heading">Tracked Portfolio</span>
+            </div>
+            <div id="editor-status" class="text-[10px] font-mono text-dim/40"></div>
+          </div>
+
+          <div class="p-3">
+            <p class="text-[10px] text-dim/50 mb-2">Add packages by registry. One entry per line within each array.</p>
+            <textarea
+              id="editor"
+              class="w-full h-64 rounded border border-edge p-3 font-mono text-[13px] text-heading resize-y focus:outline-none focus:ring-1 focus:ring-setup-accent/30"
+              style="background: color-mix(in srgb, var(--color-surface) 92%, black 8%);"
+              spellcheck="false"
+            ></textarea>
+
+            <div id="validation-msg" class="mt-2 hidden rounded border px-2.5 py-1.5 text-[11px] font-mono"></div>
+
+            <div class="mt-2.5 flex flex-wrap items-center gap-1">
+              <button id="btn-save" class="rounded border border-edge px-2.5 py-1 text-[11px] font-medium text-muted hover:text-heading hover:bg-surface-strong transition-colors">Save</button>
+              <button id="btn-validate" class="rounded border border-edge px-2.5 py-1 text-[11px] font-medium text-muted hover:text-heading hover:bg-surface-strong transition-colors">Validate</button>
+              <button id="btn-reset" class="rounded border border-edge px-2.5 py-1 text-[11px] font-medium text-dim/60 hover:text-muted hover:bg-surface-strong transition-colors">Reset</button>
+              <button id="btn-download" class="rounded border border-edge px-2.5 py-1 text-[11px] font-medium text-dim/60 hover:text-muted hover:bg-surface-strong transition-colors">Export</button>
+            </div>
+          </div>
+
+          <details class="border-t border-edge">
+            <summary class="cursor-pointer select-none px-3 py-2 text-[10px] font-medium text-dim/40 hover:text-dim uppercase tracking-widest">Supported Registries</summary>
+            <div class="px-3 pb-2.5 grid gap-0.5 sm:grid-cols-2 lg:grid-cols-3">
+              <div class="rounded border border-edge px-2.5 py-1 flex justify-between items-center text-[11px]">
+                <span class="font-medium text-heading">npm</span>
+                <span class="font-mono text-[10px] text-dim/60">@scope/pkg</span>
+              </div>
+              <div class="rounded border border-edge px-2.5 py-1 flex justify-between items-center text-[11px]">
+                <span class="font-medium text-heading">PyPI</span>
+                <span class="font-mono text-[10px] text-dim/60">package-name</span>
+              </div>
+              <div class="rounded border border-edge px-2.5 py-1 flex justify-between items-center text-[11px]">
+                <span class="font-medium text-heading">VS Code</span>
+                <span class="font-mono text-[10px] text-dim/60">pub.extension</span>
+              </div>
+              <div class="rounded border border-edge px-2.5 py-1 flex justify-between items-center text-[11px]">
+                <span class="font-medium text-heading">NuGet</span>
+                <span class="font-mono text-[10px] text-dim/60">Ns.Package</span>
+              </div>
+              <div class="rounded border border-edge px-2.5 py-1 flex justify-between items-center text-[11px]">
+                <span class="font-medium text-heading">Docker Hub</span>
+                <span class="font-mono text-[10px] text-dim/60">user/image</span>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        {/* ── Right: Portfolio Status ── */}
+        <aside>
+          <section class="rounded border border-edge bg-surface-raised">
+            <div class="px-3 py-2 border-b border-edge" style="background: color-mix(in srgb, var(--color-surface-strong) 40%, transparent);">
+              <h2 class="text-[10px] font-medium text-dim/50 uppercase tracking-widest">Portfolio Status</h2>
+            </div>
+
+            <div class="p-3 space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="inline-block h-2 w-2 rounded-full bg-surface-strong" id="status-config-dot"></span>
+                  <span class="text-[11px] text-dim">Portfolio Defined</span>
+                </div>
+                <span class="text-[10px] font-mono text-dim/40" id="status-config-state">No</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="inline-block h-2 w-2 rounded-full bg-surface-strong" id="status-snapshot-dot"></span>
+                  <span class="text-[11px] text-dim">Latest Snapshot</span>
+                </div>
+                <span class="text-[10px] font-mono text-dim/40" id="status-snapshot-state">None</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="inline-block h-2 w-2 rounded-full bg-surface-strong" id="status-dashboard-dot"></span>
+                  <span class="text-[11px] text-dim">Dashboard Availability</span>
+                </div>
+                <span class="text-[10px] font-mono text-dim/40" id="status-dashboard-state">Pending</span>
+              </div>
+            </div>
+
+            <div class="border-t border-edge p-3">
+              <p class="text-[10px] text-dim/40 mb-2.5" id="fetch-instructions">Retrieve current metrics from selected registries.</p>
+              <button id="btn-fetch" class="w-full rounded border border-edge px-2.5 py-1.5 text-[11px] font-medium text-muted transition-colors" disabled>Refresh Portfolio Data</button>
+              <div id="fetch-status" class="mt-1.5 text-[10px] font-mono text-dim/40"></div>
+              <div id="fetch-output" class="mt-1.5 hidden rounded border border-edge p-2 font-mono text-[10px] text-dim/60 max-h-24 overflow-y-auto whitespace-pre-wrap" style="background: color-mix(in srgb, var(--color-surface) 92%, black 8%);"></div>
+            </div>
+
+            <div id="step-dashboard" class="border-t border-edge p-3 opacity-35 transition-opacity">
+              <p class="text-[10px] text-dim/40 mb-2.5" id="dashboard-status-text">Available after data refresh completes.</p>
+              <a id="btn-dashboard" href={`${baseUrl}/dashboard/`}
+                class="block w-full text-center rounded border border-edge px-2.5 py-1.5 text-[11px] font-medium text-muted pointer-events-none transition-colors"
+                aria-disabled="true">Open Dashboard</a>
+            </div>
+          </section>
+
+          <div id="data-path" class="mt-3 text-[9px] text-dim/30 font-mono hidden"></div>
+        </aside>
+      </div>
+
+      {/* ── Advanced ── */}
+      <details class="mt-6 rounded border border-edge bg-surface-raised" id="advanced">
+        <summary class="cursor-pointer select-none px-3 py-2 text-[10px] font-medium text-dim/40 hover:text-dim uppercase tracking-widest">Advanced</summary>
+        <div class="px-3 pb-3 border-t border-edge pt-2.5">
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-[11px]">
+            <div>
+              <div class="text-dim/30 uppercase tracking-widest text-[9px] mb-0.5">Engine</div>
+              <div class="text-heading font-mono" id="adv-engine">registry-stats</div>
+            </div>
+            <div>
+              <div class="text-dim/30 uppercase tracking-widest text-[9px] mb-0.5">Schema</div>
+              <div class="text-heading font-mono" id="adv-schema">1.0</div>
+            </div>
+            <div>
+              <div class="text-dim/30 uppercase tracking-widest text-[9px] mb-0.5">Last Snapshot</div>
+              <div class="text-heading font-mono" id="adv-timestamp">None</div>
+            </div>
+            <div>
+              <div class="text-dim/30 uppercase tracking-widest text-[9px] mb-0.5">Coverage</div>
+              <div class="text-heading font-mono" id="adv-coverage">0 / 5</div>
+            </div>
+          </div>
+          <div id="adv-paths" class="hidden mt-2.5 grid gap-3 sm:grid-cols-2 text-[11px]">
+            <div>
+              <div class="text-dim/30 uppercase tracking-widest text-[9px] mb-0.5">Config Path</div>
+              <div class="text-heading font-mono truncate" id="adv-config-path"></div>
+            </div>
+            <div>
+              <div class="text-dim/30 uppercase tracking-widest text-[9px] mb-0.5">Data Path</div>
+              <div class="text-heading font-mono truncate" id="adv-data-path"></div>
+            </div>
+          </div>
+          <!-- Branding -->
+          <div class="mt-3 pt-2.5 border-t border-edge">
+            <div class="text-dim/30 uppercase tracking-widest text-[9px] mb-1.5">Branding</div>
+            <div id="branding-info" class="grid gap-3 sm:grid-cols-2 text-[11px]">
+              <div>
+                <span class="text-dim/40">Product:</span>
+                <span class="text-heading font-mono ml-1" id="adv-product-name">Registry Pulse</span>
+              </div>
+              <div>
+                <span class="text-dim/40">Organization:</span>
+                <span class="text-heading font-mono ml-1" id="adv-company-name">MCP Tool Shop</span>
+              </div>
+            </div>
+            <div class="mt-1.5">
+              <button id="btn-export-branding" class="rounded border border-edge px-2 py-0.5 text-[10px] font-medium text-dim/50 hover:text-muted hover:bg-surface-strong transition-colors">
+                Export branding.json
+              </button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      {/* ── Pipeline hint ── */}
+      <div class="mt-8 pt-3 border-t border-edge text-center">
+        <p class="text-[9px] text-dim/25 font-mono">
+          portfolio &rarr; registry-stats &rarr; snapshot &rarr; dashboard
+        </p>
+      </div>
+    </main>
+  </div>
+</AppShell>
+
+<script define:vars={{ currentPackages, baseUrl }}>
+  // ── Shell config ──
+  const basePath = baseUrl || '/registry-stats/';
+  const isDesktop = typeof window !== 'undefined' && !!window.chrome?.webview;
+
+  function postBridge(action, payload) {
+    if (isDesktop) {
+      window.chrome.webview.postMessage(JSON.stringify({ action, ...payload }));
+    }
+  }
+
+  // ── Branding ──
+  let branding = {
+    productName: 'Registry Pulse',
+    companyName: 'MCP Tool Shop',
+    logoUrl: '',
+    accent: 'blue',
+    helpUrl: 'https://github.com/mcp-tool-shop-org/registry-stats#readme',
+    supportEmail: '',
+    defaultTheme: 'system'
+  };
+
+  async function loadBranding() {
+    try {
+      const res = await fetch(basePath + 'branding.json');
+      if (res.ok) {
+        const data = await res.json();
+        branding = { ...branding, ...data };
+      }
+    } catch { /* use defaults */ }
+
+    // Update nav branding
+    const navBrand = document.getElementById('nav-brand');
+    if (navBrand) navBrand.textContent = branding.productName;
+
+    // Update advanced section
+    const advProduct = document.getElementById('adv-product-name');
+    if (advProduct) advProduct.textContent = branding.productName;
+    const advCompany = document.getElementById('adv-company-name');
+    if (advCompany) advCompany.textContent = branding.companyName;
+
+    if (branding.logoUrl) {
+      const badge = document.getElementById('nav-badge');
+      if (badge) badge.innerHTML = '<img src="' + branding.logoUrl + '" alt="" class="h-5 w-5 rounded" />';
+    }
+  }
+
+  loadBranding();
+
+  // ── Elements ──
+  const editor = document.getElementById('editor');
+  const editorStatus = document.getElementById('editor-status');
+  const validationMsg = document.getElementById('validation-msg');
+  const fetchOutput = document.getElementById('fetch-output');
+  const fetchStatus = document.getElementById('fetch-status');
+  const btnFetch = document.getElementById('btn-fetch');
+  const btnDashboard = document.getElementById('btn-dashboard');
+  const stepDashboard = document.getElementById('step-dashboard');
+
+  const cfgDot = document.getElementById('status-config-dot');
+  const cfgState = document.getElementById('status-config-state');
+  const snapDot = document.getElementById('status-snapshot-dot');
+  const snapState = document.getElementById('status-snapshot-state');
+  const dashDot = document.getElementById('status-dashboard-dot');
+  const dashState = document.getElementById('status-dashboard-state');
+
+  const advTimestamp = document.getElementById('adv-timestamp');
+  const advCoverage = document.getElementById('adv-coverage');
+
+  // ── Status dot ──
+  function setDot(dot, stateEl, state, text) {
+    dot.className = 'inline-block h-2 w-2 rounded-full';
+    stateEl.className = 'text-[10px] font-mono';
+    switch (state) {
+      case 'pending': dot.classList.add('bg-surface-strong'); stateEl.classList.add('text-dim/40'); break;
+      case 'active':  dot.classList.add('bg-blue-400'); stateEl.classList.add('text-blue-400'); break;
+      case 'complete':dot.classList.add('bg-emerald-400'); stateEl.classList.add('text-emerald-400'); break;
+      case 'error':   dot.classList.add('bg-rose-400'); stateEl.classList.add('text-rose-400'); break;
+    }
+    stateEl.textContent = text;
+  }
+
+  // ── Button emphasis ──
+  function updateButtonEmphasis(valid) {
+    if (valid) {
+      btnFetch.disabled = false;
+      btnFetch.classList.remove('border-edge', 'text-muted');
+      btnFetch.classList.add('bg-setup-accent', 'text-white', 'border-transparent', 'hover:opacity-90');
+    } else {
+      btnFetch.disabled = true;
+      btnFetch.classList.add('border-edge', 'text-muted');
+      btnFetch.classList.remove('bg-setup-accent', 'text-white', 'border-transparent', 'hover:opacity-90');
+    }
+  }
+
+  // ── Init ──
+  async function init() {
+    if (!isDesktop) {
+      document.getElementById('fetch-instructions').textContent =
+        'In the desktop application this is automated. On the web, run npm run fetch-stats locally.';
+    }
+
+    if (isDesktop) {
+      postBridge('getPackagesJson');
+    } else if (currentPackages) {
+      editor.value = currentPackages;
+    } else {
+      await resetToSample();
+    }
+
+    setTimeout(() => {
+      if (editor.value.trim()) validate(true);
+    }, 150);
+  }
+
+  // ── Validation ──
+  function validate(silent) {
+    const text = editor.value.trim();
+    if (!text) {
+      if (!silent) showValidation('error', 'Portfolio definition is empty.');
+      setDot(cfgDot, cfgState, 'error', 'Invalid');
+      editorStatus.textContent = '';
+      updateButtonEmphasis(false);
+      return false;
+    }
+
+    let parsed;
+    try { parsed = JSON.parse(text); } catch (e) {
+      if (!silent) showValidation('error', 'Invalid JSON: ' + e.message);
+      setDot(cfgDot, cfgState, 'error', 'Invalid');
+      editorStatus.textContent = 'Parse error';
+      updateButtonEmphasis(false);
+      return false;
+    }
+
+    if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+      if (!silent) showValidation('error', 'Root must be a JSON object.');
+      setDot(cfgDot, cfgState, 'error', 'Invalid');
+      editorStatus.textContent = '';
+      updateButtonEmphasis(false);
+      return false;
+    }
+
+    const registries = ['npm', 'pypi', 'vscode', 'nuget', 'docker'];
+    const hasArrays = registries.some(r => Array.isArray(parsed[r]) && parsed[r].length > 0);
+    const hasMaintainer = typeof parsed.npmMaintainer === 'string' && parsed.npmMaintainer.trim().length > 0;
+
+    if (!hasArrays && !hasMaintainer) {
+      if (!silent) showValidation('warn', 'No packages defined. Add at least one registry or set npmMaintainer.');
+      setDot(cfgDot, cfgState, 'pending', 'No');
+      editorStatus.textContent = '';
+      updateButtonEmphasis(false);
+      return false;
+    }
+
+    for (const r of registries) {
+      if (parsed[r] !== undefined && !Array.isArray(parsed[r])) {
+        if (!silent) showValidation('error', '"' + r + '" must be an array of strings.');
+        setDot(cfgDot, cfgState, 'error', 'Invalid');
+        editorStatus.textContent = '';
+        updateButtonEmphasis(false);
+        return false;
+      }
+      if (Array.isArray(parsed[r]) && parsed[r].some(p => typeof p !== 'string')) {
+        if (!silent) showValidation('error', '"' + r + '" contains non-string entries.');
+        setDot(cfgDot, cfgState, 'error', 'Invalid');
+        editorStatus.textContent = '';
+        updateButtonEmphasis(false);
+        return false;
+      }
+    }
+
+    const totalPkgs = registries.reduce((n, r) => n + (Array.isArray(parsed[r]) ? parsed[r].length : 0), 0);
+    const activeRegs = registries.filter(r => parsed[r]?.length).length;
+
+    advCoverage.textContent = activeRegs + ' / 5';
+    editorStatus.textContent = totalPkgs + ' packages, ' + activeRegs + ' registries';
+    setDot(cfgDot, cfgState, 'complete', 'Yes');
+
+    if (!silent) {
+      showValidation('ok', 'Portfolio valid. ' + totalPkgs + ' packages across ' + activeRegs + ' registries.');
+    }
+    updateButtonEmphasis(true);
+    return true;
+  }
+
+  function showValidation(level, msg) {
+    validationMsg.classList.remove('hidden', 'border-emerald-500/30', 'text-emerald-400', 'border-rose-500/30', 'text-rose-400', 'border-amber-500/30', 'text-amber-400');
+    validationMsg.classList.add(...({
+      ok: ['border-emerald-500/30', 'text-emerald-400'],
+      error: ['border-rose-500/30', 'text-rose-400'],
+      warn: ['border-amber-500/30', 'text-amber-400'],
+    })[level]);
+    validationMsg.textContent = msg;
+    return level === 'ok';
+  }
+
+  function unlockDashboard() {
+    stepDashboard.classList.remove('opacity-35');
+    btnDashboard.classList.remove('pointer-events-none', 'text-muted', 'border-edge');
+    btnDashboard.classList.add('bg-setup-accent', 'text-white', 'border-transparent', 'hover:opacity-90');
+    btnDashboard.removeAttribute('aria-disabled');
+    setDot(snapDot, snapState, 'complete', 'Current');
+    setDot(dashDot, dashState, 'complete', 'Ready');
+    document.getElementById('dashboard-status-text').textContent = 'Dashboard ready.';
+  }
+
+  // ── Actions ──
+  async function resetToSample() {
+    try {
+      const res = await fetch(basePath + 'sample-packages.json');
+      editor.value = await res.text();
+    } catch {
+      editor.value = '{\n  "npm": [],\n  "pypi": [],\n  "vscode": [],\n  "nuget": [],\n  "docker": []\n}';
+    }
+  }
+
+  function save() {
+    if (!validate()) return;
+    if (isDesktop) { postBridge('savePackagesJson', { text: editor.value }); }
+    else { downloadFile(); }
+  }
+
+  function downloadFile() {
+    const blob = new Blob([editor.value], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'packages.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function exportBranding() {
+    const blob = new Blob([JSON.stringify(branding, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'branding.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function refreshData() {
+    setDot(snapDot, snapState, 'active', 'Refreshing');
+    btnFetch.disabled = true;
+    btnFetch.textContent = 'Refreshing...';
+    btnFetch.classList.remove('bg-setup-accent', 'text-white', 'hover:opacity-90');
+    btnFetch.classList.add('border-edge', 'text-muted');
+
+    if (isDesktop) {
+      fetchOutput.classList.remove('hidden');
+      fetchOutput.textContent = '';
+      fetchStatus.textContent = 'Retrieving metrics...';
+      postBridge('fetchNow');
+    } else {
+      fetchOutput.classList.remove('hidden');
+      fetchOutput.textContent =
+        'Run the following commands in your project directory:\n\n' +
+        '  cd site\n' +
+        '  npm run fetch-stats\n' +
+        '  npm run build\n\n' +
+        'The desktop application provides automated data refresh.';
+    }
+  }
+
+  // ── Desktop bridge ──
+  if (isDesktop) {
+    window.chrome.webview.addEventListener('message', (e) => {
+      const msg = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+      switch (msg.action) {
+        case 'packagesJson':
+          if (msg.text) editor.value = msg.text;
+          setTimeout(() => validate(true), 100);
+          break;
+        case 'saveResult':
+          showValidation(msg.ok ? 'ok' : 'error', msg.ok ? 'Portfolio saved.' : 'Save failed: ' + msg.error);
+          break;
+        case 'fetchProgress':
+          fetchOutput.textContent += msg.line + '\n';
+          break;
+        case 'fetchComplete':
+          btnFetch.textContent = 'Refresh Portfolio Data';
+          if (msg.ok) {
+            fetchStatus.textContent = 'Data refreshed.';
+            fetchOutput.textContent += '\nMetrics updated.';
+            unlockDashboard();
+          } else {
+            fetchStatus.textContent = 'Refresh failed.';
+            fetchOutput.textContent += '\nError: ' + (msg.error || 'Unknown error.');
+            setDot(snapDot, snapState, 'error', 'Failed');
+            btnFetch.disabled = false;
+            updateButtonEmphasis(true);
+          }
+          break;
+        case 'status':
+          if (msg.hasStats) unlockDashboard();
+          if (msg.lastFetch) {
+            fetchStatus.textContent = 'Last refresh: ' + new Date(msg.lastFetch).toLocaleString();
+            advTimestamp.textContent = new Date(msg.lastFetch).toLocaleString();
+          }
+          if (msg.dataPath) {
+            const cfgPath = msg.dataPath.replace(/\\data$/, '\\config') + '\\packages.json';
+            const dataPath = msg.dataPath + '\\stats.json';
+
+            document.getElementById('adv-config-path').textContent = cfgPath;
+            document.getElementById('adv-data-path').textContent = dataPath;
+            document.getElementById('adv-paths').classList.remove('hidden');
+
+            const dp = document.getElementById('data-path');
+            dp.textContent = dataPath;
+            dp.classList.remove('hidden');
+          }
+          break;
+        case 'brandingJson':
+          if (msg.data) {
+            branding = { ...branding, ...msg.data };
+            const nb = document.getElementById('nav-brand');
+            if (nb) nb.textContent = branding.productName;
+            const ap = document.getElementById('adv-product-name');
+            if (ap) ap.textContent = branding.productName;
+            const ac = document.getElementById('adv-company-name');
+            if (ac) ac.textContent = branding.companyName;
+            if (branding.logoUrl) {
+              const badge = document.getElementById('nav-badge');
+              if (badge) badge.innerHTML = '<img src="' + branding.logoUrl + '" alt="" class="h-5 w-5 rounded" />';
+            }
+          }
+          break;
+      }
+    });
+  }
+
+  // ── Wire up ──
+  document.getElementById('btn-validate').addEventListener('click', () => validate(false));
+  document.getElementById('btn-reset').addEventListener('click', resetToSample);
+  document.getElementById('btn-save').addEventListener('click', save);
+  document.getElementById('btn-download').addEventListener('click', downloadFile);
+  document.getElementById('btn-export-branding').addEventListener('click', exportBranding);
+  btnFetch.addEventListener('click', refreshData);
+
+  init();
+</script>

@@ -1,8 +1,6 @@
 ---
-import '../styles/global.css';
-import BaseLayout from '@mcptoolshop/site-theme/components/BaseLayout.astro';
-import Section from '@mcptoolshop/site-theme/components/Section.astro';
-import { config } from '../site-config';
+import AppShell from '../components/AppShell.astro';
+import AppNav from '../components/AppNav.astro';
 
 let data = null;
 let missing = false;
@@ -13,6 +11,7 @@ try {
   missing = true;
 }
 
+const base = import.meta.env.BASE_URL;
 const fmt = new Intl.NumberFormat('en-US');
 const fmtCompact = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
 
@@ -53,73 +52,68 @@ const movers = data?.movers;
 const maxBar = Math.max(1, ...Object.values(registryTotals).map((r: any) => Number(r?.week ?? 0)));
 const sparkMax = Math.max(1, ...sparkline30.map((n: number) => Number(n ?? 0)));
 
-// Use precomputed movers or fallback to empty
 const gainers = movers?.topGainers ?? [];
 const decliners = movers?.topDecliners ?? [];
 const awakening = movers?.newlyActive ?? [];
 const concentrationPct = Math.round(movers?.concentrationTop5Pct ?? 0);
-
-const nav = [
-  { href: '/registry-stats/', label: 'Home' },
-  { href: '#summary', label: 'Summary' },
-  { href: '#pulse', label: 'Pulse' },
-  { href: '#breakdown', label: 'Breakdown' },
-  { href: '#leaderboard', label: 'Leaderboard' },
-];
 ---
 
-<BaseLayout
-  title="Dashboard — registry-stats"
+<AppShell
+  title="Dashboard — Registry Pulse"
   description="Live download statistics across npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub"
-  logoBadge={config.logoBadge}
-  brandName={config.brandName}
-  repoUrl={config.repoUrl}
-  npmUrl={config.npmUrl}
-  footerText={config.footerText}
-  nav={nav}
 >
-  <div class="mt-12 mb-8 flex items-start justify-between gap-4 flex-wrap">
-    <div>
-      <h1 class="text-4xl font-semibold tracking-tight text-heading">Dashboard</h1>
-      <p class="mt-2 text-dim">
-        Weekly + monthly stats across registries.
-        {!missing && data && (
-          <span
-            class="ml-2 text-muted cursor-help"
-            title={new Date(data.fetchedAt).toUTCString()}
-          >
-            Updated {relativeTime(data.fetchedAt)}.
-          </span>
-        )}
-      </p>
-    </div>
-    <button
-      id="theme-toggle"
-      type="button"
-      class="mt-1 rounded-xl border border-edge bg-surface-raised p-2.5 text-dim hover:text-heading hover:bg-surface-strong transition-colors"
-      aria-label="Toggle theme"
-    >
-      <svg id="icon-sun" class="hidden h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="5" /><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-      </svg>
-      <svg id="icon-moon" class="hidden h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-      </svg>
-    </button>
-  </div>
+  <AppNav active="dashboard" hasSnapshot={!missing} />
 
-  {/* ── Executive Snapshot ──────────────────────── */}
-  {!missing && (data?.narrativeLines || data?.narrative) && (
-    <div class="mb-8 rounded-2xl border border-edge bg-surface-raised/50 p-5">
-      <div class="flex items-start justify-between gap-4 flex-wrap mb-3">
-        <div class="text-xs font-medium tracking-wide uppercase text-dim">Executive snapshot</div>
-        <div class="text-xs text-dim whitespace-nowrap text-right">
-          Source: build-time fetch<br />{new Date(data.fetchedAt).toUTCString()}
+  <div class="mx-auto max-w-6xl px-4">
+    {/* ── Guard panel — no snapshot ── */}
+    {missing && (
+      <div class="py-10">
+        <div class="rounded-xl border border-edge bg-surface-raised p-6">
+          <div class="text-sm font-semibold text-heading">No snapshot available</div>
+          <div class="mt-1 text-sm text-dim">
+            Configure your portfolio and generate a snapshot in Setup.
+          </div>
+          <div class="mt-4">
+            <a
+              class="inline-block px-4 py-2 rounded-md bg-action text-action-text text-sm font-medium hover:bg-action-hover transition-colors"
+              href={`${base}/setup/`}
+            >
+              Go to Setup
+            </a>
+          </div>
         </div>
       </div>
-      {data.narrativeLines ? (
-        <div class="space-y-2.5">
-          {data.narrativeLines.map((line: { icon: string; label: string; text: string }) => (
+    )}
+
+    <div id="dashboard-content" class:list={[{ hidden: missing || !data }]}>
+      {/* ── Title ── */}
+      <div class="mt-8 mb-6">
+        <h1 class="text-3xl font-semibold tracking-tight text-heading">Dashboard</h1>
+        <p class="mt-2 text-dim">
+          Weekly + monthly stats across registries.
+          {!missing && data && (
+            <span
+              id="updated-at"
+              class="ml-2 text-muted cursor-help"
+              title={new Date(data.fetchedAt).toUTCString()}
+              data-fetched={data.fetchedAt}
+            >
+              Updated {relativeTime(data.fetchedAt)}.
+            </span>
+          )}
+        </p>
+      </div>
+
+      {/* ── Executive Snapshot ── */}
+      <div id="exec-snapshot" class:list={["mb-8 rounded-2xl border border-edge bg-surface-raised/50 p-5", { hidden: missing || !(data?.narrativeLines || data?.narrative) }]}>
+        <div class="flex items-start justify-between gap-4 flex-wrap mb-3">
+          <div class="text-xs font-medium tracking-wide uppercase text-dim">Executive snapshot</div>
+          <div id="exec-meta" class="text-xs text-dim whitespace-nowrap text-right">
+            {!missing && data && (<>Source: build-time fetch<br />{new Date(data.fetchedAt).toUTCString()}</>)}
+          </div>
+        </div>
+        <div id="exec-lines" class="space-y-2.5">
+          {data?.narrativeLines ? data.narrativeLines.map((line: { icon: string; label: string; text: string }) => (
             <div class="flex items-start gap-3">
               <span class="text-lg leading-6 shrink-0">{line.icon}</span>
               <div>
@@ -127,69 +121,58 @@ const nav = [
                 <span class="text-sm text-heading ml-2">{line.text}</span>
               </div>
             </div>
-          ))}
+          )) : data?.narrative ? (
+            <div class="text-base font-medium text-heading">{data.narrative}</div>
+          ) : null}
         </div>
-      ) : (
-        <div class="text-base font-medium text-heading">{data.narrative}</div>
-      )}
-    </div>
-  )}
-
-  {missing && (
-    <div class="mt-6 rounded-2xl border border-edge bg-surface-raised p-5 text-body">
-      <div class="font-semibold text-heading">Stats data not found</div>
-      <div class="mt-1 text-sm text-dim">
-        Run <code class="px-1.5 py-0.5 rounded bg-surface-strong text-muted">npm run fetch-stats</code> to generate
-        <code class="px-1.5 py-0.5 rounded bg-surface-strong text-muted">site/src/data/stats.json</code>.
       </div>
-    </div>
-  )}
 
-  {!missing && data && (
-    <>
-      {/* ── Summary cards ────────────────────────────── */}
-      <Section id="summary" title="Summary" subtitle="Grand totals across all registries.">
-        <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* ── Summary cards ── */}
+      <section id="summary" class="mb-8">
+        <h2 class="text-xl font-semibold text-heading">Summary</h2>
+        <p class="mt-1 text-sm text-dim">Grand totals across all registries.</p>
+        <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div class="rounded-2xl border border-edge bg-surface-raised p-5">
             <div class="text-sm text-dim">Total packages</div>
-            <div class="mt-2 text-3xl font-semibold text-heading">{fmt.format(totals.packages)}</div>
+            <div id="stat-packages" class="mt-2 text-3xl font-semibold text-heading">{totals ? fmt.format(totals.packages) : '\u2014'}</div>
           </div>
           <div class="rounded-2xl border border-edge bg-surface-raised p-5">
             <div class="text-sm text-dim">Weekly downloads</div>
-            <div class="mt-2 text-3xl font-semibold text-heading">{fmtCompact.format(totals.week)}</div>
+            <div id="stat-weekly" class="mt-2 text-3xl font-semibold text-heading">{totals ? fmtCompact.format(totals.week) : '\u2014'}</div>
           </div>
           <div class="rounded-2xl border border-edge bg-surface-raised p-5">
             <div class="text-sm text-dim">Monthly downloads</div>
-            <div class="mt-2 text-3xl font-semibold text-heading">{fmtCompact.format(totals.month)}</div>
+            <div id="stat-monthly" class="mt-2 text-3xl font-semibold text-heading">{totals ? fmtCompact.format(totals.month) : '\u2014'}</div>
           </div>
           <div class="rounded-2xl border border-edge bg-surface-raised p-5">
             <div class="text-sm text-dim">Top-5 concentration</div>
-            <div class="mt-2 text-3xl font-semibold text-heading">{concentrationPct}%</div>
+            <div id="stat-concentration" class="mt-2 text-3xl font-semibold text-heading">{concentrationPct}%</div>
             <div class="mt-1 text-xs text-dim">of weekly downloads</div>
           </div>
         </div>
-      </Section>
+      </section>
 
-      {/* ── Growth Pulse + Data Health (2-col) ────────── */}
-      <Section id="pulse" title="Pulse" subtitle="Growth signals and data reliability at a glance.">
-        <div class="mt-6 grid gap-6 lg:grid-cols-2">
+      {/* ── Growth Pulse + Data Health ── */}
+      <section id="pulse" class="mb-8">
+        <h2 class="text-xl font-semibold text-heading">Pulse</h2>
+        <p class="mt-1 text-sm text-dim">Growth signals and data reliability at a glance.</p>
+        <div class="mt-4 grid gap-6 lg:grid-cols-2">
 
-          {/* ── Growth Pulse (left) ── */}
+          {/* Growth Pulse */}
           <div class="rounded-2xl border border-edge bg-surface-raised p-6">
             <div class="flex items-center justify-between gap-3 flex-wrap">
               <h3 class="text-lg font-semibold text-heading">Growth Pulse</h3>
               <div class="text-sm text-dim">
-                Top-5: <span class="font-medium text-muted">{concentrationPct}%</span> of weekly
+                Top-5: <span id="pulse-conc" class="font-medium text-muted">{concentrationPct}%</span> of weekly
               </div>
             </div>
 
             <div class="mt-5 grid gap-4 sm:grid-cols-3">
-              {/* Gainers */}
               <div class="rounded-xl border border-edge p-4">
                 <div class="text-xs font-semibold text-emerald-400 flex items-center gap-1">
                   <span>{'\u25B2'}</span> Top Gainers
                 </div>
-                <ul class="mt-2 space-y-2">
+                <ul id="pulse-gainers" class="mt-2 space-y-2">
                   {gainers.length > 0 ? gainers.map((r: any) => (
                     <li class="flex items-center justify-between gap-2 text-sm">
                       <span class="truncate text-heading">{r.name.replace('@mcptoolshop/', '')}</span>
@@ -201,12 +184,11 @@ const nav = [
                 </ul>
               </div>
 
-              {/* Decliners */}
               <div class="rounded-xl border border-edge p-4">
                 <div class="text-xs font-semibold text-rose-400 flex items-center gap-1">
                   <span>{'\u25BC'}</span> Decliners
                 </div>
-                <ul class="mt-2 space-y-2">
+                <ul id="pulse-decliners" class="mt-2 space-y-2">
                   {decliners.length > 0 ? decliners.map((r: any) => (
                     <li class="flex items-center justify-between gap-2 text-sm">
                       <span class="truncate text-heading">{r.name.replace('@mcptoolshop/', '')}</span>
@@ -218,12 +200,11 @@ const nav = [
                 </ul>
               </div>
 
-              {/* Newly active */}
               <div class="rounded-xl border border-edge p-4">
                 <div class="text-xs font-semibold text-amber-400 flex items-center gap-1">
                   <span>{'\u2728'}</span> Newly Active
                 </div>
-                <ul class="mt-2 space-y-2">
+                <ul id="pulse-new" class="mt-2 space-y-2">
                   {awakening.length > 0 ? awakening.map((r: any) => (
                     <li class="flex items-center justify-between gap-2 text-sm">
                       <span class="truncate text-heading">{r.name.replace('@mcptoolshop/', '')}</span>
@@ -241,17 +222,17 @@ const nav = [
             </div>
           </div>
 
-          {/* ── Data Health (right) ── */}
+          {/* Data Health */}
           <div class="rounded-2xl border border-edge bg-surface-raised p-6">
             <div class="flex items-center justify-between gap-3 flex-wrap">
               <h3 class="text-lg font-semibold text-heading">Data Health</h3>
-              <div class="text-sm text-dim">
-                Errors: <span class="font-medium text-muted">{data.errors?.length ?? 0}</span>
+              <div id="health-error-count" class="text-sm text-dim">
+                Errors: <span class="font-medium text-muted">{data?.errors?.length ?? 0}</span>
               </div>
             </div>
 
-            <div class="mt-5 space-y-3">
-              {Object.entries(data.manifestCounts ?? {}).map(([reg, expected]: [string, any]) => {
+            <div id="health-rows" class="mt-5 space-y-3">
+              {data && Object.entries(data.manifestCounts ?? {}).map(([reg, expected]: [string, any]) => {
                 const fetched = (data.fetchedCounts as any)?.[reg] ?? 0;
                 const conf = (data.confidence as any)?.[reg] ?? 'missing';
                 const badge = confidenceBadge(conf);
@@ -273,43 +254,47 @@ const nav = [
               })}
             </div>
 
-            {(data.errors?.length ?? 0) > 0 && (
-              <details class="mt-4 rounded-xl border border-edge p-4">
-                <summary class="cursor-pointer text-sm font-medium text-heading">View fetch issues</summary>
-                <ul class="mt-3 space-y-2 text-xs text-dim">
-                  {(data.errors as any[]).slice(0, 12).map((e: any) => (
-                    <li class="flex gap-2">
-                      <code class="text-muted shrink-0">{e.scope}</code>
-                      <span class="truncate">{e.message}</span>
-                    </li>
-                  ))}
-                </ul>
-                {(data.errors as any[]).length > 12 && (
-                  <div class="mt-2 text-xs text-dim">Showing first 12. See stats.json for full list.</div>
-                )}
-              </details>
-            )}
+            <div id="health-errors-detail">
+              {data && (data.errors?.length ?? 0) > 0 && (
+                <details class="mt-4 rounded-xl border border-edge p-4">
+                  <summary class="cursor-pointer text-sm font-medium text-heading">View fetch issues</summary>
+                  <ul class="mt-3 space-y-2 text-xs text-dim">
+                    {(data.errors as any[]).slice(0, 12).map((e: any) => (
+                      <li class="flex gap-2">
+                        <code class="text-muted shrink-0">{e.scope}</code>
+                        <span class="truncate">{e.message}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {(data.errors as any[]).length > 12 && (
+                    <div class="mt-2 text-xs text-dim">Showing first 12. See stats.json for full list.</div>
+                  )}
+                </details>
+              )}
+            </div>
 
-            <div class="mt-4 text-xs text-dim">
-              Freshness: updated {relativeTime(data.fetchedAt)} &bull; {Object.values(data.confidence ?? {}).filter((c: any) => c === 'ok').length}/{Object.keys(data.confidence ?? {}).length} registries OK
+            <div id="health-freshness" class="mt-4 text-xs text-dim">
+              {data && (<>Freshness: updated {relativeTime(data.fetchedAt)} &bull; {Object.values(data.confidence ?? {}).filter((c: any) => c === 'ok').length}/{Object.keys(data.confidence ?? {}).length} registries OK</>)}
             </div>
           </div>
 
         </div>
-      </Section>
+      </section>
 
-      {/* ── Registry breakdown + sparkline ────────────── */}
-      <Section id="breakdown" title="Breakdown" subtitle="Per-registry weekly downloads and 30-day activity.">
-        <div class="mt-6 grid gap-6 lg:grid-cols-3">
+      {/* ── Registry breakdown + sparkline ── */}
+      <section id="breakdown" class="mb-8">
+        <h2 class="text-xl font-semibold text-heading">Breakdown</h2>
+        <p class="mt-1 text-sm text-dim">Per-registry weekly downloads and 30-day activity.</p>
+        <div class="mt-4 grid gap-6 lg:grid-cols-3">
           <div class="lg:col-span-2 rounded-2xl border border-edge bg-surface-raised p-6">
             <div class="flex items-center justify-between gap-3 flex-wrap">
               <h3 class="text-lg font-semibold text-heading">Per-registry (weekly)</h3>
-              <div class="text-sm text-dim">
+              <div id="breakdown-max" class="text-sm text-dim">
                 Max: <span class="font-medium text-muted">{fmtCompact.format(maxBar)}</span>
               </div>
             </div>
 
-            <div class="mt-5 space-y-4">
+            <div id="breakdown-bars" class="mt-5 space-y-4">
               {Object.entries(registryTotals).map(([key, r]: [string, any]) => (
                 <div>
                   <div class="flex items-center justify-between text-sm">
@@ -318,9 +303,14 @@ const nav = [
                       {(key === 'vscode' || key === 'nuget') && (
                         <span class="ml-1.5 text-xs text-dim font-normal">(all-time installs)</span>
                       )}
+                      {key === 'docker' && (
+                        <span class="ml-1.5 text-xs text-dim font-normal">(all-time pulls)</span>
+                      )}
                     </div>
                     <div class="text-dim">
-                      <span class="text-muted font-medium">{fmtCompact.format(r.week)}</span>
+                      <span class="text-muted font-medium">{fmtCompact.format(
+                        ['vscode','nuget','docker'].includes(key) ? (r.total ?? r.week) : r.week
+                      )}</span>
                       <span class="mx-2 text-edge">&bull;</span>
                       {fmt.format(r.packages)} pkg
                     </div>
@@ -328,7 +318,9 @@ const nav = [
                   <div class="mt-2 h-2 rounded-full bg-surface-strong overflow-hidden">
                     <div
                       class="h-2 rounded-full bg-accent"
-                      style={`width:${Math.round((Number(r.week) / maxBar) * 100)}%`}
+                      style={`width:${Math.round((Number(
+                        ['vscode','nuget','docker'].includes(key) ? (r.total ?? r.week) : r.week
+                      ) / maxBar) * 100)}%`}
                     />
                   </div>
                 </div>
@@ -342,7 +334,7 @@ const nav = [
               Aggregate npm daily downloads.
             </p>
 
-            <div class="sparkline mt-5" aria-label="30-day sparkline">
+            <div id="sparkline-agg" class="sparkline mt-5" aria-label="30-day sparkline">
               {sparkline30.map((n: number) => (
                 <span
                   class="spark"
@@ -353,17 +345,19 @@ const nav = [
             </div>
           </div>
         </div>
-      </Section>
+      </section>
 
-      {/* ── Leaderboard ──────────────────────────────── */}
-      <Section id="leaderboard" title="Leaderboard" subtitle="Sorted by weekly downloads. Trend = last 7 vs prior 7 (npm only).">
-        <div class="mt-6 rounded-2xl border border-edge overflow-hidden">
+      {/* ── Leaderboard ── */}
+      <section id="leaderboard" class="mb-8">
+        <h2 class="text-xl font-semibold text-heading">Leaderboard</h2>
+        <p class="mt-1 text-sm text-dim">Sorted by weekly downloads. Trend = last 7 vs prior 7 (npm only).</p>
+        <div class="mt-4 rounded-2xl border border-edge overflow-hidden">
           <div class="p-4 flex items-center justify-between gap-4 flex-wrap bg-surface-raised">
             <div class="text-sm text-dim">
-              Showing <span class="font-medium text-muted">{leaderboard.length}</span> packages
+              Showing <span id="leaderboard-count" class="font-medium text-muted">{leaderboard.length}</span> packages
             </div>
             <div class="text-xs text-dim">
-              npm/PyPI = last 7d &bull; VS Code/NuGet = all-time installs
+              npm/PyPI = last 7d &bull; VS Code/NuGet/Docker = all-time
             </div>
           </div>
 
@@ -380,7 +374,7 @@ const nav = [
                   <th class="text-right font-medium px-5 py-3">Trend</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="leaderboard-body">
                 {leaderboard.map((row: any, i: number) => {
                   const t = trendBadge(row.trendPct);
                   const hasSparkline = row.range30 && row.range30.length === 30;
@@ -414,19 +408,20 @@ const nav = [
             </table>
           </div>
 
-          {(data.errors?.length ?? 0) > 0 && (
-            <div class="border-t border-edge bg-surface-raised px-5 py-3 text-xs text-dim">
-              Some sources failed to fetch ({data.errors.length}). Data may be partial.
-            </div>
-          )}
+          <div id="leaderboard-footer">
+            {data && (data.errors?.length ?? 0) > 0 && (
+              <div class="border-t border-edge bg-surface-raised px-5 py-3 text-xs text-dim">
+                Some sources failed to fetch ({data.errors.length}). Data may be partial.
+              </div>
+            )}
+          </div>
         </div>
-      </Section>
-    </>
-  )}
-</BaseLayout>
+      </section>
+    </div>
+  </div>
+</AppShell>
 
 <style>
-  /* Aggregate sparkline (breakdown section) */
   .sparkline {
     height: 88px;
     display: flex;
@@ -450,8 +445,6 @@ const nav = [
     transform: translateY(-2px);
     opacity: 1;
   }
-
-  /* Per-row sparklines (leaderboard table) */
   .row-spark {
     display: inline-flex;
     align-items: flex-end;
@@ -470,40 +463,211 @@ const nav = [
 </style>
 
 <script is:inline>
-  // Theme toggle: dark (default) / light, persisted in localStorage
+  // Runtime data loading: fetches /data/stats.json and re-renders the dashboard.
+  // On web (GitHub Pages) this is a harmless re-render with the same build-time data.
+  // On desktop (MAUI WebView2) this loads fresh cached data, enabling startup refresh.
   (function () {
-    const KEY = 'rs-theme';
-    const root = document.documentElement;
+    var fmt = new Intl.NumberFormat('en-US');
+    var fmtCompact = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
 
-    function getTheme() {
-      const stored = localStorage.getItem(KEY);
-      if (stored === 'light' || stored === 'dark') return stored;
-      return 'dark';
+    var REG_LABELS = { npm: 'npm', pypi: 'PyPI', vscode: 'VS Code', nuget: 'NuGet', docker: 'Docker Hub' };
+    function regLabel(k) { return REG_LABELS[k] || k; }
+
+    function trendBadge(pct) {
+      if (pct === null || pct === undefined) return { text: '\u2014', cls: 'text-dim' };
+      var r = Math.round(pct * 10) / 10;
+      if (r > 0) return { text: '\u25B2 ' + r + '%', cls: 'text-emerald-400' };
+      if (r < 0) return { text: '\u25BC ' + Math.abs(r) + '%', cls: 'text-rose-400' };
+      return { text: '0%', cls: 'text-dim' };
     }
 
-    function apply(theme) {
-      if (theme === 'light') {
-        root.setAttribute('data-theme', 'light');
-      } else {
-        root.removeAttribute('data-theme');
+    function relTime(iso) {
+      var d = Date.now() - new Date(iso).getTime();
+      var m = Math.floor(d / 60000);
+      if (m < 60) return m + 'm ago';
+      var h = Math.floor(m / 60);
+      if (h < 24) return h + 'h ago';
+      return Math.floor(h / 24) + 'd ago';
+    }
+
+    function confBadge(c) {
+      if (c === 'ok') return '\u2705';
+      if (c === 'partial') return '\u26A0\uFE0F';
+      return '\u26D4';
+    }
+
+    function esc(s) {
+      var d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function renderDashboard(data) {
+      if (!data || !data.totals) return;
+      var t = data.totals;
+      var movers = data.movers || {};
+      var concPct = Math.round(movers.concentrationTop5Pct || 0);
+
+      var upd = document.getElementById('updated-at');
+      if (upd) {
+        upd.title = new Date(data.fetchedAt).toUTCString();
+        upd.setAttribute('data-fetched', data.fetchedAt);
+        upd.textContent = 'Updated ' + relTime(data.fetchedAt) + '.';
       }
-      const sun = document.getElementById('icon-sun');
-      const moon = document.getElementById('icon-moon');
-      if (sun && moon) {
-        sun.classList.toggle('hidden', theme !== 'light');
-        moon.classList.toggle('hidden', theme !== 'dark');
+
+      var el;
+      el = document.getElementById('stat-packages'); if (el) el.textContent = fmt.format(t.packages);
+      el = document.getElementById('stat-weekly'); if (el) el.textContent = fmtCompact.format(t.week);
+      el = document.getElementById('stat-monthly'); if (el) el.textContent = fmtCompact.format(t.month);
+      el = document.getElementById('stat-concentration'); if (el) el.textContent = concPct + '%';
+      el = document.getElementById('pulse-conc'); if (el) el.textContent = concPct + '%';
+
+      var snap = document.getElementById('exec-snapshot');
+      if (snap) snap.classList.remove('hidden');
+      var meta = document.getElementById('exec-meta');
+      if (meta) meta.innerHTML = 'Source: build-time fetch<br>' + esc(new Date(data.fetchedAt).toUTCString());
+      var lines = document.getElementById('exec-lines');
+      if (lines && data.narrativeLines) {
+        lines.innerHTML = data.narrativeLines.map(function (ln) {
+          return '<div class="flex items-start gap-3">' +
+            '<span class="text-lg leading-6 shrink-0">' + esc(ln.icon) + '</span>' +
+            '<div><span class="text-xs font-semibold uppercase tracking-wide text-accent">' + esc(ln.label) + '</span>' +
+            '<span class="text-sm text-heading ml-2">' + esc(ln.text) + '</span></div></div>';
+        }).join('');
+      } else if (lines && data.narrative) {
+        lines.innerHTML = '<div class="text-base font-medium text-heading">' + esc(data.narrative) + '</div>';
+      }
+
+      var content = document.getElementById('dashboard-content');
+      if (content) content.classList.remove('hidden');
+
+      function renderMoverList(id, items, colorCls, arrow, suffix) {
+        var ul = document.getElementById(id);
+        if (!ul) return;
+        if (!items || items.length === 0) {
+          ul.innerHTML = '<li class="text-xs text-dim">No data this week</li>';
+          return;
+        }
+        ul.innerHTML = items.map(function (r) {
+          var name = (r.name || '').replace('@mcptoolshop/', '');
+          var val = suffix === '/wk'
+            ? fmt.format(r.week) + '/wk'
+            : arrow + ' ' + (Math.round(Math.abs(r.trendPct || 0) * 10) / 10) + '%';
+          return '<li class="flex items-center justify-between gap-2 text-sm">' +
+            '<span class="truncate text-heading">' + esc(name) + '</span>' +
+            '<span class="' + colorCls + ' tabular-nums whitespace-nowrap">' + esc(val) + '</span></li>';
+        }).join('');
+      }
+      renderMoverList('pulse-gainers', movers.topGainers, 'text-emerald-400', '\u25B2', '%');
+      renderMoverList('pulse-decliners', movers.topDecliners, 'text-rose-400', '\u25BC', '%');
+      renderMoverList('pulse-new', movers.newlyActive, 'text-amber-400', '', '/wk');
+
+      var healthRows = document.getElementById('health-rows');
+      if (healthRows && data.manifestCounts) {
+        healthRows.innerHTML = Object.keys(data.manifestCounts).map(function (reg) {
+          var expected = data.manifestCounts[reg] || 0;
+          var fetched = (data.fetchedCounts || {})[reg] || 0;
+          var conf = (data.confidence || {})[reg] || 'missing';
+          var regErr = (data.errorsByRegistry || {})[reg] || 0;
+          var badge = confBadge(conf);
+          var errStr = regErr > 0 ? ' <span class="ml-2 text-amber-400">(' + regErr + ' issues)</span>' : '';
+          return '<div class="flex items-center justify-between gap-3 rounded-xl border border-edge px-4 py-3">' +
+            '<div class="flex items-center gap-2"><span>' + badge + '</span>' +
+            '<span class="font-medium text-heading">' + esc(regLabel(reg)) + '</span></div>' +
+            '<div class="text-sm text-dim tabular-nums">' + fetched + '/' + expected + ' fetched' + errStr + '</div></div>';
+        }).join('');
+      }
+      var errCount = document.getElementById('health-error-count');
+      if (errCount) errCount.innerHTML = 'Errors: <span class="font-medium text-muted">' + (data.errors ? data.errors.length : 0) + '</span>';
+      var freshness = document.getElementById('health-freshness');
+      if (freshness && data.confidence) {
+        var ok = Object.values(data.confidence).filter(function (c) { return c === 'ok'; }).length;
+        var total = Object.keys(data.confidence).length;
+        freshness.textContent = 'Freshness: updated ' + relTime(data.fetchedAt) + ' \u2022 ' + ok + '/' + total + ' registries OK';
+      }
+
+      var regTotals = data.registryTotals || {};
+      var maxB = Math.max(1, Math.max.apply(null, Object.values(regTotals).map(function (r) { return Number(r.week || 0); })));
+      var bars = document.getElementById('breakdown-bars');
+      if (bars) {
+        bars.innerHTML = Object.keys(regTotals).map(function (key) {
+          var r = regTotals[key];
+          var suffix = (key === 'vscode' || key === 'nuget') ? ' <span class="ml-1.5 text-xs text-dim font-normal">(all-time installs)</span>' : '';
+          var pct = Math.round((Number(r.week || 0) / maxB) * 100);
+          return '<div><div class="flex items-center justify-between text-sm">' +
+            '<div class="font-medium text-heading">' + esc(regLabel(key)) + suffix + '</div>' +
+            '<div class="text-dim"><span class="text-muted font-medium">' + fmtCompact.format(r.week) + '</span>' +
+            '<span class="mx-2 text-edge">\u2022</span>' + fmt.format(r.packages) + ' pkg</div></div>' +
+            '<div class="mt-2 h-2 rounded-full bg-surface-strong overflow-hidden">' +
+            '<div class="h-2 rounded-full bg-accent" style="width:' + pct + '%"></div></div></div>';
+        }).join('');
+      }
+      var bmax = document.getElementById('breakdown-max');
+      if (bmax) bmax.innerHTML = 'Max: <span class="font-medium text-muted">' + fmtCompact.format(maxB) + '</span>';
+
+      var sp30 = data.sparkline30 || [];
+      var spMax = Math.max(1, Math.max.apply(null, sp30.map(Number)));
+      var spEl = document.getElementById('sparkline-agg');
+      if (spEl) {
+        spEl.innerHTML = sp30.map(function (n) {
+          var h = Math.max(2, Math.round((Number(n) / spMax) * 100));
+          return '<span class="spark" style="height:' + h + '%" title="' + fmt.format(n) + ' downloads"></span>';
+        }).join('');
+      }
+
+      var lb = data.leaderboard || [];
+      var lbCount = document.getElementById('leaderboard-count');
+      if (lbCount) lbCount.textContent = lb.length;
+      var tbody = document.getElementById('leaderboard-body');
+      if (tbody) {
+        tbody.innerHTML = lb.map(function (row, i) {
+          var tb = trendBadge(row.trendPct);
+          var has30 = row.range30 && row.range30.length === 30;
+          var sparkHtml;
+          if (has30) {
+            var rm = Math.max(1, Math.max.apply(null, row.range30));
+            sparkHtml = '<div class="row-spark" title="Peak: ' + fmt.format(rm) + '/day">' +
+              row.range30.map(function (n) {
+                return '<span class="rs" style="height:' + Math.max(1, Math.round((n / rm) * 100)) + '%"></span>';
+              }).join('') + '</div>';
+          } else {
+            sparkHtml = '<span class="text-dim text-xs">\u2014</span>';
+          }
+          return '<tr class="border-t border-edge-subtle hover:bg-surface-raised/50">' +
+            '<td class="px-5 py-3 text-dim tabular-nums">' + (i + 1) + '</td>' +
+            '<td class="px-5 py-3 font-medium text-heading">' + esc(row.name) + '</td>' +
+            '<td class="px-5 py-3 text-dim">' + esc(regLabel(row.registry)) + '</td>' +
+            '<td class="px-5 py-3 text-right tabular-nums text-body">' + fmt.format(row.week) + '</td>' +
+            '<td class="px-5 py-3 text-right tabular-nums text-body">' + fmt.format(row.month) + '</td>' +
+            '<td class="px-3 py-3">' + sparkHtml + '</td>' +
+            '<td class="px-5 py-3 text-right tabular-nums ' + tb.cls + '">' + esc(tb.text) + '</td></tr>';
+        }).join('');
+      }
+
+      var lbFoot = document.getElementById('leaderboard-footer');
+      if (lbFoot) {
+        if (data.errors && data.errors.length > 0) {
+          lbFoot.innerHTML = '<div class="border-t border-edge bg-surface-raised px-5 py-3 text-xs text-dim">' +
+            'Some sources failed to fetch (' + data.errors.length + '). Data may be partial.</div>';
+        } else {
+          lbFoot.innerHTML = '';
+        }
       }
     }
 
-    apply(getTheme());
+    var basePath = '/registry-stats/';
+    var statsUrl = basePath + 'data/stats.json';
 
-    const btn = document.getElementById('theme-toggle');
-    if (btn) {
-      btn.addEventListener('click', function () {
-        const next = getTheme() === 'dark' ? 'light' : 'dark';
-        localStorage.setItem(KEY, next);
-        apply(next);
-      });
-    }
+    fetch(statsUrl).then(function (res) {
+      if (!res.ok) throw new Error(res.status);
+      return res.json();
+    }).then(function (data) {
+      var existing = document.getElementById('updated-at');
+      var buildTime = existing ? existing.getAttribute('data-fetched') : null;
+      if (buildTime && data.fetchedAt === buildTime) return;
+      renderDashboard(data);
+    }).catch(function () {
+      // Runtime fetch failed — build-time data is still displayed. Silent fallback.
+    });
   })();
 </script>

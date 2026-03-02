@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="RegistryPulse.Desktop.MainPage"
+             NavigationPage.HasNavigationBar="False">
+
+    <!-- WebView fills the entire page; menu bar is added via MenuBarItems in code-behind -->
+    <WebView x:Name="DashboardWebView"
+             HorizontalOptions="Fill"
+             VerticalOptions="Fill" />
+
+</ContentPage>

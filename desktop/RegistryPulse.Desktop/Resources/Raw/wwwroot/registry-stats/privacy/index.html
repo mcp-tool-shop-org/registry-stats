@@ -1,0 +1,95 @@
+<!DOCTYPE html><html lang="en"> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content><link rel="icon" type="image/svg+xml" href="/registry-stats/favicon.svg"><title>Privacy Policy — Registry Pulse</title><link rel="stylesheet" href="/registry-stats/_astro/dashboard.gSlnsR7x.css"></head> <body class="min-h-screen bg-surface text-heading antialiased flex flex-col"> <div class="flex-1">  <nav class="border-b border-edge"> <div class="mx-auto max-w-6xl px-6 py-3 flex items-center justify-between gap-4"> <div class="flex items-center gap-3"> <div class="h-7 w-7 rounded bg-surface-strong flex items-center justify-center text-xs font-semibold text-heading" id="nav-badge">RP</div> <div class="text-sm font-semibold text-heading" id="nav-brand">Registry Pulse</div> </div> <div class="flex items-center gap-2 text-sm"> <a href="/registry-stats/dashboard/" class="px-3 py-1.5 rounded-md transition-colors text-muted hover:text-heading hover:bg-surface-strong/40">
+Dashboard
+</a> <a href="/registry-stats/setup/" class="px-3 py-1.5 rounded-md transition-colors text-muted hover:text-heading hover:bg-surface-strong/40">
+Setup
+</a> </div> <div class="flex items-center gap-3 text-sm"> <!-- Theme dropdown --> <div class="relative" id="theme-menu"> <button id="btn-theme" class="text-muted hover:text-heading transition-colors flex items-center gap-1 text-[13px]"> <span id="theme-label">Theme</span> <svg class="w-3 h-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg> </button> <div id="theme-dropdown" class="hidden absolute right-0 top-8 z-50 rounded border border-edge bg-surface-raised py-1 min-w-[100px] shadow-lg"> <button data-theme-choice="system" class="block w-full text-left px-3 py-1.5 text-[13px] text-dim hover:text-heading hover:bg-surface-strong transition-colors">System</button> <button data-theme-choice="light" class="block w-full text-left px-3 py-1.5 text-[13px] text-dim hover:text-heading hover:bg-surface-strong transition-colors">Light</button> <button data-theme-choice="dark" class="block w-full text-left px-3 py-1.5 text-[13px] text-dim hover:text-heading hover:bg-surface-strong transition-colors">Dark</button> </div> </div> <span class="text-dim/20">|</span> <button type="button" id="helpBtn" class="text-muted hover:text-heading transition-colors">Help</button> <a href="https://github.com/mcp-tool-shop-org/registry-stats" target="_blank" rel="noreferrer" class="text-muted hover:text-heading transition-colors">GitHub</a> </div> </div> </nav> <!-- Help modal --> <div id="helpModal" class="hidden fixed inset-0 z-50"> <div class="absolute inset-0 bg-black/60" id="helpBackdrop"></div> <div class="relative mx-auto mt-24 max-w-2xl rounded-xl border border-edge bg-surface p-6 shadow-xl"> <div class="flex items-start justify-between gap-4"> <div> <div class="text-sm font-semibold text-heading">Help</div> <div class="mt-1 text-sm text-dim">
+Registry Pulse is a local, file-based dashboard for multi-registry package metrics.
+</div> </div> <button id="helpClose" class="text-dim hover:text-heading transition-colors text-sm">Close</button> </div> <div class="mt-4 text-sm text-body space-y-3"> <div><span class="font-medium text-heading">Setup:</span> define portfolio, generate snapshot.</div> <div><span class="font-medium text-heading">Dashboard:</span> view summary, breakdown, leaderboard.</div> <div><span class="font-medium text-heading">Data:</span> stored locally on Desktop; static JSON on web.</div> <div><span class="font-medium text-heading">Registries:</span> npm, PyPI, NuGet, VS Code Marketplace, Docker Hub.</div> <div><span class="font-medium text-heading">Privacy:</span> no telemetry, no accounts, no cloud storage. All data remains on this device.</div> </div> </div> </div> <script>
+  // Help modal
+  (function() {
+    var btn = document.getElementById("helpBtn");
+    var modal = document.getElementById("helpModal");
+    var close = document.getElementById("helpClose");
+    var backdrop = document.getElementById("helpBackdrop");
+
+    function open() { if (modal) modal.classList.remove("hidden"); }
+    function shut() { if (modal) modal.classList.add("hidden"); }
+
+    if (btn) btn.addEventListener("click", open);
+    if (close) close.addEventListener("click", shut);
+    if (backdrop) backdrop.addEventListener("click", shut);
+    window.addEventListener("keydown", function(e) {
+      if (e.key === "Escape") shut();
+    });
+  })();
+
+  // Theme toggle
+  (function() {
+    var themeDropdown = document.getElementById("theme-dropdown");
+    var btnTheme = document.getElementById("btn-theme");
+    var themeLabel = document.getElementById("theme-label");
+
+    function getThemePref() {
+      return localStorage.getItem('rp-theme') || 'system';
+    }
+
+    function applyTheme(pref) {
+      localStorage.setItem('rp-theme', pref);
+      var resolved = pref;
+      if (pref === 'system') {
+        resolved = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      }
+      if (resolved === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+      }
+
+      var labels = { system: 'System', light: 'Light', dark: 'Dark' };
+      if (themeLabel) themeLabel.textContent = labels[pref] || 'Theme';
+
+      document.querySelectorAll('[data-theme-choice]').forEach(function(btn) {
+        var isActive = btn.getAttribute('data-theme-choice') === pref;
+        btn.classList.toggle('text-heading', isActive);
+        btn.classList.toggle('text-dim', !isActive);
+      });
+    }
+
+    if (btnTheme) {
+      btnTheme.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (themeDropdown) themeDropdown.classList.toggle('hidden');
+      });
+    }
+
+    document.querySelectorAll('[data-theme-choice]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        applyTheme(btn.getAttribute('data-theme-choice'));
+        if (themeDropdown) themeDropdown.classList.add('hidden');
+      });
+    });
+
+    document.addEventListener('click', function() {
+      if (themeDropdown) themeDropdown.classList.add('hidden');
+    });
+
+    window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {
+      if (getThemePref() === 'system') applyTheme('system');
+    });
+
+    applyTheme(getThemePref());
+  })();
+</script> <div class="mx-auto max-w-3xl px-6 py-10"> <h1 class="text-2xl font-semibold tracking-tight text-heading">Privacy Policy</h1> <p class="mt-2 text-sm text-dim">Last updated: March 1, 2026</p> <div class="mt-8 space-y-6 text-sm text-body leading-relaxed"> <section> <h2 class="text-lg font-semibold text-heading mb-2">Overview</h2> <p>Registry Pulse is a local-only application that displays public download statistics from package registries. It does not collect, transmit, or store any personal data.</p> </section> <section> <h2 class="text-lg font-semibold text-heading mb-2">Data Collection</h2> <p>Registry Pulse does <strong class="text-heading">not</strong> collect any personal information. Specifically:</p> <ul class="mt-2 list-disc list-inside space-y-1 text-dim"> <li>No user accounts or sign-in</li> <li>No analytics or telemetry</li> <li>No cookies or tracking</li> <li>No advertising</li> <li>No crash reporting</li> </ul> </section> <section> <h2 class="text-lg font-semibold text-heading mb-2">Network Requests</h2> <p>The application makes HTTP requests exclusively to public registry APIs to retrieve download statistics:</p> <ul class="mt-2 list-disc list-inside space-y-1 text-dim"> <li>npm (registry.npmjs.org)</li> <li>PyPI (pypi.org)</li> <li>NuGet (api.nuget.org)</li> <li>VS Code Marketplace (marketplace.visualstudio.com)</li> <li>Docker Hub (hub.docker.com)</li> </ul> <p class="mt-2">These requests contain only the package names you configure. No personal data, device identifiers, or authentication tokens are sent.</p> </section> <section> <h2 class="text-lg font-semibold text-heading mb-2">Local Storage</h2> <p>All configuration and cached data is stored locally on your device. On Windows, data is stored in your user profile directory under <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">%LOCALAPPDATA%\RegistryPulse</code>. No data is transmitted to external servers.</p> </section> <section> <h2 class="text-lg font-semibold text-heading mb-2">Third-Party Services</h2> <p>Registry Pulse does not integrate with any third-party analytics, advertising, or tracking services.</p> </section> <section> <h2 class="text-lg font-semibold text-heading mb-2">Open Source</h2> <p>Registry Pulse is open source. You can review the complete source code at <a href="https://github.com/mcp-tool-shop-org/registry-stats" class="text-accent hover:underline" target="_blank" rel="noreferrer">github.com/mcp-tool-shop-org/registry-stats</a>.</p> </section> <section> <h2 class="text-lg font-semibold text-heading mb-2">Contact</h2> <p>For questions about this privacy policy, open an issue on the <a href="https://github.com/mcp-tool-shop-org/registry-stats/issues" class="text-accent hover:underline" target="_blank" rel="noreferrer">GitHub repository</a>.</p> </section> </div> </div>  </div> <footer class="border-t border-edge py-8 text-sm text-dim"> <div class="mx-auto max-w-6xl px-6 flex flex-col justify-between gap-4 md:flex-row"> <p>Built by <a href="https://mcp-tool-shop.github.io/" class="hover:text-body">MCP Tool Shop</a></p> <div class="flex gap-4"> <a class="hover:text-body" href="https://github.com/mcp-tool-shop-org/registry-stats" target="_blank" rel="noreferrer">GitHub</a> <a class="hover:text-body" href="https://opensource.org/license/mit/" target="_blank" rel="noreferrer">License</a> </div> </div> </footer> <script>
+  (function() {
+    var saved = localStorage.getItem('rp-theme') || 'system';
+    var resolved = saved;
+    if (saved === 'system') {
+      resolved = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+    if (resolved === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  })();
+</script></body></html><!-- Theme init — runs before paint to prevent flash -->

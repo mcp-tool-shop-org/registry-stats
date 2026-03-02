@@ -1,0 +1,68 @@
+---
+import AppShell from '../components/AppShell.astro';
+import AppNav from '../components/AppNav.astro';
+
+let hasSnapshot = false;
+try { await import('../data/stats.json'); hasSnapshot = true; } catch {}
+---
+
+<AppShell title="Privacy Policy — Registry Pulse">
+  <AppNav active="" hasSnapshot={hasSnapshot} />
+
+  <div class="mx-auto max-w-3xl px-6 py-10">
+    <h1 class="text-2xl font-semibold tracking-tight text-heading">Privacy Policy</h1>
+    <p class="mt-2 text-sm text-dim">Last updated: March 1, 2026</p>
+
+    <div class="mt-8 space-y-6 text-sm text-body leading-relaxed">
+      <section>
+        <h2 class="text-lg font-semibold text-heading mb-2">Overview</h2>
+        <p>Registry Pulse is a local-only application that displays public download statistics from package registries. It does not collect, transmit, or store any personal data.</p>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-semibold text-heading mb-2">Data Collection</h2>
+        <p>Registry Pulse does <strong class="text-heading">not</strong> collect any personal information. Specifically:</p>
+        <ul class="mt-2 list-disc list-inside space-y-1 text-dim">
+          <li>No user accounts or sign-in</li>
+          <li>No analytics or telemetry</li>
+          <li>No cookies or tracking</li>
+          <li>No advertising</li>
+          <li>No crash reporting</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-semibold text-heading mb-2">Network Requests</h2>
+        <p>The application makes HTTP requests exclusively to public registry APIs to retrieve download statistics:</p>
+        <ul class="mt-2 list-disc list-inside space-y-1 text-dim">
+          <li>npm (registry.npmjs.org)</li>
+          <li>PyPI (pypi.org)</li>
+          <li>NuGet (api.nuget.org)</li>
+          <li>VS Code Marketplace (marketplace.visualstudio.com)</li>
+          <li>Docker Hub (hub.docker.com)</li>
+        </ul>
+        <p class="mt-2">These requests contain only the package names you configure. No personal data, device identifiers, or authentication tokens are sent.</p>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-semibold text-heading mb-2">Local Storage</h2>
+        <p>All configuration and cached data is stored locally on your device. On Windows, data is stored in your user profile directory under <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">%LOCALAPPDATA%\RegistryPulse</code>. No data is transmitted to external servers.</p>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-semibold text-heading mb-2">Third-Party Services</h2>
+        <p>Registry Pulse does not integrate with any third-party analytics, advertising, or tracking services.</p>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-semibold text-heading mb-2">Open Source</h2>
+        <p>Registry Pulse is open source. You can review the complete source code at <a href="https://github.com/mcp-tool-shop-org/registry-stats" class="text-accent hover:underline" target="_blank" rel="noreferrer">github.com/mcp-tool-shop-org/registry-stats</a>.</p>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-semibold text-heading mb-2">Contact</h2>
+        <p>For questions about this privacy policy, open an issue on the <a href="https://github.com/mcp-tool-shop-org/registry-stats/issues" class="text-accent hover:underline" target="_blank" rel="noreferrer">GitHub repository</a>.</p>
+      </section>
+    </div>
+  </div>
+</AppShell>

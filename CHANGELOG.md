@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-03-02
+
+### Added
+- Merged registry-pulse dashboard + desktop app into monorepo
+- Snapshot-delta tracking for cumulative registries (Docker, VS Code, NuGet)
+- Privacy policy and setup pages for dashboard
+- AppNav and AppShell components for dashboard navigation
+- WinUI 3 desktop app (MSIX) with WebView2 dashboard viewer
+- Desktop CI workflow for MSIX builds
+
+### Changed
+- Dashboard upgraded to pulse version with richer UI and more tracked packages
+- `fetch-stats.mjs` now persists snapshots for delta computation across builds
+
 ## [1.2.1] - 2026-03-01
 
 ### Changed

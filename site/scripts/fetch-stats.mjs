@@ -35,6 +35,9 @@ function regLabel(reg) {
   return ({ npm: "npm", pypi: "PyPI", vscode: "VS Code", nuget: "NuGet", docker: "Docker Hub" })[reg] ?? reg;
 }
 
+// Cumulative-only registries (no native weekly/monthly breakdowns)
+const CUMULATIVE_REGISTRIES = new Set(["docker", "vscode", "nuget"]);
+
 function fmtInt(n) {
   return new Intl.NumberFormat("en-US").format(Math.round(Number(n ?? 0)));
 }
@@ -79,6 +82,15 @@ async function main() {
 
   const manifest = JSON.parse(await fs.readFile(MANIFEST_PATH, "utf8"));
 
+  // --- Load previous snapshot for cumulative-only delta tracking ---
+  const SNAPSHOT_PATH = path.join(DATA_DIR, "snapshots.json");
+  let prevSnapshots = {};
+  try {
+    prevSnapshots = JSON.parse(await fs.readFile(SNAPSHOT_PATH, "utf8"));
+  } catch {
+    // First run — no snapshots yet
+  }
+
   // --- npm: discover via maintainer, then merge with explicit list ---
   let npmPackages = [...(manifest.npm ?? [])];
   if (manifest.npmMaintainer) {
@@ -103,7 +115,7 @@ async function main() {
     pypi: [...(manifest.pypi ?? [])],
     vscode: [...(manifest.vscode ?? [])],
     nuget: [...(manifest.nuget ?? [])],
-    docker: [...(manifest.docker ?? [])],
+    ...(manifest.docker?.length ? { docker: [...manifest.docker] } : {}),
   };
 
   const perRegistry = {};
@@ -199,6 +211,22 @@ async function main() {
   }
   console.log("  npm: ranges done");
 
+  // --- Snapshot-delta for cumulative-only registries ---
+  const newSnapshots = { ...prevSnapshots };
+  for (const item of Object.values(perRegistry).flat()) {
+    if (!CUMULATIVE_REGISTRIES.has(item.registry) || item.error) continue;
+    const key = `${item.registry}:${item.name}`;
+    const prev = prevSnapshots[key];
+    if (prev && Number.isFinite(prev.total) && item.total > 0) {
+      const delta = item.total - prev.total;
+      item.snapshotDelta = Math.max(0, delta);
+    } else {
+      item.snapshotDelta = null;
+    }
+    // Store current snapshot
+    newSnapshots[key] = { total: item.total, fetchedAt };
+  }
+
   // --- Ensure non-npm rows have growth fields ---
   for (const item of Object.values(perRegistry).flat()) {
     if (item.registry !== "npm") {
@@ -228,6 +256,7 @@ async function main() {
       packages: items.length,
       week: items.reduce((s, x) => s + safeNumber(x.week), 0),
       month: items.reduce((s, x) => s + safeNumber(x.month), 0),
+      total: items.reduce((s, x) => s + safeNumber(x.total), 0),
     };
   }
 
@@ -258,7 +287,7 @@ async function main() {
       range30: x.range30 ?? null,
       extra: x.extra ?? null,
     }))
-    .sort((a, b) => b.week - a.week || b.month - a.month)
+    .sort((a, b) => b.week - a.week || b.month - a.month || b.total - a.total)
     .slice(0, 100);
 
   // Aggregate npm sparkline (sum daily across all npm packages)
@@ -440,7 +469,17 @@ async function main() {
   };
 
   await fs.mkdir(DATA_DIR, { recursive: true });
-  await fs.writeFile(OUT_PATH, JSON.stringify(payload, null, 2) + "\n", "utf8");
+
+  // Save snapshots for next run's delta computation
+  await fs.writeFile(SNAPSHOT_PATH, JSON.stringify(newSnapshots, null, 2) + "\n", "utf8");
+
+  const jsonStr = JSON.stringify(payload, null, 2) + "\n";
+  await fs.writeFile(OUT_PATH, jsonStr, "utf8");
+
+  // Also copy to public/data/ so it's available as a static file at runtime
+  const publicDataDir = path.join(ROOT, "public", "data");
+  await fs.mkdir(publicDataDir, { recursive: true });
+  await fs.writeFile(path.join(publicDataDir, "stats.json"), jsonStr, "utf8");
 
   const errCount = errors.length;
   console.log(`\n  Wrote ${path.relative(ROOT, OUT_PATH)} (${leaderboard.length} packages, ${errCount} errors)`);

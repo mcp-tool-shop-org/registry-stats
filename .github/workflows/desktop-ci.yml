@@ -1,0 +1,111 @@
+name: Desktop CI (MSIX)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/desktop-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/desktop-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-msix:
+    runs-on: windows-latest
+
+    env:
+      CONFIGURATION: Release
+      APP_PROJECT: desktop/RegistryPulse.Desktop/RegistryPulse.Desktop.csproj
+      CERT_PATH: ${{ github.workspace }}\desktop\RegistryPulse.Desktop\ci-signing.pfx
+      CERT_PASSWORD: ${{ secrets.MSIX_CERT_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui-windows
+
+      - name: Build web assets
+        run: |
+          cd site
+          npm ci
+          npm run fetch-stats
+          npm run build
+
+      - name: Generate self-signed cert (CI)
+        id: cert
+        shell: pwsh
+        run: |
+          $cert = New-SelfSignedCertificate `
+            -Type Custom `
+            -Subject "CN=5305D976-6952-4F00-9C21-3A5DB090359F" `
+            -KeyUsage DigitalSignature `
+            -KeyExportPolicy Exportable `
+            -HashAlgorithm SHA256 `
+            -KeyLength 2048 `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -FriendlyName "Registry Pulse CI" `
+            -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3")
+
+          $cert | Format-List Subject, Thumbprint, EnhancedKeyUsageList
+          "thumbprint=$($cert.Thumbprint)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Cert thumbprint: $($cert.Thumbprint)"
+
+      - name: Publish (Release MSIX, unsigned)
+        shell: pwsh
+        run: |
+          dotnet publish $env:APP_PROJECT -c $env:CONFIGURATION `
+            /p:GenerateAppxPackageOnBuild=true `
+            /p:AppxPackageSigningEnabled=false
+
+      - name: Sign MSIX with signtool
+        shell: pwsh
+        run: |
+          $msix = Get-ChildItem -Path "${{ github.workspace }}" -Recurse -Filter *.msix | Select-Object -First 1
+          if (-not $msix) { throw "No .msix found" }
+          Write-Host "Signing: $($msix.FullName)"
+
+          # Find signtool from Windows SDK
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+            Where-Object { $_.FullName -match 'x64' } |
+            Sort-Object { [version]($_.DirectoryName -replace '.*\\(\d+\.\d+\.\d+\.\d+)\\.*','$1') } -Descending |
+            Select-Object -First 1
+
+          if (-not $signtool) { throw "signtool.exe not found" }
+          Write-Host "Using: $($signtool.FullName)"
+
+          & $signtool.FullName sign /sha1 "${{ steps.cert.outputs.thumbprint }}" /fd SHA256 /td SHA256 "$($msix.FullName)"
+          if ($LASTEXITCODE -ne 0) { throw "signtool failed with exit code $LASTEXITCODE" }
+          Write-Host "Signed successfully"
+
+      - name: Find MSIX
+        id: find_msix
+        shell: pwsh
+        run: |
+          $msix = Get-ChildItem -Path "${{ github.workspace }}" -Recurse -Filter *.msix | Select-Object -First 1
+          if (-not $msix) { throw "No .msix found" }
+          "msix_path=$($msix.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "MSIX: $($msix.FullName)"
+
+      - name: Upload MSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RegistryPulse-Desktop-MSIX
+          path: ${{ steps.find_msix.outputs.msix_path }}
