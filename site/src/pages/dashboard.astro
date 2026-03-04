@@ -388,6 +388,10 @@ const chatContext = !missing && data ? JSON.stringify({
                   <option value="bf_emma">Emma</option>
                   <option value="am_michael">Michael</option>
                 </select>
+                <button id="voice-auto-btn" class="text-dim hover:text-heading transition-colors" title="Toggle auto-speak">
+                  <svg id="voice-auto-on" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M11 5L6 9H2v6h4l5 4V5z"></path></svg>
+                  <svg id="voice-auto-off" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H2v-6h4l5-4v14l-3.29-2.71M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+                </button>
               </div>
               <button id="chat-settings-btn" class="text-dim hover:text-heading transition-colors" title="Data connectors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><circle cx="12" cy="12" r="3"></circle></svg>
@@ -2765,6 +2769,8 @@ const chatContext = !missing && data ? JSON.stringify({
                   spk.setAttribute('data-text', fullText);
                   spk.addEventListener('click', function () { speakText(this.getAttribute('data-text')); });
                   aiRow.appendChild(spk);
+                  // Auto-speak when streaming completes
+                  if (autoSpeak) speakText(fullText);
                 }
               }
               sending = false;
@@ -2840,6 +2846,23 @@ const chatContext = !missing && data ? JSON.stringify({
     var voiceCheckBtn = document.getElementById('voice-check-btn');
     var voiceBanner = document.getElementById('voice-banner');
     var voiceBannerHelp = document.getElementById('voice-banner-help');
+    var voiceAutoBtn = document.getElementById('voice-auto-btn');
+    var voiceAutoOn = document.getElementById('voice-auto-on');
+    var voiceAutoOff = document.getElementById('voice-auto-off');
+    var autoSpeak = true;
+    try { autoSpeak = localStorage.getItem('pulse-auto-speak') !== 'false'; } catch (e) {}
+
+    function updateAutoSpeakUI() {
+      if (voiceAutoOn) voiceAutoOn.classList.toggle('hidden', !autoSpeak);
+      if (voiceAutoOff) voiceAutoOff.classList.toggle('hidden', autoSpeak);
+      if (voiceAutoBtn) voiceAutoBtn.title = autoSpeak ? 'Auto-speak on (click to mute)' : 'Auto-speak off (click to unmute)';
+    }
+    updateAutoSpeakUI();
+    if (voiceAutoBtn) voiceAutoBtn.addEventListener('click', function () {
+      autoSpeak = !autoSpeak;
+      try { localStorage.setItem('pulse-auto-speak', autoSpeak ? 'true' : 'false'); } catch (e) {}
+      updateAutoSpeakUI();
+    });
 
     if (voiceBannerHelp) voiceBannerHelp.addEventListener('click', function () {
       if (settingsPanel) settingsPanel.classList.remove('hidden');
