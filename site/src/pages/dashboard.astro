@@ -2965,24 +2965,36 @@ const chatContext = !missing && data ? JSON.stringify({
 
     // Shared AudioContext — unlocked on first user click
     var voiceAudioCtx = null;
+    var voiceQueue = [];       // queued AudioBuffers
+    var voicePlaying = false;  // true while a buffer is playing
+    var voiceCancelled = false; // set true to stop queue
 
-    function playAudioFromBase64(b64) {
+    function decodeBase64Audio(b64) {
       var byteStr = atob(b64);
       var bytes = new Uint8Array(byteStr.length);
       for (var j = 0; j < byteStr.length; j++) bytes[j] = byteStr.charCodeAt(j);
-
       if (!voiceAudioCtx) voiceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      voiceAudioCtx.decodeAudioData(bytes.buffer.slice(0)).then(function (buffer) {
-        var source = voiceAudioCtx.createBufferSource();
-        source.buffer = buffer;
-        source.connect(voiceAudioCtx.destination);
-        source.start(0);
-        source.onended = function () {
-          if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
-        };
-      }).catch(function (e) {
-        console.error('[Pulse voice] Audio decode failed:', e);
-      });
+      return voiceAudioCtx.decodeAudioData(bytes.buffer.slice(0));
+    }
+
+    function playNextInQueue() {
+      if (voiceCancelled || voiceQueue.length === 0) {
+        voicePlaying = false;
+        if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
+        return;
+      }
+      voicePlaying = true;
+      var buffer = voiceQueue.shift();
+      var source = voiceAudioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(voiceAudioCtx.destination);
+      source.onended = playNextInQueue;
+      source.start(0);
+    }
+
+    function enqueueAudio(buffer) {
+      voiceQueue.push(buffer);
+      if (!voicePlaying) playNextInQueue();
     }
 
     // Map voice IDs to presets for enhanced prosody
@@ -2993,27 +3005,60 @@ const chatContext = !missing && data ? JSON.stringify({
       'am_michael': 'announcer'
     };
 
-    // Add SSML prosody to AI response text for natural speech
-    function enhanceForSpeech(text) {
-      // Strip markdown formatting that doesn't translate to speech
-      var clean = text
-        .replace(/#{1,6}\s+/g, '')              // headings
-        .replace(/\*\*([^*]+)\*\*/g, '<emphasis level="strong">$1</emphasis>')  // bold → emphasis
-        .replace(/\*([^*]+)\*/g, '$1')           // italic → plain
-        .replace(/`([^`]+)`/g, '$1')             // inline code → plain
-        .replace(/```[\s\S]*?```/g, '')          // code blocks → remove
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links → text only
-        .replace(/^[-*]\s+/gm, '')               // bullet points
-        .replace(/^\d+\.\s+/gm, '')              // numbered lists
-        .replace(/\n{3,}/g, '\n\n')              // collapse whitespace
+    // Strip markdown for speech
+    function cleanForSpeech(text) {
+      return text
+        .replace(/```[\s\S]*?```/g, '')          // code blocks
+        .replace(/#{1,6}\s+/g, '')               // headings
+        .replace(/\*\*([^*]+)\*\*/g, '$1')       // bold
+        .replace(/\*([^*]+)\*/g, '$1')            // italic
+        .replace(/`([^`]+)`/g, '$1')              // inline code
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // links
+        .replace(/^[-*]\s+/gm, '')                // bullets
+        .replace(/^\d+\.\s+/gm, '')               // numbered lists
+        .replace(/\n{2,}/g, '. ')                  // paragraph breaks → pause
+        .replace(/\n/g, ' ')                       // newlines → space
+        .replace(/\s{2,}/g, ' ')                   // collapse whitespace
         .trim();
+    }
 
-      // Add natural pauses between paragraphs
-      clean = clean.replace(/\n\n+/g, ' <break time="400ms"/> ');
-      // Add brief pauses at sentence boundaries followed by new topics
-      clean = clean.replace(/([.!?])\s+([A-Z])/g, '$1 <break time="200ms"/> $2');
+    // Split text into sentences for chunked synthesis
+    function splitSentences(text) {
+      // Split on sentence-ending punctuation followed by space/end
+      var parts = text.match(/[^.!?]*[.!?]+[\s]?|[^.!?]+$/g);
+      if (!parts) return [text];
+      return parts.map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 0; });
+    }
 
-      return clean;
+    // Synthesize one chunk and return decoded AudioBuffer
+    function synthesizeChunk(text, preset) {
+      var speakHeaders = Object.assign({}, MCP_HEADERS, { 'mcp-session-id': voiceSessionId });
+      return fetch(VOICE_BASE + '/mcp', {
+        method: 'POST',
+        headers: speakHeaders,
+        body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method: 'tools/call', params: {
+          name: 'voice_speak',
+          arguments: { text: text, voice: preset, artifactMode: 'base64' }
+        }})
+      }).then(function (r) { return parseMcpResponse(r); })
+        .then(function (data) {
+          if (!data || data.error) return null;
+          var content = data && data.result && data.result.content;
+          if (!content) return null;
+          for (var i = 0; i < content.length; i++) {
+            var item = content[i];
+            if (item.type === 'text' && item.text) {
+              try {
+                var parsed = JSON.parse(item.text);
+                if (parsed.audioBytesBase64) return decodeBase64Audio(parsed.audioBytesBase64);
+              } catch (e) {}
+            }
+            if (item.type === 'resource' && item.resource && item.resource.blob) {
+              return decodeBase64Audio(item.resource.blob);
+            }
+          }
+          return null;
+        });
     }
 
     function speakText(text) {
@@ -3021,55 +3066,42 @@ const chatContext = !missing && data ? JSON.stringify({
         console.warn('[Pulse voice] Not ready:', { voiceReady: voiceReady, voiceSessionId: voiceSessionId });
         return;
       }
+
+      // Cancel any in-progress speech
+      voiceCancelled = true;
+      voiceQueue = [];
+      setTimeout(function () { voiceCancelled = false; }, 50);
+
       var voiceId = voiceSelect ? voiceSelect.value : 'bm_george';
       var preset = VOICE_PRESETS[voiceId] || 'narrator';
-      var enhanced = enhanceForSpeech(text);
+      var cleaned = cleanForSpeech(text);
+      var sentences = splitSentences(cleaned);
       if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse';
 
       // Unlock AudioContext on user gesture (before async fetch)
       if (!voiceAudioCtx) voiceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (voiceAudioCtx.state === 'suspended') voiceAudioCtx.resume();
 
-      var speakHeaders = Object.assign({}, MCP_HEADERS, { 'mcp-session-id': voiceSessionId });
-      fetch(VOICE_BASE + '/mcp', {
-        method: 'POST',
-        headers: speakHeaders,
-        body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method: 'tools/call', params: {
-          name: 'voice_speak',
-          arguments: { text: enhanced, voice: preset, artifactMode: 'base64' }
-        }})
-      }).then(function (r) { return parseMcpResponse(r); })
-        .then(function (data) {
-          if (!data) { console.error('[Pulse voice] Empty MCP response'); return; }
-          if (data.error) { console.error('[Pulse voice] MCP error:', data.error); return; }
-          var content = data && data.result && data.result.content;
-          if (!content) { console.error('[Pulse voice] No content in result:', data); return; }
-          for (var i = 0; i < content.length; i++) {
-            var item = content[i];
-            if (item.type === 'text' && item.text) {
-              try {
-                var parsed = JSON.parse(item.text);
-                if (parsed.audioBytesBase64) {
-                  playAudioFromBase64(parsed.audioBytesBase64);
-                  return;
-                }
-              } catch (e) {
-                console.error('[Pulse voice] JSON parse failed:', e, item.text.substring(0, 200));
-              }
-            }
-            if (item.type === 'resource' && item.resource && item.resource.blob) {
-              playAudioFromBase64(item.resource.blob);
-              return;
-            }
-          }
-          console.warn('[Pulse voice] No audio found in response content:', content.map(function(c) { return c.type; }));
-        }).catch(function (e) {
-          console.error('[Pulse voice] Speak failed:', e);
-          if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-rose-400';
-          setTimeout(function () {
-            if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
-          }, 2000);
+      // Fire all sentences in parallel — each enqueues its audio as soon as it's ready
+      // But we need them to play IN ORDER, so we use a chain
+      var chain = Promise.resolve();
+      sentences.forEach(function (sentence) {
+        // Start synthesis immediately (in parallel)
+        var bufferPromise = synthesizeChunk(sentence, preset);
+        // But enqueue in order via chain
+        chain = chain.then(function () {
+          return bufferPromise;
+        }).then(function (buffer) {
+          if (buffer && !voiceCancelled) enqueueAudio(buffer);
         });
+      });
+      chain.catch(function (e) {
+        console.error('[Pulse voice] Speak failed:', e);
+        if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-rose-400';
+        setTimeout(function () {
+          if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
+        }, 2000);
+      });
     }
 
     checkVoiceServer();
