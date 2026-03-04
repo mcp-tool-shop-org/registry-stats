@@ -40,7 +40,7 @@ No tiene dependencias de tiempo de ejecución. Utiliza `fetch()` nativo. Node 18
 | Capa | ¿Qué hace? |
 |-------|-------------|
 | **Engine** | Biblioteca de TypeScript + CLI + servidor REST. Consulta cinco registros con una sola interfaz. Publicado en npm como `@mcptoolshop/registry-stats`. |
-| **Dashboard** | Aplicación web impulsada por Astro con el copiloto de IA Pulse (salida de voz, pantalla completa, conectores de datos de GitHub), seis gráficos interactivos, actualización en tiempo real, exportación de informes (PDF / JSONL / Markdown) y una guía de ayuda con pestañas. Se reconstruye semanalmente mediante CI; se puede actualizar bajo demanda. |
+| **Dashboard** | Una aplicación web impulsada por Astro, con el copiloto de IA Pulse (transmisión de voz, búsqueda web, pantalla completa, conectores de datos de GitHub), seis gráficos interactivos, actualización en tiempo real, exportación de informes (PDF / JSONL / Markdown) y una guía de ayuda con pestañas. Reconstruida semanalmente mediante CI; se puede actualizar bajo demanda. |
 | **Desktop** | Aplicación nativa para Windows con WinUI 3 + WebView2. Incluye el panel de control sin conexión y descarga las estadísticas en tiempo real bajo demanda. |
 
 ## Panel de control
@@ -48,18 +48,18 @@ No tiene dependencias de tiempo de ejecución. Utiliza `fetch()` nativo. Node 18
 Un panel de control de estadísticas que se actualiza automáticamente se encuentra en [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
 
 - **Interfaz con pestañas** — Pestañas de Inicio, Analítica, Clasificación y Ayuda.
-- **Copiloto de IA Pulse** — Asistente conversacional impulsado por Ollama con salida de voz (4 voces a través de [mcp-voice-soundboard](https://github.com/mcp-tool-shop-org/mcp-voice-soundboard)), síntesis de voz automática, modo de pantalla completa, conector de datos de organización de GitHub, respuestas en streaming, selector de modelo y memoria de conversación.
-- **Resumen ejecutivo** — puntaje de salud (0–100), índice de diversidad, cambio semanal, descargas totales en todos los registros.
-- **Seis gráficos interactivos** — Tendencia de 30 días (agregada / por registro / conmutación de los 5 principales), cuota de registro (área polar), riesgo de la cartera (histograma + Gini y P90), los 10 principales con mayor crecimiento, rastreador de velocidad con gráficos de líneas, y mapa de calor de 30 días con detección de picos (>2σ).
-- **Motor de crecimiento inteligente** — maneja la distorsión de denominadores pequeños con un umbral base, un límite porcentual y una fórmula de velocidad amortiguada.
-- **Información útil** — Recomendaciones generadas automáticamente y alertas de atención para paquetes en declive.
-- **Panel Pulse** — Vista dividida de los "Established Movers" (≥ 50 descargas/semana) y los paquetes "Emerging & New", con gráficos de líneas de 7 días integrados, deltas absolutos + porcentuales, contexto base y un resumen ejecutivo de una línea.
-- **Actualización en tiempo real** — Descarga de datos desde las API de npm y PyPI en el lado del cliente bajo demanda con un indicador de progreso; los resultados se almacenan en caché en sessionStorage (TTL de 5 minutos) para que los cambios de pestaña sean instantáneos.
-- **Exportación de informes** — Menú desplegable junto al botón de Actualizar que ofrece tres formatos: **Exec PDF** (a través de jsPDF), **LLM JSONL** (registros tipados para la ingesta de IA) y **Dev Markdown** (tablas GFM).
+- **Copiloto de IA Pulse** — Asistente conversacional impulsado por Ollama con síntesis de voz en streaming (habla mientras el modelo de lenguaje genera texto, 4 voces a través de [mcp-voice-soundboard](https://github.com/mcp-tool-shop-org/mcp-voice-soundboard)), búsqueda web (Wikipedia + SearXNG opcional), reproducción automática de voz, modo de pantalla completa, conector de datos de organizaciones de GitHub, selector de modelos y memoria de conversación.
+- **Resumen ejecutivo** — Puntuación de salud (0–100), índice de diversidad, cambio semanal, número total de descargas en todos los registros.
+- **Seis gráficos interactivos** — Tendencia de 30 días (agregada / por registro / conmutación entre los 5 principales), cuota de registro (área polar), riesgo de la cartera (histograma + Gini y P90), los 10 principales por impulso, rastreador de velocidad con gráficos de líneas, y mapa de calor de 30 días con detección de picos (>2σ).
+- **Motor de crecimiento inteligente** — Maneja la distorsión de denominadores pequeños con un umbral base, un límite porcentual y una fórmula de velocidad amortiguada.
+- **Información útil** — Recomendaciones generadas automáticamente y alertas para paquetes en declive.
+- **Panel Pulse** — Vista dividida de "Established Movers" (≥ 50 descargas/semana) y paquetes emergentes y nuevos, con gráficos de líneas de 7 días integrados, deltas absolutos + porcentuales, contexto base y un resumen ejecutivo de una línea.
+- **Actualización en tiempo real** — Recuperación bajo demanda desde las API de npm y PyPI con indicador de progreso; los resultados se almacenan en caché en sessionStorage (TTL de 5 minutos) para que los cambios de pestaña sean instantáneos.
+- **Exportación de informes** — Menú desplegable junto al botón de Actualizar que ofrece tres formatos: **PDF Ejecutivo** (a través de jsPDF), **JSONL del modelo de lenguaje** (registros tipados para la ingesta de IA) y **Markdown para desarrolladores** (tablas GFM).
 - **Clasificación** — 132 paquetes clasificados por descargas semanales con gráficos de líneas de 30 días integrados y distintivos de tendencia inteligentes.
-- **Página de configuración** — Editor de cartera con validación, sección de sincronización de registros y descripción general del flujo de trabajo.
+- **Página de configuración** — Editor de cartera con validación, sección complementaria de sincronización de registros y descripción general del flujo de trabajo.
 - **Pestaña de ayuda** — Guía fácil de entender que cubre cada pestaña, conceptos clave, consejos para el asistente de IA, flujo de datos y enlaces útiles.
-- **Tema claro / oscuro** — Sigue la preferencia del sistema.
+- **Tema oscuro / claro** — Sigue la preferencia del sistema.
 
 Los datos se obtienen en el momento de la compilación y se reconstruyen semanalmente mediante CI (los lunes a las 06:00 UTC). La actualización en tiempo real descarga los últimos números directamente desde las API de los registros. Configure los paquetes rastreados en `site/src/data/packages.json` (132 paquetes en 5 registros).
 

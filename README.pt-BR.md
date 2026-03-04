@@ -40,7 +40,7 @@ Sem dependências de tempo de execução. Utiliza a função nativa `fetch()`. N
 | Camada | O que ele faz |
 |-------|-------------|
 | **Engine** | Biblioteca TypeScript + CLI + servidor REST. Consulte cinco registros com uma única interface. Publicado no npm como `@mcptoolshop/registry-stats`. |
-| **Dashboard** | Aplicativo web com tecnologia Astro e assistente de IA Pulse (saída de voz, tela cheia, conectores de dados do GitHub), seis gráficos interativos, atualização em tempo real, exportação de relatórios (PDF / JSONL / Markdown) e um guia de ajuda em abas. Reconstruído semanalmente por meio de CI; atualizável sob demanda. |
+| **Dashboard** | Aplicação web com tecnologia Astro e assistente de IA Pulse (reconhecimento de voz, pesquisa na web, tela cheia, conectores de dados do GitHub), seis gráficos interativos, atualização em tempo real, exportação de relatórios (PDF / JSONL / Markdown) e um guia de ajuda em abas. Reconstruída semanalmente por CI; atualizável sob demanda. |
 | **Desktop** | Aplicativo nativo para Windows, construído com WinUI 3 + WebView2. Inclui o painel offline e busca as estatísticas em tempo real sob demanda. |
 
 ## Painel
@@ -48,16 +48,16 @@ Sem dependências de tempo de execução. Utiliza a função nativa `fetch()`. N
 Um painel de estatísticas que se atualiza automaticamente está disponível em [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
 
 - **Interface em abas** — Abas "Início", "Análise", "Ranking" e "Ajuda".
-- **Assistente de IA Pulse** — Assistente conversacional alimentado por Ollama com saída de voz (4 vozes via [mcp-voice-soundboard](https://github.com/mcp-tool-shop-org/mcp-voice-soundboard)), reprodução automática, modo de tela cheia, conector de dados de organização do GitHub, respostas em streaming, seletor de modelo e memória de conversação.
-- **Visão geral executiva** — pontuação de saúde (0–100), índice de diversidade, variação semanal, número total de downloads em todos os registros.
-- **Seis gráficos interativos** — tendência de 30 dias (agregação / por registro / alternância entre os 5 principais), participação no registro (área polar), risco da carteira (histograma + Gini e P90), top 10 em ascensão, rastreador de velocidade com gráficos de linhas e mapa de calor de 30 dias com detecção de picos (>2σ).
-- **Motor de crescimento inteligente** — corrige distorções de pequenas amostras com limite de referência, limite percentual e fórmula de velocidade amortecida.
-- **Informações acionáveis** — recomendações geradas automaticamente e alertas para pacotes em declínio.
-- **Painel Pulse** — visualização dividida de pacotes estabelecidos (≥ 50 downloads/semana) e pacotes emergentes e novos, com gráficos de linhas de 7 dias, deltas absolutos + percentuais, contexto de referência e um resumo executivo em uma linha.
-- **Atualização em tempo real** — busca sob demanda no lado do cliente das APIs do npm e PyPI com indicador de progresso; os resultados são armazenados em cache na sessionStorage (TTL de 5 minutos), para que a troca de abas seja instantânea.
-- **Exportação de relatórios** — menu suspenso próximo ao botão "Atualizar" que oferece três formatos: **PDF Executivo** (via jsPDF), **JSONL para LLM** (registros tipados para ingestão por IA) e **Markdown para Desenvolvedores** (tabelas GFM).
-- **Ranking** — 132 pacotes classificados por downloads semanais com gráficos de linhas de 30 dias e selos de tendência inteligente.
-- **Página de configuração** — editor de carteira com validação, seção de sincronização de registros e visão geral do pipeline.
+- **Assistente de IA Pulse** — Assistente conversacional alimentado por Ollama, com síntese de voz em tempo real (o assistente fala enquanto o modelo de linguagem gera a resposta, com 4 vozes disponíveis através de [mcp-voice-soundboard](https://github.com/mcp-tool-shop-org/mcp-voice-soundboard)), pesquisa na web (Wikipedia + SearXNG opcional), reprodução automática, modo de tela cheia, conector de dados de organizações do GitHub, seletor de modelo e memória de conversação.
+- **Visão geral executiva** — pontuação de saúde (0–100), índice de diversidade, variação semanal, número total de downloads em todos os repositórios.
+- **Seis gráficos interativos** — tendência de 30 dias (agregação / por repositório / top-5), participação no repositório (área polar), risco do portfólio (histograma + Gini e P90), top 10 em ascensão, rastreador de velocidade com gráficos de linha, e mapa de calor de 30 dias com detecção de picos (>2σ).
+- **Motor de crescimento inteligente** — corrige distorções de pequenas amostras com um limite mínimo, um limite percentual e uma fórmula de velocidade amortecida.
+- **Informações acionáveis** — recomendações geradas automaticamente e alertas para pacotes com desempenho decrescente.
+- **Painel Pulse** — visualização dividida de pacotes estabelecidos (≥ 50 downloads/semana) e pacotes emergentes e novos, com gráficos de linha de 7 dias, variações absolutas e percentuais, contexto de referência e um resumo executivo em uma linha.
+- **Atualização em tempo real** — busca sob demanda dos dados das APIs do npm e PyPI, com indicador de progresso; os resultados são armazenados em cache na sessionStorage (TTL de 5 minutos), para que a troca de abas seja instantânea.
+- **Exportação de relatórios** — menu suspenso próximo ao botão de atualização, oferecendo três formatos: **PDF Executivo** (via jsPDF), **JSONL do Modelo de Linguagem** (registros formatados para ingestão por IA) e **Markdown para Desenvolvedores** (tabelas GFM).
+- **Ranking** — 132 pacotes classificados por downloads semanais, com gráficos de linha de 30 dias e indicadores de tendência inteligentes.
+- **Página de configuração** — editor de portfólio com validação, seção de sincronização de repositórios e visão geral do pipeline.
 - **Aba de ajuda** — guia amigável que cobre todas as abas, conceitos-chave, dicas para o assistente de IA, pipeline de dados e links úteis.
 - **Tema claro / escuro** — segue a preferência do sistema.
 

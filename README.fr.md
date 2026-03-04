@@ -40,28 +40,28 @@ Aucune dépendance d'exécution. Utilise la fonction native `fetch()`. Node 18+.
 | Couche | Fonctionnalités |
 |-------|-------------|
 | **Engine** | Bibliothèque TypeScript + CLI + serveur REST. Interrogez cinq registres avec une seule interface. Publié sur npm sous le nom `@mcptoolshop/registry-stats`. |
-| **Dashboard** | Application web alimentée par Astro, avec un assistant IA Pulse (sortie vocale, plein écran, connecteurs de données GitHub), six graphiques interactifs, actualisation en direct, exportation de rapports (PDF / JSONL / Markdown) et un guide d'aide organisé par onglets. Reconstruite chaque semaine par CI ; actualisable à la demande. |
+| **Dashboard** | Application web alimentée par Astro, avec un assistant IA Pulse (reconnaissance vocale, recherche web, mode plein écran, connecteurs de données GitHub), six graphiques interactifs, actualisation en direct, exportation de rapports (PDF / JSONL / Markdown) et un guide d'aide organisé par onglets. Reconstruite chaque semaine par CI ; actualisable à la demande. |
 | **Desktop** | Application Windows native utilisant WinUI 3 + WebView2. Inclut le tableau de bord hors ligne et récupère les statistiques en direct à la demande. |
 
 ## Tableau de bord
 
 Un tableau de bord de statistiques qui se met à jour automatiquement est disponible à l'adresse [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
 
-- **Interface à onglets** — Onglets Accueil, Analyses, Classement et Aide.
-- **Assistant IA Pulse** — Assistant conversationnel alimenté par Ollama, avec sortie vocale (4 voix via [mcp-voice-soundboard](https://github.com/mcp-tool-shop-org/mcp-voice-soundboard)), synthèse vocale, mode plein écran, connecteur de données d'organisations GitHub, réponses en streaming, sélecteur de modèle et mémoire de conversation.
+- **Interface à onglets** — Onglets Accueil, Analyses, Classement, et Aide.
+- **Assistant IA Pulse** — Assistant conversationnel alimenté par Ollama, avec synthèse vocale en continu (parle pendant que le LLM génère du texte, 4 voix via [mcp-voice-soundboard](https://github.com/mcp-tool-shop-org/mcp-voice-soundboard)), recherche web (Wikipedia + SearXNG optionnel), lecture automatique, mode plein écran, connecteur de données GitHub, sélecteur de modèle, et mémoire de conversation.
 - **Aperçu général** — Score de santé (0–100), indice de diversité, variation hebdomadaire, nombre total de téléchargements sur tous les registres.
-- **Six graphiques interactifs** — Tendance sur 30 jours (agrégée / par registre / bascule entre les 5 premiers), part de marché du registre (aire polaire), risque du portefeuille (histogramme + Gini et P90), top 10 des performances, suivi de la vitesse avec des mini-graphiques, et carte thermique sur 30 jours avec détection des pics (>2σ).
+- **Six graphiques interactifs** — Tendance sur 30 jours (agrégée / par registre / top-5), part de marché (aire polaire), risque du portefeuille (histogramme + Gini & P90), top 10 des tendances, suivi de la vitesse avec des mini-graphiques, et carte thermique sur 30 jours avec détection des pics (>2σ).
 - **Moteur de croissance intelligent** — Gère les distorsions liées aux petites bases avec un seuil de référence, un plafond en pourcentage et une formule de vitesse amortie.
 - **Informations exploitables** — Recommandations générées automatiquement et alertes pour les paquets en déclin.
-- **Tableau de bord Pulse** — Vue divisée des paquets établis (≥ 50 téléchargements/semaine) et des paquets émergents et nouveaux, avec des mini-graphiques intégrés sur 7 jours, des variations absolues et en pourcentage, un contexte de référence et un résumé exécutif en une ligne.
-- **Actualisation en direct** — Récupération à la demande des données les plus récentes à partir des API npm et PyPI, avec un indicateur de progression ; les résultats sont mis en cache dans sessionStorage (TTL de 5 minutes) pour que les changements d'onglets soient instantanés.
-- **Exportation de rapports** — Menu déroulant à côté du bouton Actualiser, offrant trois formats : **PDF exécutif** (via jsPDF), **JSONL pour LLM** (enregistrements typés pour l'ingestion par l'IA) et **Markdown pour les développeurs** (tableaux GFM).
-- **Classement** — 132 paquets classés par nombre de téléchargements hebdomadaires, avec des mini-graphiques intégrés sur 30 jours et des badges de tendance intelligents.
+- **Tableau de bord Pulse** — Vue divisée des paquets établis (≥ 50 téléchargements/semaine) et des paquets émergents et nouveaux, avec des mini-graphiques sur 7 jours, des variations absolues et en pourcentage, un contexte de référence et un résumé exécutif en une ligne.
+- **Actualisation en direct** — Récupération des données les plus récentes directement des API npm et PyPI, avec un indicateur de progression ; les résultats sont mis en cache dans sessionStorage (TTL de 5 minutes) pour des changements d'onglets instantanés.
+- **Exportation de rapports** — Menu déroulant à côté du bouton Actualiser, offrant trois formats : **PDF exécutif** (via jsPDF), **JSONL LLM** (enregistrements typés pour l'ingestion par l'IA) et **Markdown pour développeurs** (tableaux GFM).
+- **Classement** — 132 paquets classés par nombre de téléchargements hebdomadaires, avec des mini-graphiques sur 30 jours et des badges de tendance intelligents.
 - **Page de configuration** — Éditeur de portefeuille avec validation, section de synchronisation des registres et aperçu du pipeline.
-- **Onglet Aide** — Guide convivial couvrant chaque onglet, les concepts clés, les conseils pour l'assistant IA, le pipeline de données et les liens utiles.
+- **Onglet Aide** — Guide convivial couvrant chaque onglet, les concepts clés, des conseils pour l'assistant IA, le pipeline de données et des liens utiles.
 - **Thème sombre / clair** — Suit les préférences du système.
 
-Les données sont récupérées au moment de la construction et reconstruites chaque semaine par CI (lundi à 06h00 UTC). L'actualisation en direct récupère les chiffres les plus récents directement à partir des API des registres. Configurez les paquets suivis dans `site/src/data/packages.json` (132 paquets répartis sur 5 registres).
+Les données sont récupérées au moment de la construction et reconstruites chaque semaine par CI (lundi à 06h00 UTC). L'actualisation en direct récupère les dernières données directement à partir des API des registres. Configurez les paquets suivis dans `site/src/data/packages.json` (132 paquets répartis sur 5 registres).
 
 ## Application de bureau
 
