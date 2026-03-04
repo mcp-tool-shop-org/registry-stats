@@ -40,25 +40,28 @@ Sem dependências de tempo de execução. Utiliza a função nativa `fetch()`. N
 | Camada | O que ele faz |
 |-------|-------------|
 | **Engine** | Biblioteca TypeScript + CLI + servidor REST. Consulte cinco registros com uma única interface. Publicado no npm como `@mcptoolshop/registry-stats`. |
-| **Dashboard** | Aplicativo web alimentado por Astro. Assistente de chat com IA, seis gráficos interativos, motor de crescimento inteligente e guia de ajuda com abas. Reconstruído semanalmente pelo CI. |
+| **Dashboard** | Aplicativo web com tecnologia Astro e assistente de IA Pulse (saída de voz, tela cheia, conectores de dados do GitHub), seis gráficos interativos, atualização em tempo real, exportação de relatórios (PDF / JSONL / Markdown) e um guia de ajuda em abas. Reconstruído semanalmente por meio de CI; atualizável sob demanda. |
 | **Desktop** | Aplicativo nativo para Windows, construído com WinUI 3 + WebView2. Inclui o painel offline e busca as estatísticas em tempo real sob demanda. |
 
 ## Painel
 
 Um painel de estatísticas que se atualiza automaticamente está disponível em [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
 
-- **Interface com abas** — Abas Home, Analytics, Leaderboard e Help
-- **Assistente de chat com IA** — Registry Assistant alimentado por Ollama com contexto RAG, respostas em streaming, seletor de modelos e memória de conversação
-- **Resumo executivo** — pontuação de saúde (0–100), índice de diversidade, variação semanal, downloads totais de todos os registros
-- **Seis gráficos interativos** — tendência de 30 dias (vista agregada / por registro / top 5), participação do registro (área polar), risco do portfólio (histograma + Gini & P90), top 10 momentum, rastreador de velocidade com sparklines e mapa de calor de 30 dias com detecção de picos (>2σ)
-- **Motor de crescimento inteligente** — lida com a distorção de denominadores pequenos com limite base, teto de porcentagem e fórmula de velocidade amortecida
-- **Insights acionáveis** — recomendações autogeradas e alertas de atenção para pacotes em declínio
-- **Tabela de classificação** — todos os pacotes classificados por downloads semanais com sparklines de 30 dias e badges de tendência inteligentes
-- **Página de configuração** — editor de portfólio com validação, seção registry-sync e visão geral do pipeline
-- **Aba de ajuda** — guia amigável cobrindo cada aba, conceitos-chave, dicas do assistente de IA, pipeline de dados e links úteis
-- **Tema claro/escuro** — segue a preferência do sistema
+- **Interface em abas** — Abas "Início", "Análise", "Ranking" e "Ajuda".
+- **Assistente de IA Pulse** — Assistente conversacional alimentado por Ollama com saída de voz (4 vozes via [mcp-voice-soundboard](https://github.com/mcp-tool-shop-org/mcp-voice-soundboard)), reprodução automática, modo de tela cheia, conector de dados de organização do GitHub, respostas em streaming, seletor de modelo e memória de conversação.
+- **Visão geral executiva** — pontuação de saúde (0–100), índice de diversidade, variação semanal, número total de downloads em todos os registros.
+- **Seis gráficos interativos** — tendência de 30 dias (agregação / por registro / alternância entre os 5 principais), participação no registro (área polar), risco da carteira (histograma + Gini e P90), top 10 em ascensão, rastreador de velocidade com gráficos de linhas e mapa de calor de 30 dias com detecção de picos (>2σ).
+- **Motor de crescimento inteligente** — corrige distorções de pequenas amostras com limite de referência, limite percentual e fórmula de velocidade amortecida.
+- **Informações acionáveis** — recomendações geradas automaticamente e alertas para pacotes em declínio.
+- **Painel Pulse** — visualização dividida de pacotes estabelecidos (≥ 50 downloads/semana) e pacotes emergentes e novos, com gráficos de linhas de 7 dias, deltas absolutos + percentuais, contexto de referência e um resumo executivo em uma linha.
+- **Atualização em tempo real** — busca sob demanda no lado do cliente das APIs do npm e PyPI com indicador de progresso; os resultados são armazenados em cache na sessionStorage (TTL de 5 minutos), para que a troca de abas seja instantânea.
+- **Exportação de relatórios** — menu suspenso próximo ao botão "Atualizar" que oferece três formatos: **PDF Executivo** (via jsPDF), **JSONL para LLM** (registros tipados para ingestão por IA) e **Markdown para Desenvolvedores** (tabelas GFM).
+- **Ranking** — 132 pacotes classificados por downloads semanais com gráficos de linhas de 30 dias e selos de tendência inteligente.
+- **Página de configuração** — editor de carteira com validação, seção de sincronização de registros e visão geral do pipeline.
+- **Aba de ajuda** — guia amigável que cobre todas as abas, conceitos-chave, dicas para o assistente de IA, pipeline de dados e links úteis.
+- **Tema claro / escuro** — segue a preferência do sistema.
 
-Os dados são buscados durante a compilação e reconstruídos semanalmente pelo CI (segundas-feiras às 06:00 UTC). Configure os pacotes a serem monitorados em `site/src/data/packages.json`.
+Os dados são coletados no momento da compilação e reconstruídos semanalmente por meio de CI (segundas-feiras às 06:00 UTC). A atualização em tempo real busca os dados mais recentes diretamente das APIs dos registros. Configure os pacotes a serem monitorados em `site/src/data/packages.json` (132 pacotes em 5 registros).
 
 ## Aplicativo para Desktop
 

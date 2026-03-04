@@ -31,45 +31,48 @@
 
 ---
 
-Pubblica su npm, PyPI, NuGet, il Marketplace di VS Code e Docker Hub. Attualmente, rispondere alla domanda "come stanno andando i miei pacchetti?" significa controllare cinque siti diversi. **registry-stats** è la piattaforma completa: un motore TypeScript (CLI + API + server REST), una dashboard web interattiva e un'applicazione desktop nativa per Windows, il tutto proveniente da un unico repository.
+Pubblica i tuoi pacchetti su npm, PyPI, NuGet, il Marketplace di VS Code e Docker Hub. Attualmente, per rispondere alla domanda "come stanno performando i miei pacchetti?", è necessario controllare cinque siti diversi. **registry-stats** è la piattaforma completa: un motore TypeScript (CLI + API + server REST), una dashboard web interattiva e un'applicazione desktop nativa per Windows, il tutto contenuto in un unico repository.
 
-Nessuna dipendenza a runtime. Utilizza la funzione nativa `fetch()`. Node 18 o superiore.
+Nessuna dipendenza a runtime. Utilizza la funzione nativa `fetch()`. Node 18+.
 
-## Cosa c'è all'interno
+## Cosa contiene
 
-| Livello | Cosa fa |
+| Strato | Cosa fa |
 |-------|-------------|
 | **Engine** | Libreria TypeScript + CLI + server REST. Interroga cinque registri con un'unica interfaccia. Pubblicato su npm come `@mcptoolshop/registry-stats`. |
-| **Dashboard** | Applicazione web basata su Astro. Assistente chat AI, sei grafici interattivi, motore di crescita intelligente e guida con schede. Ricostruita settimanalmente tramite CI. |
+| **Dashboard** | Applicazione web basata su Astro con il co-pilota AI Pulse (output vocale, schermo intero, connettori dati GitHub), sei grafici interattivi, aggiornamento in tempo reale, esportazione di report (PDF / JSONL / Markdown) e una guida di aiuto con schede. Ricostruita settimanalmente tramite CI; aggiornabile su richiesta. |
 | **Desktop** | Applicazione nativa per Windows realizzata con WinUI 3 + WebView2. Include la dashboard offline e scarica le statistiche in tempo reale su richiesta. |
 
 ## Dashboard
 
-Una dashboard con aggiornamenti automatici è disponibile all'indirizzo [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
+Una dashboard con aggiornamento automatico è disponibile all'indirizzo [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
 
-- **Interfaccia a schede** — Schede Home, Analytics, Leaderboard e Help
-- **Assistente chat AI** — Registry Assistant alimentato da Ollama con contesto RAG, risposte in streaming, selettore di modelli e memoria della conversazione
-- **Riepilogo esecutivo** — punteggio di salute (0–100), indice di diversità, variazione settimanale, download totali da tutti i registri
-- **Sei grafici interattivi** — tendenza a 30 giorni (vista aggregata / per registro / top 5), quota del registro (area polare), rischio del portafoglio (istogramma + Gini & P90), top 10 momentum, tracker della velocità con sparkline e mappa termica a 30 giorni con rilevamento picchi (>2σ)
-- **Motore di crescita intelligente** — gestisce la distorsione dei piccoli denominatori con soglia di base, limite percentuale e formula di velocità smorzata
-- **Insight azionabili** — raccomandazioni auto-generate e avvisi di attenzione per i pacchetti in calo
-- **Classifica** — tutti i pacchetti classificati per download settimanali con sparkline a 30 giorni e badge di tendenza intelligenti
-- **Pagina di configurazione** — editor del portafoglio con validazione, sezione registry-sync e panoramica della pipeline
-- **Scheda di aiuto** — guida intuitiva che copre ogni scheda, concetti chiave, suggerimenti per l'assistente AI, pipeline dei dati e link utili
-- **Tema chiaro/scuro** — segue le preferenze del sistema
+- **Interfaccia a schede** — Schede Home, Analytics, Classifica e Aiuto
+- **Co-pilota AI Pulse** — Assistente conversazionale basato su Ollama con output vocale (4 voci tramite [mcp-voice-soundboard](https://github.com/mcp-tool-shop-org/mcp-voice-soundboard)), sintesi vocale automatica, modalità schermo intero, connettore dati GitHub, risposte in streaming, selettore di modelli e memoria delle conversazioni
+- **Panoramica generale** — punteggio di salute (0–100), indice di diversità, variazione settimanale, download totali su tutti i registri
+- **Sei grafici interattivi** — tendenza a 30 giorni (aggregata / per registro / top-5 alternabili), quota di registro (area polare), rischio del portafoglio (istogramma + Gini & P90), top-10 per crescita, tracker di velocità con sparklines e mappa di calore a 30 giorni con rilevamento di picchi (>2σ)
+- **Motore di crescita intelligente** — gestisce le distorsioni dovute a numeri bassi con una soglia di base, un limite percentuale e una formula di velocità smorzata
+- **Suggerimenti utili** — raccomandazioni generate automaticamente e avvisi per i pacchetti in declino
+- **Pannello Pulse** — visualizzazione divisa di "Established Movers" (≥ 50 download/settimana) e pacchetti "Emerging & New", con sparklines a 7 giorni, variazioni assolute e percentuali, contesto di base e un breve riepilogo
+- **Aggiornamento in tempo reale** — recupero dei dati più recenti dalle API di npm e PyPI lato client con indicatore di avanzamento; i risultati vengono memorizzati nella sessionStorage (TTL di 5 minuti) per un cambio di scheda istantaneo
+- **Esportazione di report** — menu a tendina accanto al pulsante di aggiornamento che offre tre formati: **Exec PDF** (tramite jsPDF), **LLM JSONL** (record tipizzati per l'ingestione da parte dell'IA) e **Dev Markdown** (tabelle GFM)
+- **Classifica** — 132 pacchetti classificati per download settimanali con sparklines a 30 giorni e badge intelligenti per le tendenze
+- **Pagina di configurazione** — editor del portafoglio con convalida, sezione di sincronizzazione dei registri e panoramica della pipeline
+- **Scheda Aiuto** — guida chiara e concisa che copre ogni scheda, i concetti chiave, i suggerimenti per l'assistente AI, la pipeline dei dati e i link utili
+- **Tema chiaro / scuro** — segue le preferenze del sistema
 
-I dati vengono scaricati al momento della compilazione e la dashboard viene ricostruita settimanalmente tramite CI (il lunedì alle 06:00 UTC). Configura i pacchetti da monitorare in `site/src/data/packages.json`.
+I dati vengono recuperati al momento della compilazione e ricostruiti settimanalmente tramite CI (lunedì alle 06:00 UTC). L'aggiornamento in tempo reale recupera i numeri più recenti direttamente dalle API dei registri. Configura i pacchetti da monitorare in `site/src/data/packages.json` (132 pacchetti su 5 registri).
 
 ## Applicazione Desktop
 
 Un'applicazione nativa per Windows che integra la dashboard in un ambiente WebView2 locale:
 
-- **Funziona offline** — include file HTML/CSS/JS; funziona senza connessione a Internet.
-- **Aggiornamento in tempo reale** — scarica `stats.json` da GitHub Pages su richiesta.
-- **Esportazione CSV** — esporta i dati della classifica con un solo clic.
-- **Pacchetto MSIX** — creato e firmato tramite CI utilizzando `desktop-ci.yml`.
+- **Funziona offline** — include HTML/CSS/JS integrati; funziona senza connessione a Internet
+- **Aggiornamento in tempo reale** — recupera `stats.json` da GitHub Pages su richiesta
+- **Esportazione CSV** — esporta i dati della classifica con un solo clic
+- **Pacchetto MSIX** — creato e firmato tramite CI utilizzando `desktop-ci.yml`
 
-Il codice sorgente dell'applicazione desktop si trova nella cartella `desktop/`. Realizzata con .NET 10 MAUI e destinata a WinUI 3.
+Il codice sorgente dell'applicazione desktop si trova in `desktop/`. Realizzato con .NET 10 MAUI e destinato a WinUI 3.
 
 ## Installazione
 
@@ -293,20 +296,20 @@ npm run site:build
 |--------|--------|
 | **Data touched** | Statistiche di download pubbliche da npm, PyPI, NuGet, VS Code Marketplace, Docker Hub. Cache in memoria (opzionale). |
 | **Data NOT touched** | Nessuna telemetria. Nessuna analisi. Nessun archivio di credenziali. Nessun dato utente. Nessuna scrittura di file. |
-| **Permissions** | Lettura: API pubbliche dei registri tramite HTTPS. Scrittura: solo stdout/stderr. |
-| **Network** | Uscite HTTPS verso le API pubbliche dei registri. Server REST locale opzionale. |
-| **Telemetry** | Nessuno raccolto o inviato. |
+| **Permissions** | Lettura: API dei registri pubblici tramite HTTPS. Scrittura: solo stdout/stderr. |
+| **Network** | Comunicazione HTTPS in uscita verso le API dei registri pubblici. Server REST localhost opzionale. |
+| **Telemetry** | Nessun dato raccolto o trasmesso. |
 
-Consulta [SECURITY.md](SECURITY.md) per la segnalazione di vulnerabilità.
+Consultare [SECURITY.md](SECURITY.md) per la segnalazione di vulnerabilità.
 
-## Tabella di valutazione
+## Scheda di valutazione
 
 | Categoria | Punteggio |
 |----------|-------|
 | A. Sicurezza | 10 |
 | B. Gestione degli errori | 10 |
 | C. Documentazione per gli operatori | 10 |
-| D. Igiene della distribuzione | 10 |
+| D. Igiene del processo di distribuzione | 10 |
 | E. Identità (soft) | 10 |
 | **Overall** | **50/50** |
 

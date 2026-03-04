@@ -31,7 +31,7 @@
 
 ---
 
-Publica en npm, PyPI, NuGet, el Marketplace de VS Code y Docker Hub. Actualmente, responder a la pregunta "¿cómo le están yendo a mis paquetes?" implica consultar cinco sitios diferentes. **registry-stats** es la plataforma completa: un motor de TypeScript (CLI + API + servidor REST), un panel web en tiempo real y una aplicación de escritorio nativa para Windows, todo desde un único repositorio.
+Publica en npm, PyPI, NuGet, el Marketplace de VS Code y Docker Hub. Actualmente, responder a la pregunta "¿cómo le están yendo a mis paquetes?" implica consultar cinco sitios diferentes. **registry-stats** es la plataforma completa: un motor de TypeScript (CLI + API + servidor REST), un panel web interactivo y una aplicación de escritorio nativa para Windows, todo desde un único repositorio.
 
 No tiene dependencias de tiempo de ejecución. Utiliza `fetch()` nativo. Node 18+.
 
@@ -39,34 +39,37 @@ No tiene dependencias de tiempo de ejecución. Utiliza `fetch()` nativo. Node 18
 
 | Capa | ¿Qué hace? |
 |-------|-------------|
-| **Engine** | Biblioteca de TypeScript + CLI + servidor REST. Consulta cinco registros con una única interfaz. Publicado en npm como `@mcptoolshop/registry-stats`. |
-| **Dashboard** | Aplicación web impulsada por Astro. Asistente de chat con IA, seis gráficos interactivos, motor de crecimiento inteligente y guía de ayuda con pestañas. Se reconstruye semanalmente mediante CI. |
-| **Desktop** | Aplicación nativa para Windows con WinUI 3 + WebView2. Incluye el panel sin conexión y descarga las estadísticas en tiempo real bajo demanda. |
+| **Engine** | Biblioteca de TypeScript + CLI + servidor REST. Consulta cinco registros con una sola interfaz. Publicado en npm como `@mcptoolshop/registry-stats`. |
+| **Dashboard** | Aplicación web impulsada por Astro con el copiloto de IA Pulse (salida de voz, pantalla completa, conectores de datos de GitHub), seis gráficos interactivos, actualización en tiempo real, exportación de informes (PDF / JSONL / Markdown) y una guía de ayuda con pestañas. Se reconstruye semanalmente mediante CI; se puede actualizar bajo demanda. |
+| **Desktop** | Aplicación nativa para Windows con WinUI 3 + WebView2. Incluye el panel de control sin conexión y descarga las estadísticas en tiempo real bajo demanda. |
 
-## Panel
+## Panel de control
 
-Un panel de estadísticas que se actualiza automáticamente se encuentra en [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
+Un panel de control de estadísticas que se actualiza automáticamente se encuentra en [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
 
-- **Interfaz con pestañas** — Pestañas Home, Analytics, Leaderboard y Help
-- **Asistente de chat con IA** — Registry Assistant con Ollama, contexto RAG, respuestas en streaming, selector de modelos y memoria de conversación
-- **Resumen ejecutivo** — puntuación de salud (0–100), índice de diversidad, variación semanal, descargas totales de todos los registros
-- **Seis gráficos interactivos** — tendencia de 30 días (vista agregada / por registro / top 5), cuota de registro (área polar), riesgo del portafolio (histograma + Gini & P90), top 10 de momentum, rastreador de velocidad con sparklines, y mapa de calor de 30 días con detección de picos (>2σ)
-- **Motor de crecimiento inteligente** — maneja la distorsión por denominadores pequeños con umbral base, límite de porcentaje y fórmula de velocidad amortiguada
-- **Perspectivas accionables** — recomendaciones autogeneradas y alertas para paquetes en declive
-- **Tabla de clasificación** — todos los paquetes clasificados por descargas semanales con sparklines de 30 días y badges de tendencia inteligente
-- **Página de configuración** — editor de portafolio con validación, sección de registry-sync y vista general del flujo de datos
-- **Pestaña de ayuda** — guía amigable que cubre cada pestaña, conceptos clave, consejos del asistente IA, flujo de datos y enlaces útiles
-- **Tema claro/oscuro** — Sigue la preferencia del sistema
+- **Interfaz con pestañas** — Pestañas de Inicio, Analítica, Clasificación y Ayuda.
+- **Copiloto de IA Pulse** — Asistente conversacional impulsado por Ollama con salida de voz (4 voces a través de [mcp-voice-soundboard](https://github.com/mcp-tool-shop-org/mcp-voice-soundboard)), síntesis de voz automática, modo de pantalla completa, conector de datos de organización de GitHub, respuestas en streaming, selector de modelo y memoria de conversación.
+- **Resumen ejecutivo** — puntaje de salud (0–100), índice de diversidad, cambio semanal, descargas totales en todos los registros.
+- **Seis gráficos interactivos** — Tendencia de 30 días (agregada / por registro / conmutación de los 5 principales), cuota de registro (área polar), riesgo de la cartera (histograma + Gini y P90), los 10 principales con mayor crecimiento, rastreador de velocidad con gráficos de líneas, y mapa de calor de 30 días con detección de picos (>2σ).
+- **Motor de crecimiento inteligente** — maneja la distorsión de denominadores pequeños con un umbral base, un límite porcentual y una fórmula de velocidad amortiguada.
+- **Información útil** — Recomendaciones generadas automáticamente y alertas de atención para paquetes en declive.
+- **Panel Pulse** — Vista dividida de los "Established Movers" (≥ 50 descargas/semana) y los paquetes "Emerging & New", con gráficos de líneas de 7 días integrados, deltas absolutos + porcentuales, contexto base y un resumen ejecutivo de una línea.
+- **Actualización en tiempo real** — Descarga de datos desde las API de npm y PyPI en el lado del cliente bajo demanda con un indicador de progreso; los resultados se almacenan en caché en sessionStorage (TTL de 5 minutos) para que los cambios de pestaña sean instantáneos.
+- **Exportación de informes** — Menú desplegable junto al botón de Actualizar que ofrece tres formatos: **Exec PDF** (a través de jsPDF), **LLM JSONL** (registros tipados para la ingesta de IA) y **Dev Markdown** (tablas GFM).
+- **Clasificación** — 132 paquetes clasificados por descargas semanales con gráficos de líneas de 30 días integrados y distintivos de tendencia inteligentes.
+- **Página de configuración** — Editor de cartera con validación, sección de sincronización de registros y descripción general del flujo de trabajo.
+- **Pestaña de ayuda** — Guía fácil de entender que cubre cada pestaña, conceptos clave, consejos para el asistente de IA, flujo de datos y enlaces útiles.
+- **Tema claro / oscuro** — Sigue la preferencia del sistema.
 
-Los datos se obtienen en el momento de la compilación y se reconstruyen semanalmente mediante CI (los lunes a las 06:00 UTC). Configure los paquetes rastreados en `site/src/data/packages.json`.
+Los datos se obtienen en el momento de la compilación y se reconstruyen semanalmente mediante CI (los lunes a las 06:00 UTC). La actualización en tiempo real descarga los últimos números directamente desde las API de los registros. Configure los paquetes rastreados en `site/src/data/packages.json` (132 paquetes en 5 registros).
 
 ## Aplicación de escritorio
 
-Una aplicación nativa para Windows que integra el panel en un entorno WebView2 local:
+Una aplicación nativa para Windows que integra el panel de control en un entorno WebView2 local:
 
-- **Funciona sin conexión** — Incluye HTML/CSS/JS empaquetados; funciona sin internet.
+- **Funciona sin conexión** — Incluye HTML/CSS/JS empaquetados; funciona sin conexión a Internet.
 - **Actualización en tiempo real** — Descarga `stats.json` de GitHub Pages bajo demanda.
-- **Exportación a CSV** — Exporta los datos de la tabla de clasificación con un solo clic.
+- **Exportación a CSV** — Exporta los datos de la clasificación con un solo clic.
 - **Empaquetado MSIX** — Se construye y firma en CI mediante `desktop-ci.yml`.
 
 El código fuente de la aplicación de escritorio se encuentra en `desktop/`. Se construyó con .NET 10 MAUI y apunta a WinUI 3.
@@ -291,22 +294,22 @@ npm run site:build
 
 | Aspecto | Detalle |
 |--------|--------|
-| **Data touched** | Estadísticas de descarga pública de npm, PyPI, NuGet, Marketplace de VS Code, Docker Hub. Caché en memoria (opcional). |
+| **Data touched** | Estadísticas de descargas públicas de npm, PyPI, NuGet, Marketplace de VS Code, Docker Hub. Caché en memoria (opcional). |
 | **Data NOT touched** | Sin telemetría. Sin análisis. Sin almacenamiento de credenciales. Sin datos de usuario. Sin escrituras de archivos. |
-| **Permissions** | Lectura: APIs públicas de registros a través de HTTPS. Escritura: solo stdout/stderr. |
-| **Network** | Conexiones HTTPS salientes a APIs públicas de registros. Servidor REST opcional en localhost. |
-| **Telemetry** | Ninguno recopilado ni enviado. |
+| **Permissions** | Lectura: APIs de registros públicos a través de HTTPS. Escritura: solo a stdout/stderr. |
+| **Network** | Conexiones HTTPS salientes a APIs de registros públicos. Servidor REST local opcional. |
+| **Telemetry** | Ninguna información es recopilada o enviada. |
 
 Consulte [SECURITY.md](SECURITY.md) para informar sobre vulnerabilidades.
 
-## Tabla de puntuación
+## Evaluación
 
 | Categoría | Puntuación |
 |----------|-------|
 | A. Seguridad | 10 |
 | B. Manejo de errores | 10 |
-| C. Documentación para operadores | 10 |
-| D. Higiene de implementación | 10 |
+| C. Documentación para el operador | 10 |
+| D. Higiene en la entrega | 10 |
 | E. Identidad (suave) | 10 |
 | **Overall** | **50/50** |
 

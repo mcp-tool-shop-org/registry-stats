@@ -31,43 +31,46 @@
 
 ---
 
-您可以在 npm、PyPI、NuGet、VS Code Marketplace 以及 Docker Hub 上发布。目前，要了解“我的软件包表现如何？”，您需要查看五个不同的网站。**registry-stats** 是一个完整的平台：一个 TypeScript 引擎（命令行工具 + API + REST 服务器），一个实时 Web 控制面板，以及一个原生 Windows 桌面应用程序——所有这些都来自一个代码仓库。
+您可以在 npm、PyPI、NuGet、VS Code Marketplace 以及 Docker Hub 上发布软件包。目前，要了解“我的软件包表现如何？”，您需要查看五个不同的网站。**registry-stats** 是一个完整的平台：一个 TypeScript 引擎（包含命令行工具、API 和 REST 服务器），一个实时 Web 控制面板，以及一个原生 Windows 桌面应用程序——所有这些都来自一个代码仓库。
 
-没有运行时依赖。使用原生的 `fetch()` 方法。Node 18 或更高版本。
+没有运行时依赖。使用原生的 `fetch()` 方法。Node 18+。
 
-## 包含内容
+## 内容
 
-| 层级 | 功能 |
+| 层 | 功能 |
 |-------|-------------|
-| **Engine** | TypeScript 库 + 命令行工具 + REST 服务器。使用一个界面查询五个注册中心。已在 npm 上发布为 `@mcptoolshop/registry-stats`。 |
-| **Dashboard** | 基于 Astro 的 Web 应用程序。提供 AI 聊天助手、6 个交互式图表、智能增长引擎和带选项卡的帮助指南。每周通过 CI 自动重建。 |
-| **Desktop** | 基于 WinUI 3 + WebView2 的原生 Windows 应用程序。将控制面板打包到本地，按需获取实时统计数据。 |
+| **Engine** | TypeScript 库 + 命令行工具 + REST 服务器。使用一个界面查询五个注册中心。已发布到 npm，名为 `@mcptoolshop/registry-stats`。 |
+| **Dashboard** | 一个由 Astro 驱动的 Web 应用程序，带有 Pulse AI 辅助功能（语音输出、全屏模式、GitHub 数据连接器），包含六个交互式图表，支持实时刷新，可以导出报告（PDF / JSONL / Markdown），以及一个分栏的帮助指南。每周由 CI 自动构建；可以按需刷新。 |
+| **Desktop** | 一个原生 Windows 应用程序，使用 WinUI 3 + WebView2。将控制面板打包在本地，按需获取实时统计数据。 |
 
 ## 控制面板
 
 一个自动更新的统计信息控制面板位于 [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/)。
 
-- **选项卡界面** — Home、Analytics、Leaderboard 和 Help 选项卡
-- **AI 聊天助手** — 基于 Ollama 的 Registry Assistant，支持 RAG 上下文注入、流式响应、模型选择器和对话记忆
-- **执行摘要** — 健康分数（0–100）、多样性指数、周变化、所有注册中心的总下载量
-- **6 个交互式图表** — 30 天趋势（汇总 / 按注册中心 / Top 5 切换）、注册中心份额（极坐标图）、组合风险（分布直方图 + Gini & P90）、Top 10 动量、带迷你图的速度追踪器、以及 30 天热力图（尖峰检测 >2σ）
-- **智能增长引擎** — 处理小分母失真，提供基线阈值、百分比上限和阻尼速度公式
-- **可操作洞察** — 自动生成的建议和下降软件包的注意警报
-- **排行榜** — 所有软件包按周下载量排序，带有 30 天迷你图和智能趋势标记
-- **设置页面** — 组合编辑器、验证功能、registry-sync 配套部分和管道概览
-- **帮助选项卡** — 涵盖每个选项卡、关键概念、AI 助手使用技巧、数据管道和有用链接的友好指南
-- **深色/浅色主题** — 根据系统偏好设置自动切换
+- **分栏界面** — 包含“首页”、“分析”、“排行榜”和“帮助”等选项卡
+- **Pulse AI 辅助功能** — 基于 Ollama 的对话式助手，具有语音输出（通过 [mcp-voice-soundboard](https://github.com/mcp-tool-shop-org/mcp-voice-soundboard) 提供 4 种声音），自动语音播报，全屏模式，GitHub 组织数据连接器，流式响应，模型选择器，以及对话记忆功能
+- **关键指标概览** — 健康评分（0–100），多样性指数，每周变化，所有注册中心的总下载量
+- **六个交互式图表** — 30 天趋势图（聚合视图 / 每个注册中心视图 / 前 5 名视图），注册中心份额（极坐标图），投资组合风险（直方图 + Gini 系数和 P90），前 10 名热门软件包，带火花线的速度跟踪器，以及 30 天热力图，并带有异常检测（>2σ）
+- **智能增长引擎** — 处理小基数偏差，具有基线阈值、百分比上限和 damped 速度公式
+- **可操作的洞察** — 自动生成针对表现不佳软件包的建议和警报
+- **Pulse 面板** — 显示已建立的活跃软件包（≥ 50 次/周下载）和新兴软件包，带有内联 7 天火花线，绝对值和百分比变化，基线参考，以及简要概括
+- **实时刷新** — 通过客户端从 npm 和 PyPI API 获取最新数据，并显示进度指示器；结果缓存在 sessionStorage 中（5 分钟 TTL），因此切换选项卡非常快速
+- **导出报告** — 在“刷新”按钮旁边有一个下拉菜单，提供三种格式：**Exec PDF**（使用 jsPDF），**LLM JSONL**（用于 AI 摄取的类型记录），以及**Dev Markdown**（GFM 表格）
+- **排行榜** — 根据每周下载量对 132 个软件包进行排名，并带有内联 30 天火花线和智能趋势标签
+- **配置页面** — 包含投资组合编辑器（带验证）、注册中心同步辅助部分，以及流水线概览
+- **帮助选项卡** — 提供关于每个选项卡、关键概念、AI 助手技巧、数据流水线以及有用的链接的详细指南
+- **深色/浅色主题** — 遵循系统偏好设置
 
-数据在构建时获取，并每周通过 CI 自动重建（每周一 06:00 UTC）。在 `site/src/data/packages.json` 文件中配置要跟踪的软件包。
+数据在构建时获取，并每周由 CI 自动重建（每周一 06:00 UTC）。实时刷新直接从注册中心 API 获取最新数据。在 `site/src/data/packages.json` 中配置要跟踪的软件包（5 个注册中心，共 132 个软件包）。
 
 ## 桌面应用程序
 
 一个原生 Windows 应用程序，它将控制面板封装在一个本地 WebView2 容器中：
 
-- **离线可用**：包含打包的 HTML/CSS/JS 文件；无需互联网连接即可使用。
-- **实时刷新**：从 GitHub Pages 上的 `stats.json` 文件获取实时统计数据。
-- **CSV 导出**：一键导出排行榜数据。
-- **MSIX 软件包**：通过 `desktop-ci.yml` 在 CI 环境中构建和签名。
+- **支持离线使用** — 包含打包的 HTML/CSS/JS；无需互联网连接即可使用
+- **实时刷新** — 按需从 GitHub Pages 获取 `stats.json` 文件
+- **CSV 导出** — 一键导出排行榜数据
+- **MSIX 软件包** — 通过 `desktop-ci.yml` 在 CI 中构建和签名
 
 桌面应用程序的源代码位于 `desktop/` 目录中。使用 .NET 10 MAUI 构建，目标是 WinUI 3。
 
@@ -287,17 +290,17 @@ npm run site:dev
 npm run site:build
 ```
 
-## 安全性和数据范围
+## 安全与数据范围
 
 | 方面 | 详细信息 |
 |--------|--------|
-| **Data touched** | 从 npm、PyPI、NuGet、VS Code Marketplace 和 Docker Hub 获取公开的下载统计数据。可选的内存缓存。 |
-| **Data NOT touched** | 没有遥测。没有分析。没有凭证存储。没有用户数据。没有文件写入。 |
-| **Permissions** | 读取：通过 HTTPS 的公开注册中心 API。写入：仅 stdout/stderr。 |
-| **Network** | 向公开注册中心 API 的 HTTPS 出站连接。可选的本地 REST 服务器。 |
+| **Data touched** | 从 npm、PyPI、NuGet、VS Code Marketplace、Docker Hub 获取的公开下载统计数据。可选的内存缓存。 |
+| **Data NOT touched** | 无遥测。无分析。无凭证存储。无用户数据。无文件写入。 |
+| **Permissions** | 读取：通过 HTTPS 访问公共注册表 API。写入：仅限于标准输出/标准错误输出。 |
+| **Network** | 通过 HTTPS 访问公共注册表 API。可选的本地 REST 服务器。 |
 | **Telemetry** | 未收集或发送任何数据。 |
 
-请参阅 [SECURITY.md](SECURITY.md) 以获取漏洞报告。
+请参阅 [SECURITY.md](SECURITY.md) 以报告漏洞。
 
 ## 评分卡
 
@@ -305,7 +308,7 @@ npm run site:build
 |----------|-------|
 | A. 安全性 | 10 |
 | B. 错误处理 | 10 |
-| C. 运维文档 | 10 |
+| C. 操作文档 | 10 |
 | D. 发布规范 | 10 |
 | E. 身份验证（软性） | 10 |
 | **Overall** | **50/50** |
