@@ -13,7 +13,7 @@ export const config: SiteConfig = {
     badge: 'Zero dependencies · Node 18+',
     headline: 'Five registries,',
     headlineAccent: 'one AI-powered platform.',
-    description: 'Engine, AI chat assistant, six interactive charts, smart growth engine, and desktop app — all from one repo. Query npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub through a single CLI, API, or live dashboard.',
+    description: 'Engine, Pulse AI co-pilot with voice output, six interactive charts, smart growth engine, and desktop app — all from one repo. Query npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub through a single CLI, API, or live dashboard.',
     primaryCta: { href: '/registry-stats/dashboard/', label: 'Open dashboard' },
     secondaryCta: { href: '#usage', label: 'Get started' },
     previews: [
@@ -31,7 +31,8 @@ export const config: SiteConfig = {
       subtitle: 'Three layers, one repo.',
       features: [
         { title: 'Engine', desc: 'TypeScript library + CLI + REST server. Published to npm. Zero dependencies, native fetch().' },
-        { title: 'AI Dashboard', desc: 'Tabbed Astro app with Ollama chat assistant, six interactive Chart.js visualizations, smart growth engine, and built-in help guide.' },
+        { title: 'Pulse AI Co-pilot', desc: 'Conversational AI with voice output (4 voices, auto-speak), fullscreen mode, GitHub org data connector, streaming responses, and model selector. Powered by Ollama.' },
+        { title: 'Dashboard', desc: 'Tabbed Astro app with six interactive Chart.js visualizations, export reports (PDF / JSONL / Markdown), and built-in help guide.' },
         { title: 'Desktop', desc: 'WinUI 3 + WebView2 native Windows app. Offline-capable, live stats refresh, CSV export.' },
         { title: 'Five registries', desc: 'npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub — all through one interface.' },
         { title: 'Smart Growth', desc: 'Baseline threshold, percentage cap, and damped velocity formula eliminate misleading percentages from small-denominator distortion.' },
