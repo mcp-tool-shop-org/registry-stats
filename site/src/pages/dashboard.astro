@@ -3083,18 +3083,19 @@ const chatContext = !missing && data ? JSON.stringify({
           return emotionChunks;
         }
       }
-      // No emotion tags — send as one chunk if under limit (best prosody)
+      // No emotion tags — flatten and check length
       var flat = text.replace(/\n/g, ' ').replace(/\s{2,}/g, ' ').trim();
-      if (flat.length < 600) return [flat];
-      // Long text — split on paragraph boundaries
-      var paragraphs = text.split(/\n{2,}/).map(function(p) { return p.replace(/\n/g, ' ').trim(); }).filter(function(p) { return p.length > 0; });
-      if (paragraphs.length > 1) {
-        console.log('[Pulse voice] Paragraph chunks:', paragraphs.length);
-        return paragraphs;
+      if (flat.length < 300) return [flat];
+      // Split into 3-sentence chunks for faster first-play
+      var sentences = flat.match(/[^.!?]*[.!?]+[\s]?|[^.!?]+$/g);
+      if (!sentences || sentences.length <= 3) return [flat];
+      var chunks = [];
+      for (var ci = 0; ci < sentences.length; ci += 3) {
+        chunks.push(sentences.slice(ci, ci + 3).join(' ').trim());
       }
-      // Single long paragraph — send whole (let the backend handle it)
-      console.log('[Pulse voice] Single chunk, length:', flat.length);
-      return [flat];
+      chunks = chunks.filter(function(c) { return c.length > 0; });
+      console.log('[Pulse voice] Sentence chunks:', chunks.length);
+      return chunks;
     }
 
     // Synthesize one chunk and return decoded AudioBuffer
