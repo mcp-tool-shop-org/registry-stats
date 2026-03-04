@@ -3153,30 +3153,41 @@ const chatContext = !missing && data ? JSON.stringify({
       if (!voiceAudioCtx) voiceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (voiceAudioCtx.state === 'suspended') voiceAudioCtx.resume();
 
-      // Sequential synthesis: send one sentence at a time to avoid overwhelming the backend
-      var i = 0;
-      function nextSentence() {
-        if (gen !== speakGeneration || i >= sentences.length) {
-          if (voiceDot && gen === speakGeneration) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
-          return;
+      // Pipeline synthesis: 2 chunks in flight at once for faster playback
+      // First chunk plays ASAP, second is pre-fetched while first plays
+      var nextIdx = 0;
+      var inflight = 0;
+      var MAX_INFLIGHT = 2;
+
+      function pumpChunk() {
+        while (inflight < MAX_INFLIGHT && nextIdx < sentences.length && gen === speakGeneration) {
+          (function (idx) {
+            var chunk = sentences[idx];
+            inflight++;
+            console.log('[Pulse voice] Synthesizing chunk', idx + 1, '/', sentences.length, '(' + chunk.length + ' chars)');
+            synthesizeChunk(chunk, preset).then(function (buffer) {
+              inflight--;
+              if (gen !== speakGeneration) return;
+              if (buffer) {
+                console.log('[Pulse voice] Chunk', idx + 1, 'audio received, enqueueing');
+                enqueueAudio(buffer);
+              } else {
+                console.warn('[Pulse voice] Chunk', idx + 1, 'returned null');
+              }
+              pumpChunk();
+            }).catch(function (e) {
+              inflight--;
+              console.error('[Pulse voice] Chunk', idx + 1, 'failed:', e);
+              pumpChunk();
+            });
+          })(nextIdx++);
         }
-        var sentence = sentences[i++];
-        console.log('[Pulse voice] Synthesizing chunk', i, '/', sentences.length, '(' + sentence.length + ' chars)');
-        synthesizeChunk(sentence, preset).then(function (buffer) {
-          if (gen !== speakGeneration) return; // cancelled
-          if (buffer) {
-            console.log('[Pulse voice] Chunk', i, 'audio received, enqueueing');
-            enqueueAudio(buffer);
-          } else {
-            console.warn('[Pulse voice] Chunk', i, 'returned null');
-          }
-          nextSentence(); // start next chunk while current one plays
-        }).catch(function (e) {
-          console.error('[Pulse voice] Chunk', i, 'failed:', e);
-          nextSentence(); // skip failed, continue with next
-        });
+        // All done
+        if (inflight === 0 && nextIdx >= sentences.length && voiceDot && gen === speakGeneration) {
+          voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
+        }
       }
-      nextSentence();
+      pumpChunk();
     }
 
     checkVoiceServer();
