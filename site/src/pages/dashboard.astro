@@ -367,9 +367,9 @@ const chatContext = !missing && data ? JSON.stringify({
           <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
             <div>
               <h2 class="text-lg font-semibold text-heading flex items-center gap-2">
-                <span class="text-xl">{"\uD83E\uDD99"}</span> Registry Assistant
+                <span class="text-xl">{"\uD83E\uDD99"}</span> Pulse
               </h2>
-              <p class="mt-0.5 text-xs text-dim">AI analysis of your registry data &bull; Powered by Ollama</p>
+              <p class="mt-0.5 text-xs text-dim">Your registry co-pilot &bull; Powered by Ollama</p>
             </div>
             <div class="flex items-center gap-3">
               <div id="ollama-status" class="flex items-center gap-1.5 text-xs">
@@ -380,11 +380,47 @@ const chatContext = !missing && data ? JSON.stringify({
                 <option>No models</option>
               </select>
               <button id="chat-clear" class="text-xs text-dim hover:text-heading transition-colors" title="Clear history">Clear</button>
+              <div id="voice-controls" class="hidden flex items-center gap-1.5">
+                <span id="voice-dot" class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+                <select id="voice-select" class="rounded-lg border border-edge bg-surface px-2 py-1 text-xs text-heading">
+                  <option value="bm_george">George</option>
+                  <option value="af_bella">Bella</option>
+                  <option value="bf_emma">Emma</option>
+                  <option value="am_michael">Michael</option>
+                </select>
+              </div>
+              <button id="chat-settings-btn" class="text-dim hover:text-heading transition-colors" title="Data connectors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              </button>
+              <button id="chat-fullscreen-btn" class="text-dim hover:text-heading transition-colors" title="Toggle fullscreen">
+                <svg id="chat-expand-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4"></path></svg>
+                <svg id="chat-collapse-icon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v4H4M15 4v4h5M9 20v-4H4M15 20v-4h5"></path></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Settings panel -->
+          <div id="chat-settings-panel" class="hidden mb-4 rounded-xl border border-edge bg-surface p-4">
+            <div class="flex items-center justify-between mb-3">
+              <div class="text-sm font-semibold text-heading">Data Connectors</div>
+              <button id="chat-settings-close" class="text-xs text-dim hover:text-heading transition-colors">Close</button>
+            </div>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-medium text-heading mb-1">GitHub Personal Access Token</label>
+                <div class="flex gap-2">
+                  <input id="gh-pat-input" type="password" placeholder="ghp_..."
+                    class="flex-1 rounded-lg border border-edge bg-surface-strong px-3 py-1.5 text-xs text-heading placeholder:text-dim focus:outline-none focus:ring-2 focus:ring-accent/40" />
+                  <button id="gh-pat-save" class="rounded-lg bg-action text-action-text px-3 py-1.5 text-xs font-medium hover:bg-action-hover transition-colors">Save &amp; Test</button>
+                </div>
+                <div id="gh-pat-status" class="mt-1.5 text-xs text-dim"></div>
+                <p class="mt-1 text-[11px] text-dim">Read-only token for <code class="text-heading">mcp-tool-shop-org</code>. Stored locally, never sent anywhere except GitHub API.</p>
+              </div>
             </div>
           </div>
 
           <div id="chat-messages" class="rounded-xl border border-edge bg-surface p-4 min-h-[180px] max-h-[420px] overflow-y-auto space-y-3">
-            <div class="text-sm text-dim text-center py-8">Ask anything about your registry stats, package trends, or release strategy.</div>
+            <div class="text-sm text-dim text-center py-8">Hey — ask me anything about your numbers, trends, or what to ship next.</div>
           </div>
 
           <div id="chat-progress" class="mt-2 hidden">
@@ -404,7 +440,7 @@ const chatContext = !missing && data ? JSON.stringify({
           </div>
 
           <div class="mt-3 flex gap-2">
-            <input id="chat-input" type="text" placeholder="Ask about your registry data…"
+            <input id="chat-input" type="text" placeholder="What's on your mind?"
               class="flex-1 rounded-xl border border-edge bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-dim focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-50"
               disabled />
             <button id="chat-send" class="rounded-xl bg-action text-action-text px-5 py-2.5 text-sm font-medium hover:bg-action-hover transition-colors disabled:opacity-50 flex items-center gap-2" disabled>
@@ -1340,6 +1376,41 @@ const chatContext = !missing && data ? JSON.stringify({
     0% { width: 5%; opacity: 0.7; }
     50% { width: 85%; opacity: 1; }
     100% { width: 5%; opacity: 0.7; }
+  }
+
+  .voice-speak-btn {
+    flex-shrink: 0;
+    padding: 4px;
+    border-radius: 6px;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+  }
+  .voice-speak-btn:hover { opacity: 1; }
+
+  /* Fullscreen chat */
+  .chat-fullscreen {
+    position: fixed !important;
+    inset: 0;
+    z-index: 50;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface);
+  }
+  .chat-fullscreen .rounded-2xl {
+    border-radius: 0 !important;
+    border: none !important;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  .chat-fullscreen #chat-messages {
+    flex: 1;
+    max-height: none !important;
+    min-height: 0 !important;
   }
 </style>
 
@@ -2463,21 +2534,14 @@ const chatContext = !missing && data ? JSON.stringify({
     var rawCtx = '';
     if (ctxEl) { try { rawCtx = ctxEl.getAttribute('data-json') || ''; } catch (e) {} }
 
-    var SYSTEM = 'You are Registry Pulse Assistant, an expert analyst for software package registry statistics across npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub.\n\n' +
-      'Your expertise covers:\n' +
-      '- Download trend analysis, forecasting, and anomaly detection\n' +
-      '- Multi-registry distribution strategy and portfolio planning\n' +
-      '- Growth tactics for open-source packages (SEO, keywords, README optimization)\n' +
-      '- Release timing, versioning strategy, and changelog best practices\n' +
-      '- Competitive positioning and market sizing\n' +
-      '- Health scoring interpretation and improvement recommendations\n\n' +
-      'CURRENT PORTFOLIO DATA (live from the user\'s snapshot):\n' + rawCtx + '\n\n' +
-      'Guidelines:\n' +
-      '- Reference specific numbers from the data when answering.\n' +
-      '- Flag concerning trends proactively.\n' +
-      '- Suggest actionable, prioritized strategies.\n' +
-      '- Keep responses concise but insightful. Use bullet points for lists.\n' +
-      '- If the user asks something outside your data, say so honestly.';
+    var SYSTEM = 'You are Pulse — a sharp, friendly co-pilot for an open-source team shipping packages across npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub.\n\n' +
+      'Personality: direct, warm, concise. Talk like a smart teammate on a call — not a report generator. ' +
+      'Lead with the insight, skip the preamble. Two to three sentences is your sweet spot. ' +
+      'Use numbers from the data when they matter, but don\'t recite tables back. ' +
+      'If you spot something worth flagging, just say it. ' +
+      'If you don\'t know, say so — no filler.\n\n' +
+      'You can also just chat. Not every question is about data.\n\n' +
+      'CURRENT PORTFOLIO DATA:\n' + rawCtx;
 
     // ── localStorage persistence ──
     function loadHistory() {
@@ -2499,7 +2563,7 @@ const chatContext = !missing && data ? JSON.stringify({
       if (history.length === 0) {
         var ph = document.createElement('div');
         ph.className = 'text-sm text-dim text-center py-8';
-        ph.textContent = 'Ask anything about your registry stats, package trends, or release strategy.';
+        ph.textContent = 'Hey — ask me anything about your numbers, trends, or what to ship next.';
         msgContainer.appendChild(ph);
         return;
       }
@@ -2511,6 +2575,15 @@ const chatContext = !missing && data ? JSON.stringify({
         bubble.className = msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai';
         bubble.textContent = msg.content;
         row.appendChild(bubble);
+        if (msg.role === 'assistant' && voiceReady) {
+          var speakBtn = document.createElement('button');
+          speakBtn.className = 'voice-speak-btn ml-1 self-end text-dim hover:text-heading transition-colors';
+          speakBtn.title = 'Speak this response';
+          speakBtn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M11 5L6 9H2v6h4l5 4V5z"></path></svg>';
+          speakBtn.setAttribute('data-text', msg.content);
+          speakBtn.addEventListener('click', function () { speakText(this.getAttribute('data-text')); });
+          row.appendChild(speakBtn);
+        }
         msgContainer.appendChild(row);
       }
       msgContainer.scrollTop = msgContainer.scrollHeight;
@@ -2616,7 +2689,7 @@ const chatContext = !missing && data ? JSON.stringify({
       msgContainer.scrollTop = msgContainer.scrollHeight;
 
       // Build messages: system + last 20 turns
-      var msgs = [{ role: 'system', content: SYSTEM }].concat(history.slice(-20));
+      var msgs = [{ role: 'system', content: SYSTEM + ghContext }].concat(history.slice(-20));
 
       var model = modelSelect.value;
       try { localStorage.setItem(STORAGE_MODEL, model); } catch (e) {}
@@ -2630,9 +2703,9 @@ const chatContext = !missing && data ? JSON.stringify({
           stream: true,
           keep_alive: '30m',
           options: {
-            num_ctx: 4096,
+            num_ctx: 8192,
             temperature: 0.7,
-            num_predict: 1024
+            num_predict: 512
           }
         })
       }).then(function (resp) {
@@ -2659,6 +2732,15 @@ const chatContext = !missing && data ? JSON.stringify({
               if (fullText) {
                 history.push({ role: 'assistant', content: fullText });
                 saveHistory();
+                if (voiceReady) {
+                  var spk = document.createElement('button');
+                  spk.className = 'voice-speak-btn ml-1 self-end text-dim hover:text-heading transition-colors';
+                  spk.title = 'Speak this response';
+                  spk.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M11 5L6 9H2v6h4l5 4V5z"></path></svg>';
+                  spk.setAttribute('data-text', fullText);
+                  spk.addEventListener('click', function () { speakText(this.getAttribute('data-text')); });
+                  aiRow.appendChild(spk);
+                }
               }
               sending = false;
               chatSend.disabled = false;
@@ -2718,6 +2800,181 @@ const chatContext = !missing && data ? JSON.stringify({
     });
     modelSelect.addEventListener('change', function () {
       try { localStorage.setItem(STORAGE_MODEL, modelSelect.value); } catch (e) {}
+    });
+
+    // ── Voice integration ──
+    var VOICE_BASE = 'http://localhost:11435';
+    var voiceReady = false;
+    var voiceSessionId = null;
+    var voiceControls = document.getElementById('voice-controls');
+    var voiceSelect = document.getElementById('voice-select');
+    var voiceDot = document.getElementById('voice-dot');
+
+    function checkVoiceServer() {
+      fetch(VOICE_BASE + '/health', { signal: AbortSignal.timeout(3000) })
+        .then(function (r) { return r.json(); })
+        .then(function () {
+          voiceReady = true;
+          if (voiceControls) voiceControls.classList.remove('hidden');
+          initVoiceSession();
+        })
+        .catch(function () { voiceReady = false; });
+    }
+
+    function initVoiceSession() {
+      fetch(VOICE_BASE + '/mcp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {
+          protocolVersion: '2025-03-26',
+          capabilities: {},
+          clientInfo: { name: 'registry-pulse', version: '1.0.0' }
+        }})
+      }).then(function (r) {
+        voiceSessionId = r.headers.get('mcp-session-id');
+        return r.json();
+      }).then(function () {
+        // Send initialized notification
+        return fetch(VOICE_BASE + '/mcp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'mcp-session-id': voiceSessionId },
+          body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' })
+        });
+      }).catch(function () {
+        voiceReady = false;
+        if (voiceControls) voiceControls.classList.add('hidden');
+      });
+    }
+
+    function speakText(text) {
+      if (!voiceReady || !voiceSessionId) return;
+      var voice = voiceSelect ? voiceSelect.value : 'bm_george';
+      if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+      fetch(VOICE_BASE + '/mcp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'mcp-session-id': voiceSessionId },
+        body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method: 'tools/call', params: {
+          name: 'voice_speak',
+          arguments: { text: text, voice: voice, artifactMode: 'base64' }
+        }})
+      }).then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
+          var content = data && data.result && data.result.content;
+          if (!content) return;
+          for (var i = 0; i < content.length; i++) {
+            if (content[i].type === 'resource' && content[i].resource && content[i].resource.blob) {
+              var mimeType = content[i].resource.mimeType || 'audio/wav';
+              var b64 = content[i].resource.blob;
+              var byteStr = atob(b64);
+              var bytes = new Uint8Array(byteStr.length);
+              for (var j = 0; j < byteStr.length; j++) bytes[j] = byteStr.charCodeAt(j);
+              var blob = new Blob([bytes], { type: mimeType });
+              var url = URL.createObjectURL(blob);
+              var audio = new Audio(url);
+              audio.onended = function () { URL.revokeObjectURL(url); };
+              audio.play();
+              return;
+            }
+          }
+        }).catch(function () {
+          if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-rose-400';
+          setTimeout(function () {
+            if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
+          }, 2000);
+        });
+    }
+
+    checkVoiceServer();
+
+    // ── GitHub connector ──
+    var GH_PAT_KEY = 'rp-gh-pat';
+    var GH_CTX_KEY = 'rp-gh-context';
+    var ghContext = '';
+
+    var settingsBtn = document.getElementById('chat-settings-btn');
+    var settingsPanel = document.getElementById('chat-settings-panel');
+    var settingsClose = document.getElementById('chat-settings-close');
+    var ghPatInput = document.getElementById('gh-pat-input');
+    var ghPatSave = document.getElementById('gh-pat-save');
+    var ghPatStatus = document.getElementById('gh-pat-status');
+
+    if (settingsBtn) settingsBtn.addEventListener('click', function () {
+      settingsPanel.classList.toggle('hidden');
+    });
+    if (settingsClose) settingsClose.addEventListener('click', function () {
+      settingsPanel.classList.add('hidden');
+    });
+
+    function fetchGitHubOrg(pat) {
+      if (!pat) return;
+      ghPatStatus.textContent = 'Fetching org data…';
+      ghPatStatus.className = 'mt-1.5 text-xs text-dim';
+      fetch('https://api.github.com/orgs/mcp-tool-shop-org/repos?per_page=100&sort=updated', {
+        headers: { 'Authorization': 'token ' + pat, 'Accept': 'application/vnd.github.v3+json' }
+      }).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      }).then(function (repos) {
+        var summary = repos.map(function (r) {
+          return r.name + ' — ' + (r.description || 'no description') +
+            ' | stars:' + r.stargazers_count + ' forks:' + r.forks_count +
+            ' issues:' + r.open_issues_count + ' lang:' + (r.language || 'n/a');
+        }).join('\n');
+        ghContext = '\n\nGITHUB ORG DATA (mcp-tool-shop-org, ' + repos.length + ' repos):\n' + summary;
+        try { localStorage.setItem(GH_CTX_KEY, ghContext); } catch (e) {}
+        ghPatStatus.textContent = 'Connected — ' + repos.length + ' repos loaded.';
+        ghPatStatus.className = 'mt-1.5 text-xs text-emerald-400';
+      }).catch(function (err) {
+        ghContext = '';
+        try { localStorage.removeItem(GH_CTX_KEY); } catch (e) {}
+        ghPatStatus.textContent = 'Error: ' + err.message;
+        ghPatStatus.className = 'mt-1.5 text-xs text-rose-400';
+      });
+    }
+
+    if (ghPatSave) ghPatSave.addEventListener('click', function () {
+      var pat = ghPatInput.value.trim();
+      if (!pat) return;
+      try { localStorage.setItem(GH_PAT_KEY, pat); } catch (e) {}
+      fetchGitHubOrg(pat);
+    });
+
+    // Load saved PAT + cached context on init
+    (function () {
+      var savedPat = '';
+      try { savedPat = localStorage.getItem(GH_PAT_KEY) || ''; } catch (e) {}
+      if (savedPat && ghPatInput) ghPatInput.value = savedPat;
+      try { ghContext = localStorage.getItem(GH_CTX_KEY) || ''; } catch (e) {}
+      if (savedPat) fetchGitHubOrg(savedPat);
+    })();
+
+    // ── Fullscreen toggle ──
+    var chatSection = document.getElementById('chat-section');
+    var fsBtn = document.getElementById('chat-fullscreen-btn');
+    var expandIcon = document.getElementById('chat-expand-icon');
+    var collapseIcon = document.getElementById('chat-collapse-icon');
+    var isFullscreen = false;
+
+    function toggleFullscreen() {
+      isFullscreen = !isFullscreen;
+      if (isFullscreen) {
+        chatSection.classList.add('chat-fullscreen');
+        expandIcon.classList.add('hidden');
+        collapseIcon.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      } else {
+        chatSection.classList.remove('chat-fullscreen');
+        expandIcon.classList.remove('hidden');
+        collapseIcon.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+      msgContainer.scrollTop = msgContainer.scrollHeight;
+    }
+
+    if (fsBtn) fsBtn.addEventListener('click', toggleFullscreen);
+    window.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && isFullscreen) toggleFullscreen();
     });
 
     // ── Init ──
