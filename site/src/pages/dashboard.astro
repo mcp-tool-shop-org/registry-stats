@@ -2588,6 +2588,11 @@ const chatContext = !missing && data ? JSON.stringify({
       'If you spot something worth flagging, just say it. ' +
       'If you don\'t know, say so — no filler.\n\n' +
       'You can also just chat. Not every question is about data.\n\n' +
+      'VOICE EMOTION MARKUP (use when voice output is enabled):\n' +
+      'Wrap text in emotion tags to control vocal tone. Available emotions: neutral, serious, friendly, professional, calm, joy, urgent, whisper.\n' +
+      'Example: {friendly}Hey, good news!{/friendly} {serious}But we need to watch this trend.{/serious}\n' +
+      'Use emotions naturally — don\'t overdo it. Default to no tags for simple responses. ' +
+      'Use {joy} for good news, {serious} for warnings, {friendly} for greetings, {calm} for explanations, {urgent} for alerts, {whisper} for asides.\n\n' +
       'CURRENT PORTFOLIO DATA:\n' + rawCtx;
 
     // ── localStorage persistence ──
@@ -2620,7 +2625,7 @@ const chatContext = !missing && data ? JSON.stringify({
         row.className = msg.role === 'user' ? 'flex justify-end' : 'flex justify-start';
         var bubble = document.createElement('div');
         bubble.className = msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai';
-        bubble.textContent = msg.content;
+        bubble.textContent = msg.role === 'assistant' ? msg.content.replace(/\{\/?(neutral|serious|friendly|professional|calm|joy|urgent|whisper)\}/g, '') : msg.content;
         row.appendChild(bubble);
         if (msg.role === 'assistant' && voiceReady) {
           var speakBtn = document.createElement('button');
@@ -2814,7 +2819,7 @@ const chatContext = !missing && data ? JSON.stringify({
                 var json = JSON.parse(lines[i]);
                 if (json.message && json.message.content) {
                   fullText += json.message.content;
-                  aiBubble.textContent = fullText;
+                  aiBubble.textContent = fullText.replace(/\{\/?(neutral|serious|friendly|professional|calm|joy|urgent|whisper)\}/g, '');
                   msgContainer.scrollTop = msgContainer.scrollHeight;
                 }
               } catch (e) {}
@@ -3029,7 +3034,7 @@ const chatContext = !missing && data ? JSON.stringify({
       'am_michael': 'announcer'
     };
 
-    // Strip markdown for speech
+    // Strip markdown for speech (preserves {emotion} tags for voice soundboard)
     function cleanForSpeech(text) {
       return text
         .replace(/```[\s\S]*?```/g, '')          // code blocks
@@ -3040,25 +3045,36 @@ const chatContext = !missing && data ? JSON.stringify({
         .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // links
         .replace(/^[-*]\s+/gm, '')                // bullets
         .replace(/^\d+\.\s+/gm, '')               // numbered lists
-        .replace(/[^\S\n]+/g, ' ')                   // collapse spaces (preserve newlines for chunking)
+        .replace(/[^\S\n]+/g, ' ')               // collapse spaces (preserve newlines for chunking)
         .trim();
     }
 
-    // Split into prosody-friendly chunks (paragraphs, or groups of 2-3 sentences)
+    // Check if text contains emotion tags
+    function hasEmotionTags(text) {
+      return /\{(neutral|serious|friendly|professional|calm|joy|urgent|whisper)\}/.test(text);
+    }
+
+    // Split into prosody-friendly chunks (emotion spans, paragraphs, or groups of 4 sentences)
     // Keeps enough context per chunk for natural intonation flow
     function splitChunks(text) {
-      // First try paragraph splits
+      // If text has emotion tags, split on emotion boundaries — each tagged span is a natural chunk
+      if (hasEmotionTags(text)) {
+        var emotionParts = text.split(/(?=\{(?:neutral|serious|friendly|professional|calm|joy|urgent|whisper)\})|(?<=\{\/(?:neutral|serious|friendly|professional|calm|joy|urgent|whisper)\})/);
+        var emotionChunks = emotionParts.map(function(p) { return p.replace(/\n/g, ' ').trim(); }).filter(function(p) { return p.length > 0; });
+        if (emotionChunks.length > 1) return emotionChunks;
+      }
+      // Paragraph splits
       var paragraphs = text.split(/\n{2,}/).map(function(p) { return p.replace(/\n/g, ' ').trim(); }).filter(function(p) { return p.length > 0; });
       if (paragraphs.length > 1) return paragraphs;
       // Single paragraph — if short enough, send as one chunk
       var clean = paragraphs[0] || text.replace(/\n/g, ' ').trim();
-      if (clean.length < 250) return [clean];
-      // Long single paragraph — group every 2-3 sentences
+      if (clean.length < 300) return [clean];
+      // Long single paragraph — group every 4 sentences
       var sentences = clean.match(/[^.!?]*[.!?]+[\s]?|[^.!?]+$/g);
-      if (!sentences || sentences.length <= 3) return [clean];
+      if (!sentences || sentences.length <= 4) return [clean];
       var chunks = [];
-      for (var i = 0; i < sentences.length; i += 3) {
-        chunks.push(sentences.slice(i, i + 3).join(' ').trim());
+      for (var i = 0; i < sentences.length; i += 4) {
+        chunks.push(sentences.slice(i, i + 4).join(' ').trim());
       }
       return chunks.filter(function(c) { return c.length > 0; });
     }
