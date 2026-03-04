@@ -1475,6 +1475,22 @@ const chatContext = !missing && data ? JSON.stringify({
         var c = document.getElementById(id);
         if (c && typeof Chart.getChart === 'function') { var ch = Chart.getChart(c); if (ch) ch.destroy(); }
       });
+
+      // Strip old event listeners to prevent accumulation on re-init.
+      // Clone-replace removes all listeners; fresh ones are added below.
+      ['[data-mode]', '[data-heatmode]'].forEach(function (sel) {
+        document.querySelectorAll(sel).forEach(function (btn) {
+          var clone = btn.cloneNode(true);
+          btn.parentNode.replaceChild(clone, btn);
+        });
+      });
+      // Remove old heatmap tooltip handlers
+      var hcPre = document.getElementById('chart-heatmap');
+      if (hcPre && hcPre._heatHandlers) {
+        hcPre.removeEventListener('mousemove', hcPre._heatHandlers.move);
+        hcPre.removeEventListener('mouseleave', hcPre._heatHandlers.leave);
+        hcPre._heatHandlers = null;
+      }
       var dataEl = document.getElementById('chart-data');
       if (!dataEl) return;
       var cdata;
@@ -1937,9 +1953,10 @@ const chatContext = !missing && data ? JSON.stringify({
 
         drawHeatmap();
 
-        // Tooltip on hover
+        // Tooltip on hover — use named functions stored on the canvas
+        // so they can be removed on re-init (prevents listener accumulation)
         if (heatTooltip) {
-          heatCanvas.addEventListener('mousemove', function (e) {
+          var heatMoveHandler = function (e) {
             var lay = heatCanvas._layout;
             if (!lay) return;
             var rect = heatCanvas.getBoundingClientRect();
@@ -1971,10 +1988,13 @@ const chatContext = !missing && data ? JSON.stringify({
             heatTooltip.classList.remove('hidden');
             heatTooltip.style.left = Math.min(x + 12, heatCanvas.width - 180) + 'px';
             heatTooltip.style.top = (y + 12) + 'px';
-          });
-          heatCanvas.addEventListener('mouseleave', function () {
+          };
+          var heatLeaveHandler = function () {
             heatTooltip.classList.add('hidden');
-          });
+          };
+          heatCanvas._heatHandlers = { move: heatMoveHandler, leave: heatLeaveHandler };
+          heatCanvas.addEventListener('mousemove', heatMoveHandler);
+          heatCanvas.addEventListener('mouseleave', heatLeaveHandler);
         }
 
         // Spike toggle
