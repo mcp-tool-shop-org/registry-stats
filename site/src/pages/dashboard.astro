@@ -405,7 +405,23 @@ const chatContext = !missing && data ? JSON.stringify({
               <div class="text-sm font-semibold text-heading">Data Connectors</div>
               <button id="chat-settings-close" class="text-xs text-dim hover:text-heading transition-colors">Close</button>
             </div>
-            <div class="space-y-3">
+            <div class="space-y-4">
+              <!-- Voice Server -->
+              <div>
+                <label class="block text-xs font-medium text-heading mb-1">Voice Server</label>
+                <div class="flex items-center gap-2">
+                  <span id="voice-status-dot" class="inline-block w-2 h-2 rounded-full bg-zinc-500"></span>
+                  <span id="voice-status-label" class="text-xs text-dim">Checking…</span>
+                  <button id="voice-check-btn" class="ml-auto rounded-lg border border-edge px-3 py-1.5 text-xs text-heading hover:bg-surface-strong transition-colors">Check</button>
+                </div>
+                <div id="voice-install-hint" class="hidden mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-[11px] text-dim">
+                  <p class="font-medium text-heading mb-1">Voice server not detected</p>
+                  <p class="mb-1.5">To enable voice, run this once:</p>
+                  <code class="block bg-surface-strong rounded px-2 py-1 text-[11px] text-heading select-all">PORT=11435 npx @mcptoolshop/voice-soundboard-mcp</code>
+                  <p class="mt-1.5">It auto-downloads the TTS model (~310 MB) on first run. After that, add it to startup for hands-free operation.</p>
+                </div>
+              </div>
+              <!-- GitHub PAT -->
               <div>
                 <label class="block text-xs font-medium text-heading mb-1">GitHub Personal Access Token</label>
                 <div class="flex gap-2">
@@ -2809,6 +2825,25 @@ const chatContext = !missing && data ? JSON.stringify({
     var voiceControls = document.getElementById('voice-controls');
     var voiceSelect = document.getElementById('voice-select');
     var voiceDot = document.getElementById('voice-dot');
+    var voiceStatusDot = document.getElementById('voice-status-dot');
+    var voiceStatusLabel = document.getElementById('voice-status-label');
+    var voiceInstallHint = document.getElementById('voice-install-hint');
+    var voiceCheckBtn = document.getElementById('voice-check-btn');
+
+    function updateVoiceStatus(online) {
+      if (!voiceStatusDot) return;
+      if (online) {
+        voiceStatusDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
+        voiceStatusLabel.textContent = 'Connected';
+        voiceStatusLabel.className = 'text-xs text-emerald-400';
+        if (voiceInstallHint) voiceInstallHint.classList.add('hidden');
+      } else {
+        voiceStatusDot.className = 'inline-block w-2 h-2 rounded-full bg-zinc-500';
+        voiceStatusLabel.textContent = 'Not running';
+        voiceStatusLabel.className = 'text-xs text-dim';
+        if (voiceInstallHint) voiceInstallHint.classList.remove('hidden');
+      }
+    }
 
     function checkVoiceServer() {
       fetch(VOICE_BASE + '/health', { signal: AbortSignal.timeout(3000) })
@@ -2818,16 +2853,19 @@ const chatContext = !missing && data ? JSON.stringify({
             voiceReady = true;
             if (voiceControls) voiceControls.classList.remove('hidden');
             initVoiceSession();
-            renderMessages(); // re-render to add speaker buttons
+            renderMessages();
           }
+          updateVoiceStatus(true);
         })
         .catch(function () {
           var wasReady = voiceReady;
           voiceReady = false;
           voiceSessionId = null;
           if (wasReady && voiceControls) voiceControls.classList.add('hidden');
+          updateVoiceStatus(false);
         });
     }
+    if (voiceCheckBtn) voiceCheckBtn.addEventListener('click', checkVoiceServer);
     // Retry every 15s so voice appears automatically when server starts
     setInterval(checkVoiceServer, 15000);
 
