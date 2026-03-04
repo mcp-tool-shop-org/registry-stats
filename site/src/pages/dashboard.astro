@@ -3054,29 +3054,47 @@ const chatContext = !missing && data ? JSON.stringify({
       return /\{(neutral|serious|friendly|professional|calm|joy|urgent|whisper)\}/.test(text);
     }
 
-    // Split into prosody-friendly chunks (emotion spans, paragraphs, or groups of 4 sentences)
-    // Keeps enough context per chunk for natural intonation flow
+    // Split into prosody-friendly chunks (emotion spans, paragraphs, or single chunk)
+    // Sends whole text as one chunk when possible for best prosody; only splits on
+    // paragraph boundaries or emotion tag boundaries for very long responses.
     function splitChunks(text) {
-      // If text has emotion tags, split on emotion boundaries — each tagged span is a natural chunk
+      // If text has emotion tags, extract each {emotion}...{/emotion} span as a chunk
       if (hasEmotionTags(text)) {
-        var emotionParts = text.split(/(?=\{(?:neutral|serious|friendly|professional|calm|joy|urgent|whisper)\})|(?<=\{\/(?:neutral|serious|friendly|professional|calm|joy|urgent|whisper)\})/);
-        var emotionChunks = emotionParts.map(function(p) { return p.replace(/\n/g, ' ').trim(); }).filter(function(p) { return p.length > 0; });
-        if (emotionChunks.length > 1) return emotionChunks;
+        var emotionChunks = [];
+        var emotionRe = /(\{(?:neutral|serious|friendly|professional|calm|joy|urgent|whisper)\}[\s\S]*?\{\/(?:neutral|serious|friendly|professional|calm|joy|urgent|whisper)\})/g;
+        var lastIdx = 0;
+        var m;
+        while ((m = emotionRe.exec(text)) !== null) {
+          // Untagged text before this emotion span
+          if (m.index > lastIdx) {
+            var before = text.substring(lastIdx, m.index).replace(/\n/g, ' ').trim();
+            if (before) emotionChunks.push(before);
+          }
+          emotionChunks.push(m[1].replace(/\n/g, ' ').trim());
+          lastIdx = emotionRe.lastIndex;
+        }
+        // Trailing untagged text
+        if (lastIdx < text.length) {
+          var after = text.substring(lastIdx).replace(/\n/g, ' ').trim();
+          if (after) emotionChunks.push(after);
+        }
+        if (emotionChunks.length > 0) {
+          console.log('[Pulse voice] Emotion chunks:', emotionChunks.length);
+          return emotionChunks;
+        }
       }
-      // Paragraph splits
+      // No emotion tags — send as one chunk if under limit (best prosody)
+      var flat = text.replace(/\n/g, ' ').replace(/\s{2,}/g, ' ').trim();
+      if (flat.length < 600) return [flat];
+      // Long text — split on paragraph boundaries
       var paragraphs = text.split(/\n{2,}/).map(function(p) { return p.replace(/\n/g, ' ').trim(); }).filter(function(p) { return p.length > 0; });
-      if (paragraphs.length > 1) return paragraphs;
-      // Single paragraph — if short enough, send as one chunk
-      var clean = paragraphs[0] || text.replace(/\n/g, ' ').trim();
-      if (clean.length < 300) return [clean];
-      // Long single paragraph — group every 4 sentences
-      var sentences = clean.match(/[^.!?]*[.!?]+[\s]?|[^.!?]+$/g);
-      if (!sentences || sentences.length <= 4) return [clean];
-      var chunks = [];
-      for (var i = 0; i < sentences.length; i += 4) {
-        chunks.push(sentences.slice(i, i + 4).join(' ').trim());
+      if (paragraphs.length > 1) {
+        console.log('[Pulse voice] Paragraph chunks:', paragraphs.length);
+        return paragraphs;
       }
-      return chunks.filter(function(c) { return c.length > 0; });
+      // Single long paragraph — send whole (let the backend handle it)
+      console.log('[Pulse voice] Single chunk, length:', flat.length);
+      return [flat];
     }
 
     // Synthesize one chunk and return decoded AudioBuffer
@@ -3127,6 +3145,7 @@ const chatContext = !missing && data ? JSON.stringify({
       var preset = VOICE_PRESETS[voiceId] || 'narrator';
       var cleaned = cleanForSpeech(text);
       var sentences = splitChunks(cleaned);
+      console.log('[Pulse voice] Speaking', sentences.length, 'chunks, preset:', preset, 'hasEmotion:', hasEmotionTags(cleaned));
       if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse';
 
       // Unlock AudioContext on user gesture (before async fetch)
@@ -3141,15 +3160,19 @@ const chatContext = !missing && data ? JSON.stringify({
           return;
         }
         var sentence = sentences[i++];
+        console.log('[Pulse voice] Synthesizing chunk', i, '/', sentences.length, '(' + sentence.length + ' chars)');
         synthesizeChunk(sentence, preset).then(function (buffer) {
           if (gen !== speakGeneration) return; // cancelled
           if (buffer) {
+            console.log('[Pulse voice] Chunk', i, 'audio received, enqueueing');
             enqueueAudio(buffer);
+          } else {
+            console.warn('[Pulse voice] Chunk', i, 'returned null');
           }
-          nextSentence(); // start next sentence while current one plays
+          nextSentence(); // start next chunk while current one plays
         }).catch(function (e) {
-          console.error('[Pulse voice] Chunk failed:', e);
-          nextSentence(); // skip failed sentence, continue with next
+          console.error('[Pulse voice] Chunk', i, 'failed:', e);
+          nextSentence(); // skip failed, continue with next
         });
       }
       nextSentence();
