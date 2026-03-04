@@ -2588,11 +2588,6 @@ const chatContext = !missing && data ? JSON.stringify({
       'If you spot something worth flagging, just say it. ' +
       'If you don\'t know, say so — no filler.\n\n' +
       'You can also just chat. Not every question is about data.\n\n' +
-      'VOICE EMOTION MARKUP (use when voice output is enabled):\n' +
-      'Wrap text in emotion tags to control vocal tone. Available emotions: neutral, serious, friendly, professional, calm, joy, urgent, whisper.\n' +
-      'Example: {friendly}Hey, good news!{/friendly} {serious}But we need to watch this trend.{/serious}\n' +
-      'Use emotions naturally — don\'t overdo it. Default to no tags for simple responses. ' +
-      'Use {joy} for good news, {serious} for warnings, {friendly} for greetings, {calm} for explanations, {urgent} for alerts, {whisper} for asides.\n\n' +
       'CURRENT PORTFOLIO DATA:\n' + rawCtx;
 
     // ── localStorage persistence ──
@@ -2625,7 +2620,7 @@ const chatContext = !missing && data ? JSON.stringify({
         row.className = msg.role === 'user' ? 'flex justify-end' : 'flex justify-start';
         var bubble = document.createElement('div');
         bubble.className = msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai';
-        bubble.textContent = msg.role === 'assistant' ? msg.content.replace(/\{\/?(neutral|serious|friendly|professional|calm|joy|urgent|whisper)\}/g, '') : msg.content;
+        bubble.textContent = msg.content;
         row.appendChild(bubble);
         if (msg.role === 'assistant' && voiceReady) {
           var speakBtn = document.createElement('button');
@@ -2893,7 +2888,7 @@ const chatContext = !missing && data ? JSON.stringify({
                 var json = JSON.parse(lines[i]);
                 if (json.message && json.message.content) {
                   fullText += json.message.content;
-                  aiBubble.textContent = fullText.replace(/\{\/?(neutral|serious|friendly|professional|calm|joy|urgent|whisper)\}/g, '');
+                  aiBubble.textContent = fullText;
                   msgContainer.scrollTop = msgContainer.scrollHeight;
                 }
               } catch (e) {}
@@ -3121,46 +3116,13 @@ const chatContext = !missing && data ? JSON.stringify({
         .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // links
         .replace(/^[-*]\s+/gm, '')                // bullets
         .replace(/^\d+\.\s+/gm, '')               // numbered lists
-        .replace(/\{\/?(neutral|serious|friendly|professional|calm|joy|urgent|whisper)\}/g, '') // emotion tags
+        .replace(/\{\/?[a-z_]+\}/g, '')              // any {tag} or {/tag} markup
         .replace(/[^\S\n]+/g, ' ')               // collapse spaces
         .trim();
     }
 
-    // Check if text contains emotion tags
-    function hasEmotionTags(text) {
-      return /\{(neutral|serious|friendly|professional|calm|joy|urgent|whisper)\}/.test(text);
-    }
-
-    // Split into prosody-friendly chunks (emotion spans, paragraphs, or single chunk)
-    // Sends whole text as one chunk when possible for best prosody; only splits on
-    // paragraph boundaries or emotion tag boundaries for very long responses.
+    // Split into prosody-friendly chunks (paragraphs or 3-sentence groups)
     function splitChunks(text) {
-      // If text has emotion tags, extract each {emotion}...{/emotion} span as a chunk
-      if (hasEmotionTags(text)) {
-        var emotionChunks = [];
-        var emotionRe = /(\{(?:neutral|serious|friendly|professional|calm|joy|urgent|whisper)\}[\s\S]*?\{\/(?:neutral|serious|friendly|professional|calm|joy|urgent|whisper)\})/g;
-        var lastIdx = 0;
-        var m;
-        while ((m = emotionRe.exec(text)) !== null) {
-          // Untagged text before this emotion span
-          if (m.index > lastIdx) {
-            var before = text.substring(lastIdx, m.index).replace(/\n/g, ' ').trim();
-            if (before) emotionChunks.push(before);
-          }
-          emotionChunks.push(m[1].replace(/\n/g, ' ').trim());
-          lastIdx = emotionRe.lastIndex;
-        }
-        // Trailing untagged text
-        if (lastIdx < text.length) {
-          var after = text.substring(lastIdx).replace(/\n/g, ' ').trim();
-          if (after) emotionChunks.push(after);
-        }
-        if (emotionChunks.length > 0) {
-          console.log('[Pulse voice] Emotion chunks:', emotionChunks.length);
-          return emotionChunks;
-        }
-      }
-      // No emotion tags — flatten and check length
       var flat = text.replace(/\n/g, ' ').replace(/\s{2,}/g, ' ').trim();
       if (flat.length < 300) return [flat];
       // Split into 3-sentence chunks for faster first-play
@@ -3223,7 +3185,7 @@ const chatContext = !missing && data ? JSON.stringify({
       var preset = VOICE_PRESETS[voiceId] || 'narrator';
       var cleaned = cleanForSpeech(text);
       var sentences = splitChunks(cleaned);
-      console.log('[Pulse voice] Speaking', sentences.length, 'chunks, preset:', preset, 'hasEmotion:', hasEmotionTags(cleaned));
+      console.log('[Pulse voice] Speaking', sentences.length, 'chunks, preset:', preset);
       if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse';
 
       // Unlock AudioContext on user gesture (before async fetch)
