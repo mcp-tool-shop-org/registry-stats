@@ -436,6 +436,24 @@ const chatContext = !missing && data ? JSON.stringify({
                 <div id="gh-pat-status" class="mt-1.5 text-xs text-dim"></div>
                 <p class="mt-1 text-[11px] text-dim">Read-only token for <code class="text-heading">mcp-tool-shop-org</code>. Stored locally, never sent anywhere except GitHub API.</p>
               </div>
+              <!-- Web Search -->
+              <div>
+                <label class="block text-xs font-medium text-heading mb-1">Web Search</label>
+                <div class="flex items-center gap-2 mb-1.5">
+                  <span id="wiki-status-dot" class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+                  <span class="text-xs text-emerald-400">Wikipedia — always available</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span id="searx-status-dot" class="inline-block w-2 h-2 rounded-full bg-zinc-500"></span>
+                  <span id="searx-status-label" class="text-xs text-dim">SearXNG — checking…</span>
+                </div>
+                <div class="flex gap-2 mt-1.5">
+                  <input id="searx-url-input" type="text" placeholder="http://localhost:8888" value="http://localhost:8888"
+                    class="flex-1 rounded-lg border border-edge bg-surface-strong px-3 py-1.5 text-xs text-heading placeholder:text-dim focus:outline-none focus:ring-2 focus:ring-accent/40" />
+                  <button id="searx-check-btn" class="rounded-lg bg-action text-action-text px-3 py-1.5 text-xs font-medium hover:bg-action-hover transition-colors">Check</button>
+                </div>
+                <p class="mt-1 text-[11px] text-dim">Wikipedia works automatically for knowledge questions. Install <a href="https://docs.searxng.org/admin/installation-docker.html" target="_blank" class="text-accent hover:underline">SearXNG</a> locally for broader web search.</p>
+              </div>
             </div>
           </div>
 
@@ -2717,13 +2735,19 @@ const chatContext = !missing && data ? JSON.stringify({
       msgContainer.appendChild(typingRow);
       msgContainer.scrollTop = msgContainer.scrollHeight;
 
-      // Build messages: system + last 20 turns
-      var msgs = [{ role: 'system', content: SYSTEM + ghContext }].concat(history.slice(-20));
+      // Search the web if the question looks like a knowledge query
+      var searchQuery = detectSearchQuery(text);
+      var searchPromise = searchQuery ? webSearch(searchQuery) : Promise.resolve('');
+      if (searchQuery && chatProgressLabel) chatProgressLabel.textContent = 'Searching…';
 
       var model = modelSelect.value;
       try { localStorage.setItem(STORAGE_MODEL, model); } catch (e) {}
 
-      fetch(OLLAMA_BASE + '/api/chat', {
+      searchPromise.then(function (searchContext) {
+      // Build messages: system + last 20 turns + search context
+      var msgs = [{ role: 'system', content: SYSTEM + ghContext + searchContext }].concat(history.slice(-20));
+
+      return fetch(OLLAMA_BASE + '/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2817,6 +2841,7 @@ const chatContext = !missing && data ? JSON.stringify({
         if (sendSpinner) sendSpinner.classList.add('hidden');
         if (sendLabel) sendLabel.textContent = 'Send';
       });
+      }); // end searchPromise.then
     }
 
     // ── Event listeners ──
@@ -2967,7 +2992,6 @@ const chatContext = !missing && data ? JSON.stringify({
     var voiceAudioCtx = null;
     var voiceQueue = [];       // queued AudioBuffers
     var voicePlaying = false;  // true while a buffer is playing
-    var voiceCancelled = false; // set true to stop queue
 
     function decodeBase64Audio(b64) {
       var byteStr = atob(b64);
@@ -2978,7 +3002,7 @@ const chatContext = !missing && data ? JSON.stringify({
     }
 
     function playNextInQueue() {
-      if (voiceCancelled || voiceQueue.length === 0) {
+      if (voiceQueue.length === 0) {
         voicePlaying = false;
         if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
         return;
@@ -3061,6 +3085,8 @@ const chatContext = !missing && data ? JSON.stringify({
         });
     }
 
+    var speakGeneration = 0; // incremented on each speakText call to cancel previous
+
     function speakText(text) {
       if (!voiceReady || !voiceSessionId) {
         console.warn('[Pulse voice] Not ready:', { voiceReady: voiceReady, voiceSessionId: voiceSessionId });
@@ -3068,9 +3094,9 @@ const chatContext = !missing && data ? JSON.stringify({
       }
 
       // Cancel any in-progress speech
-      voiceCancelled = true;
+      var gen = ++speakGeneration;
       voiceQueue = [];
-      setTimeout(function () { voiceCancelled = false; }, 50);
+      voicePlaying = false;
 
       var voiceId = voiceSelect ? voiceSelect.value : 'bm_george';
       var preset = VOICE_PRESETS[voiceId] || 'narrator';
@@ -3082,26 +3108,26 @@ const chatContext = !missing && data ? JSON.stringify({
       if (!voiceAudioCtx) voiceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (voiceAudioCtx.state === 'suspended') voiceAudioCtx.resume();
 
-      // Fire all sentences in parallel — each enqueues its audio as soon as it's ready
-      // But we need them to play IN ORDER, so we use a chain
-      var chain = Promise.resolve();
-      sentences.forEach(function (sentence) {
-        // Start synthesis immediately (in parallel)
-        var bufferPromise = synthesizeChunk(sentence, preset);
-        // But enqueue in order via chain
-        chain = chain.then(function () {
-          return bufferPromise;
-        }).then(function (buffer) {
-          if (buffer && !voiceCancelled) enqueueAudio(buffer);
+      // Sequential synthesis: send one sentence at a time to avoid overwhelming the backend
+      var i = 0;
+      function nextSentence() {
+        if (gen !== speakGeneration || i >= sentences.length) {
+          if (voiceDot && gen === speakGeneration) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
+          return;
+        }
+        var sentence = sentences[i++];
+        synthesizeChunk(sentence, preset).then(function (buffer) {
+          if (gen !== speakGeneration) return; // cancelled
+          if (buffer) {
+            enqueueAudio(buffer);
+          }
+          nextSentence(); // start next sentence while current one plays
+        }).catch(function (e) {
+          console.error('[Pulse voice] Chunk failed:', e);
+          nextSentence(); // skip failed sentence, continue with next
         });
-      });
-      chain.catch(function (e) {
-        console.error('[Pulse voice] Speak failed:', e);
-        if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-rose-400';
-        setTimeout(function () {
-          if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
-        }, 2000);
-      });
+      }
+      nextSentence();
     }
 
     checkVoiceServer();
@@ -3167,6 +3193,120 @@ const chatContext = !missing && data ? JSON.stringify({
       try { ghContext = localStorage.getItem(GH_CTX_KEY) || ''; } catch (e) {}
       if (savedPat) fetchGitHubOrg(savedPat);
     })();
+
+    // ── Web Search (Wikipedia + SearXNG) ──
+    var SEARX_URL_KEY = 'rp-searx-url';
+    var searxAvailable = false;
+    var searxBaseUrl = 'http://localhost:8888';
+    var searxStatusDot = document.getElementById('searx-status-dot');
+    var searxStatusLabel = document.getElementById('searx-status-label');
+    var searxUrlInput = document.getElementById('searx-url-input');
+    var searxCheckBtn = document.getElementById('searx-check-btn');
+
+    try { var savedSearx = localStorage.getItem(SEARX_URL_KEY); if (savedSearx) { searxBaseUrl = savedSearx; if (searxUrlInput) searxUrlInput.value = savedSearx; } } catch (e) {}
+
+    function checkSearxng() {
+      fetch(searxBaseUrl + '/search?q=test&format=json', { signal: AbortSignal.timeout(3000) })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data && data.results) {
+            searxAvailable = true;
+            if (searxStatusDot) searxStatusDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
+            if (searxStatusLabel) { searxStatusLabel.textContent = 'SearXNG — connected'; searxStatusLabel.className = 'text-xs text-emerald-400'; }
+          }
+        }).catch(function () {
+          searxAvailable = false;
+          if (searxStatusDot) searxStatusDot.className = 'inline-block w-2 h-2 rounded-full bg-zinc-500';
+          if (searxStatusLabel) { searxStatusLabel.textContent = 'SearXNG — not running'; searxStatusLabel.className = 'text-xs text-dim'; }
+        });
+    }
+    if (searxCheckBtn) searxCheckBtn.addEventListener('click', function () {
+      searxBaseUrl = (searxUrlInput ? searxUrlInput.value.trim() : '') || 'http://localhost:8888';
+      try { localStorage.setItem(SEARX_URL_KEY, searxBaseUrl); } catch (e) {}
+      checkSearxng();
+    });
+    checkSearxng();
+
+    // Detect if a message needs web search
+    function detectSearchQuery(text) {
+      var lower = text.toLowerCase();
+      // Skip short messages and portfolio-specific questions
+      if (lower.length < 10) return null;
+      var portfolioWords = ['download', 'package', 'npm', 'pypi', 'nuget', 'vscode', 'docker', 'registry', 'star', 'fork', 'repo', 'trend', 'growth', 'leaderboard', 'portfolio'];
+      var portfolioHits = 0;
+      for (var p = 0; p < portfolioWords.length; p++) {
+        if (lower.indexOf(portfolioWords[p]) !== -1) portfolioHits++;
+      }
+      if (portfolioHits >= 2) return null; // likely a portfolio question
+      // Check for search triggers
+      var triggers = ['what is', 'what are', 'who is', 'who was', 'tell me about', 'explain', 'define', 'how does', 'how do', 'why is', 'why do', 'search for', 'look up', 'wiki', 'what does', 'when was', 'when did', 'where is'];
+      for (var t = 0; t < triggers.length; t++) {
+        if (lower.indexOf(triggers[t]) !== -1) {
+          // Extract the search query (text after the trigger)
+          var idx = lower.indexOf(triggers[t]);
+          var query = text.substring(idx + triggers[t].length).replace(/[?.!]+$/, '').trim();
+          return query || text;
+        }
+      }
+      return null;
+    }
+
+    // Search Wikipedia (CORS-enabled, no API key)
+    function searchWikipedia(query) {
+      var url = 'https://en.wikipedia.org/w/api.php?action=opensearch&search=' + encodeURIComponent(query) + '&limit=3&format=json&origin=*';
+      return fetch(url, { signal: AbortSignal.timeout(4000) })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          // data = [query, [titles], [descriptions], [urls]]
+          if (!data[1] || data[1].length === 0) return '';
+          // Get extracts for top results
+          var titles = data[1].slice(0, 2).join('|');
+          var extractUrl = 'https://en.wikipedia.org/w/api.php?action=query&titles=' + encodeURIComponent(titles) + '&prop=extracts&exintro=1&explaintext=1&exlimit=2&format=json&origin=*';
+          return fetch(extractUrl, { signal: AbortSignal.timeout(4000) })
+            .then(function (r2) { return r2.json(); })
+            .then(function (d2) {
+              var pages = d2 && d2.query && d2.query.pages;
+              if (!pages) return '';
+              var results = [];
+              var keys = Object.keys(pages);
+              for (var k = 0; k < keys.length; k++) {
+                var page = pages[keys[k]];
+                if (page.extract) {
+                  var extract = page.extract.length > 300 ? page.extract.substring(0, 300) + '…' : page.extract;
+                  results.push(page.title + ': ' + extract);
+                }
+              }
+              return results.length > 0 ? '\n\nWEB SEARCH (Wikipedia) for "' + query + '":\n' + results.join('\n\n') : '';
+            });
+        }).catch(function () { return ''; });
+    }
+
+    // Search SearXNG (local meta-search)
+    function searchSearxng(query) {
+      if (!searxAvailable) return Promise.resolve('');
+      var url = searxBaseUrl + '/search?q=' + encodeURIComponent(query) + '&format=json';
+      return fetch(url, { signal: AbortSignal.timeout(5000) })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.results || data.results.length === 0) return '';
+          var results = [];
+          var limit = Math.min(data.results.length, 5);
+          for (var i = 0; i < limit; i++) {
+            var r = data.results[i];
+            var snippet = (r.content || r.snippet || '').substring(0, 200);
+            results.push('[' + (i + 1) + '] ' + r.title + ' (' + r.url + '): ' + snippet);
+          }
+          return '\n\nWEB SEARCH RESULTS for "' + query + '":\n' + results.join('\n');
+        }).catch(function () { return ''; });
+    }
+
+    // Main search function — prefers SearXNG, falls back to Wikipedia
+    function webSearch(query) {
+      if (searxAvailable) {
+        return searchSearxng(query);
+      }
+      return searchWikipedia(query);
+    }
 
     // ── Fullscreen toggle ──
     var chatSection = document.getElementById('chat-section');
