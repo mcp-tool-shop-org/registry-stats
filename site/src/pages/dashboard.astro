@@ -2814,12 +2814,22 @@ const chatContext = !missing && data ? JSON.stringify({
       fetch(VOICE_BASE + '/health', { signal: AbortSignal.timeout(3000) })
         .then(function (r) { return r.json(); })
         .then(function () {
-          voiceReady = true;
-          if (voiceControls) voiceControls.classList.remove('hidden');
-          initVoiceSession();
+          if (!voiceReady) {
+            voiceReady = true;
+            if (voiceControls) voiceControls.classList.remove('hidden');
+            initVoiceSession();
+            renderMessages(); // re-render to add speaker buttons
+          }
         })
-        .catch(function () { voiceReady = false; });
+        .catch(function () {
+          var wasReady = voiceReady;
+          voiceReady = false;
+          voiceSessionId = null;
+          if (wasReady && voiceControls) voiceControls.classList.add('hidden');
+        });
     }
+    // Retry every 15s so voice appears automatically when server starts
+    setInterval(checkVoiceServer, 15000);
 
     function initVoiceSession() {
       fetch(VOICE_BASE + '/mcp', {
