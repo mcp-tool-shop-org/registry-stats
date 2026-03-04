@@ -455,6 +455,15 @@ const chatContext = !missing && data ? JSON.stringify({
             </div>
           </div>
 
+          <!-- Voice banner — visible when server is offline -->
+          <div id="voice-banner" class="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2 text-xs text-dim">
+              <svg class="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M11 5L6 9H2v6h4l5 4V5z"></path></svg>
+              <span>Voice is available but the server isn't running.</span>
+            </div>
+            <button id="voice-banner-help" class="flex-shrink-0 rounded-lg border border-edge px-3 py-1 text-xs text-heading hover:bg-surface-strong transition-colors">How to start</button>
+          </div>
+
           <div class="mt-3 flex gap-2">
             <input id="chat-input" type="text" placeholder="What's on your mind?"
               class="flex-1 rounded-xl border border-edge bg-surface px-4 py-2.5 text-sm text-heading placeholder:text-dim focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-50"
@@ -2829,19 +2838,35 @@ const chatContext = !missing && data ? JSON.stringify({
     var voiceStatusLabel = document.getElementById('voice-status-label');
     var voiceInstallHint = document.getElementById('voice-install-hint');
     var voiceCheckBtn = document.getElementById('voice-check-btn');
+    var voiceBanner = document.getElementById('voice-banner');
+    var voiceBannerHelp = document.getElementById('voice-banner-help');
+
+    if (voiceBannerHelp) voiceBannerHelp.addEventListener('click', function () {
+      if (settingsPanel) settingsPanel.classList.remove('hidden');
+    });
 
     function updateVoiceStatus(online) {
-      if (!voiceStatusDot) return;
-      if (online) {
-        voiceStatusDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
-        voiceStatusLabel.textContent = 'Connected';
-        voiceStatusLabel.className = 'text-xs text-emerald-400';
-        if (voiceInstallHint) voiceInstallHint.classList.add('hidden');
-      } else {
-        voiceStatusDot.className = 'inline-block w-2 h-2 rounded-full bg-zinc-500';
-        voiceStatusLabel.textContent = 'Not running';
-        voiceStatusLabel.className = 'text-xs text-dim';
-        if (voiceInstallHint) voiceInstallHint.classList.remove('hidden');
+      // Update settings panel
+      if (voiceStatusDot) {
+        if (online) {
+          voiceStatusDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
+          voiceStatusLabel.textContent = 'Connected';
+          voiceStatusLabel.className = 'text-xs text-emerald-400';
+          if (voiceInstallHint) voiceInstallHint.classList.add('hidden');
+        } else {
+          voiceStatusDot.className = 'inline-block w-2 h-2 rounded-full bg-zinc-500';
+          voiceStatusLabel.textContent = 'Not running';
+          voiceStatusLabel.className = 'text-xs text-dim';
+          if (voiceInstallHint) voiceInstallHint.classList.remove('hidden');
+        }
+      }
+      // Update banner
+      if (voiceBanner) {
+        if (online) {
+          voiceBanner.classList.add('hidden');
+        } else {
+          voiceBanner.classList.remove('hidden');
+        }
       }
     }
 
