@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.0.0] - 2026-03-04
+
+### Added
+- **Pulse AI co-pilot** — complete rewrite of the AI chat into a named personality ("Pulse") with sharp, warm, concise voice
+- **Streaming voice synthesis** — voice starts speaking as sentences arrive from the LLM, not after the full response completes
+- **Web search** — Wikipedia API (zero setup, CORS-enabled) and optional SearXNG local Docker for broader web results; smart intent detection skips portfolio questions
+- **Voice output** — 4 voices via mcp-voice-soundboard (George/Narrator, Bella/Assistant, Emma/Storyteller, Michael/Announcer) with auto-speak toggle
+- **Fullscreen mode** — distraction-free chat with keyboard shortcut
+- **GitHub org data connector** — optional PAT for org-level context injection (repos, stars, languages)
+- **Auto-speak toggle** — persisted in localStorage, speaks responses automatically when enabled
+
+### Changed
+- Dashboard upgraded from "Registry Assistant" to "Pulse AI co-pilot" with richer system prompt and portfolio-aware context
+- Voice playback uses Web Audio API (AudioContext) for Chrome autoplay policy compliance
+- README and landing page updated; translations refreshed for all 7 languages
+
+## [2.3.0] - 2026-03-03
+
+### Changed
+- Version bump for npm publish; MSIX desktop build
+
 ## [2.2.0] - 2026-03-02
 
 ### Added
