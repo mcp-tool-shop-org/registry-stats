@@ -2894,10 +2894,12 @@ const chatContext = !missing && data ? JSON.stringify({
     // Retry every 15s so voice appears automatically when server starts
     setInterval(checkVoiceServer, 15000);
 
+    var MCP_HEADERS = { 'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream' };
+
     function initVoiceSession() {
       fetch(VOICE_BASE + '/mcp', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: MCP_HEADERS,
         body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {
           protocolVersion: '2025-03-26',
           capabilities: {},
@@ -2908,9 +2910,10 @@ const chatContext = !missing && data ? JSON.stringify({
         return r.json();
       }).then(function () {
         // Send initialized notification
+        var h = Object.assign({}, MCP_HEADERS, { 'mcp-session-id': voiceSessionId });
         return fetch(VOICE_BASE + '/mcp', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'mcp-session-id': voiceSessionId },
+          headers: h,
           body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' })
         });
       }).catch(function () {
@@ -2923,9 +2926,10 @@ const chatContext = !missing && data ? JSON.stringify({
       if (!voiceReady || !voiceSessionId) return;
       var voice = voiceSelect ? voiceSelect.value : 'bm_george';
       if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+      var speakHeaders = Object.assign({}, MCP_HEADERS, { 'mcp-session-id': voiceSessionId });
       fetch(VOICE_BASE + '/mcp', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'mcp-session-id': voiceSessionId },
+        headers: speakHeaders,
         body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method: 'tools/call', params: {
           name: 'voice_speak',
           arguments: { text: text, voice: voice, artifactMode: 'base64' }
