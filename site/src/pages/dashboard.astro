@@ -3110,7 +3110,7 @@ const chatContext = !missing && data ? JSON.stringify({
       'am_michael': 'announcer'
     };
 
-    // Strip markdown for speech (preserves {emotion} tags for voice soundboard)
+    // Strip markdown and emotion tags for speech
     function cleanForSpeech(text) {
       return text
         .replace(/```[\s\S]*?```/g, '')          // code blocks
@@ -3121,7 +3121,8 @@ const chatContext = !missing && data ? JSON.stringify({
         .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // links
         .replace(/^[-*]\s+/gm, '')                // bullets
         .replace(/^\d+\.\s+/gm, '')               // numbered lists
-        .replace(/[^\S\n]+/g, ' ')               // collapse spaces (preserve newlines for chunking)
+        .replace(/\{\/?(neutral|serious|friendly|professional|calm|joy|urgent|whisper)\}/g, '') // emotion tags
+        .replace(/[^\S\n]+/g, ' ')               // collapse spaces
         .trim();
     }
 
