@@ -40,7 +40,7 @@ Zero runtime dependencies. Uses native `fetch()`. Node 18+.
 | Layer | What it does |
 |-------|-------------|
 | **Engine** | TypeScript library + CLI + REST server. Query five registries with one interface. Published to npm as `@mcptoolshop/registry-stats`. |
-| **Dashboard** | Astro-powered web app with Pulse AI co-pilot (voice output, fullscreen, GitHub data connectors), six interactive charts, live refresh, export reports (PDF / JSONL / Markdown), and tabbed Help guide. Rebuilt weekly by CI; refreshable on demand. |
+| **Dashboard** | Astro-powered web app with Pulse AI co-pilot (streaming voice, web search, fullscreen, GitHub data connectors), six interactive charts, live refresh, export reports (PDF / JSONL / Markdown), and tabbed Help guide. Rebuilt weekly by CI; refreshable on demand. |
 | **Desktop** | WinUI 3 + WebView2 native Windows app. Bundles the dashboard offline, fetches live stats on demand. |
 
 ## Dashboard
@@ -48,7 +48,7 @@ Zero runtime dependencies. Uses native `fetch()`. Node 18+.
 A self-updating stats dashboard lives at [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
 
 - **Tabbed interface** — Home, Analytics, Leaderboard, and Help tabs
-- **Pulse AI co-pilot** — Ollama-powered conversational assistant with voice output (4 voices via [mcp-voice-soundboard](https://github.com/mcp-tool-shop-org/mcp-voice-soundboard)), auto-speak, fullscreen mode, GitHub org data connector, streaming responses, model selector, and conversation memory
+- **Pulse AI co-pilot** — Ollama-powered conversational assistant with streaming voice synthesis (speaks as the LLM streams, 4 voices via [mcp-voice-soundboard](https://github.com/mcp-tool-shop-org/mcp-voice-soundboard)), web search (Wikipedia + optional SearXNG), auto-speak, fullscreen mode, GitHub org data connector, model selector, and conversation memory
 - **Executive snapshot** — health score (0–100), diversity index, weekly change, total downloads across all registries
 - **Six interactive charts** — 30-day trend (aggregate / per-registry / top-5 toggles), registry share (polar area), portfolio risk (histogram + Gini & P90), top-10 momentum, velocity tracker with sparklines, and 30-day heatmap with spike detection (>2σ)
 - **Smart growth engine** — handles small-denominator distortion with baseline threshold, percentage cap, and damped velocity formula
