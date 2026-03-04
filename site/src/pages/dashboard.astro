@@ -2924,25 +2924,56 @@ const chatContext = !missing && data ? JSON.stringify({
         }})
       }).then(function (r) {
         voiceSessionId = r.headers.get('mcp-session-id');
+        console.log('[Pulse voice] Session initialized:', voiceSessionId);
         return parseMcpResponse(r);
       }).then(function () {
-        // Send initialized notification
         var h = Object.assign({}, MCP_HEADERS, { 'mcp-session-id': voiceSessionId });
         return fetch(VOICE_BASE + '/mcp', {
           method: 'POST',
           headers: h,
           body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' })
         });
-      }).catch(function () {
+      }).catch(function (e) {
+        console.error('[Pulse voice] Session init failed:', e);
         voiceReady = false;
         if (voiceControls) voiceControls.classList.add('hidden');
       });
     }
 
+    // Shared AudioContext — unlocked on first user click
+    var voiceAudioCtx = null;
+
+    function playAudioFromBase64(b64) {
+      var byteStr = atob(b64);
+      var bytes = new Uint8Array(byteStr.length);
+      for (var j = 0; j < byteStr.length; j++) bytes[j] = byteStr.charCodeAt(j);
+
+      if (!voiceAudioCtx) voiceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      voiceAudioCtx.decodeAudioData(bytes.buffer.slice(0)).then(function (buffer) {
+        var source = voiceAudioCtx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(voiceAudioCtx.destination);
+        source.start(0);
+        source.onended = function () {
+          if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
+        };
+      }).catch(function (e) {
+        console.error('[Pulse voice] Audio decode failed:', e);
+      });
+    }
+
     function speakText(text) {
-      if (!voiceReady || !voiceSessionId) return;
+      if (!voiceReady || !voiceSessionId) {
+        console.warn('[Pulse voice] Not ready:', { voiceReady: voiceReady, voiceSessionId: voiceSessionId });
+        return;
+      }
       var voice = voiceSelect ? voiceSelect.value : 'bm_george';
       if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+
+      // Unlock AudioContext on user gesture (before async fetch)
+      if (!voiceAudioCtx) voiceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (voiceAudioCtx.state === 'suspended') voiceAudioCtx.resume();
+
       var speakHeaders = Object.assign({}, MCP_HEADERS, { 'mcp-session-id': voiceSessionId });
       fetch(VOICE_BASE + '/mcp', {
         method: 'POST',
@@ -2953,43 +2984,31 @@ const chatContext = !missing && data ? JSON.stringify({
         }})
       }).then(function (r) { return parseMcpResponse(r); })
         .then(function (data) {
-          if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
+          if (!data) { console.error('[Pulse voice] Empty MCP response'); return; }
+          if (data.error) { console.error('[Pulse voice] MCP error:', data.error); return; }
           var content = data && data.result && data.result.content;
-          if (!content) return;
+          if (!content) { console.error('[Pulse voice] No content in result:', data); return; }
           for (var i = 0; i < content.length; i++) {
             var item = content[i];
-            // MCP returns tool results as text with JSON inside
             if (item.type === 'text' && item.text) {
               try {
                 var parsed = JSON.parse(item.text);
                 if (parsed.audioBytesBase64) {
-                  var byteStr = atob(parsed.audioBytesBase64);
-                  var bytes = new Uint8Array(byteStr.length);
-                  for (var j = 0; j < byteStr.length; j++) bytes[j] = byteStr.charCodeAt(j);
-                  var blob = new Blob([bytes], { type: 'audio/wav' });
-                  var url = URL.createObjectURL(blob);
-                  var audio = new Audio(url);
-                  audio.onended = function () { URL.revokeObjectURL(url); };
-                  audio.play();
+                  playAudioFromBase64(parsed.audioBytesBase64);
                   return;
                 }
-              } catch (e) {}
+              } catch (e) {
+                console.error('[Pulse voice] JSON parse failed:', e, item.text.substring(0, 200));
+              }
             }
-            // Also handle resource type (future-proofing)
             if (item.type === 'resource' && item.resource && item.resource.blob) {
-              var b64 = item.resource.blob;
-              var byteStr2 = atob(b64);
-              var bytes2 = new Uint8Array(byteStr2.length);
-              for (var k = 0; k < byteStr2.length; k++) bytes2[k] = byteStr2.charCodeAt(k);
-              var blob2 = new Blob([bytes2], { type: item.resource.mimeType || 'audio/wav' });
-              var url2 = URL.createObjectURL(blob2);
-              var audio2 = new Audio(url2);
-              audio2.onended = function () { URL.revokeObjectURL(url2); };
-              audio2.play();
+              playAudioFromBase64(item.resource.blob);
               return;
             }
           }
-        }).catch(function () {
+          console.warn('[Pulse voice] No audio found in response content:', content.map(function(c) { return c.type; }));
+        }).catch(function (e) {
+          console.error('[Pulse voice] Speak failed:', e);
           if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-rose-400';
           setTimeout(function () {
             if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
