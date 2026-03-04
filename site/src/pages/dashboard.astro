@@ -2784,6 +2784,80 @@ const chatContext = !missing && data ? JSON.stringify({
         var decoder = new TextDecoder();
         var fullText = '';
 
+        // ── Inline streaming synthesis (auto-speak) ──
+        var streamVoiceActive = autoSpeak && voiceReady && voiceSessionId;
+        var spokenUpTo = 0;       // char index: how much of fullText has been dispatched
+        var streamSynthBusy = false; // true while a chunk is being synthesized
+        var streamSynthQueue = [];   // sentences waiting to be synthesized
+        var streamVoiceId = voiceSelect ? voiceSelect.value : 'bm_george';
+        var streamPreset = VOICE_PRESETS[streamVoiceId] || 'narrator';
+        var sgen = streamVoiceActive ? ++speakGeneration : speakGeneration;
+
+        if (streamVoiceActive) {
+          // Cancel any previous speech and unlock AudioContext now (during user gesture chain)
+          voiceQueue = [];
+          voicePlaying = false;
+          if (!voiceAudioCtx) voiceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (voiceAudioCtx.state === 'suspended') voiceAudioCtx.resume();
+          if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+          console.log('[Pulse voice] Stream synthesis active, gen:', sgen);
+        }
+
+        // Check for complete sentences in unspoken text and queue them for synthesis
+        function extractSentences() {
+          if (!streamVoiceActive) return;
+          var unspoken = fullText.substring(spokenUpTo);
+          // Match sentences ending with . ! ? followed by space or end-of-more-text
+          var sentenceRe = /[^.!?]*[.!?]+[\s]+/g;
+          var match;
+          var consumed = 0;
+          while ((match = sentenceRe.exec(unspoken)) !== null) {
+            var sentence = match[0].trim();
+            if (sentence.length > 0) {
+              var cleaned = cleanForSpeech(sentence);
+              if (cleaned.length > 0) {
+                streamSynthQueue.push(cleaned);
+              }
+            }
+            consumed = sentenceRe.lastIndex;
+          }
+          if (consumed > 0) spokenUpTo += consumed;
+          pumpSynth();
+        }
+
+        // Process synthesis queue one at a time
+        function pumpSynth() {
+          if (streamSynthBusy || streamSynthQueue.length === 0) return;
+          if (speakGeneration !== sgen) return; // cancelled
+          streamSynthBusy = true;
+          var chunk = streamSynthQueue.shift();
+          console.log('[Pulse voice] Stream synth:', chunk.length, 'chars');
+          synthesizeChunk(chunk, streamPreset).then(function (buffer) {
+            streamSynthBusy = false;
+            if (speakGeneration !== sgen) return;
+            if (buffer) enqueueAudio(buffer);
+            pumpSynth(); // next in queue
+          }).catch(function (e) {
+            streamSynthBusy = false;
+            console.error('[Pulse voice] Stream synth failed:', e);
+            pumpSynth();
+          });
+        }
+
+        // Flush any remaining unspoken text
+        function flushRemaining() {
+          if (!streamVoiceActive) return;
+          var remaining = fullText.substring(spokenUpTo).trim();
+          if (remaining.length > 0) {
+            var cleaned = cleanForSpeech(remaining);
+            if (cleaned.length > 0) {
+              streamSynthQueue.push(cleaned);
+              console.log('[Pulse voice] Flushing remaining:', cleaned.length, 'chars');
+              pumpSynth();
+            }
+          }
+        }
+
         function pump() {
           return reader.read().then(function (result) {
             if (result.done) {
@@ -2798,8 +2872,8 @@ const chatContext = !missing && data ? JSON.stringify({
                   spk.setAttribute('data-text', fullText);
                   spk.addEventListener('click', function () { speakText(this.getAttribute('data-text')); });
                   aiRow.appendChild(spk);
-                  // Auto-speak when streaming completes
-                  if (autoSpeak) speakText(fullText);
+                  // Flush remaining text for inline stream synthesis
+                  flushRemaining();
                 }
               }
               sending = false;
@@ -2824,6 +2898,8 @@ const chatContext = !missing && data ? JSON.stringify({
                 }
               } catch (e) {}
             }
+            // Check for complete sentences to synthesize while streaming
+            extractSentences();
             return pump();
           });
         }
