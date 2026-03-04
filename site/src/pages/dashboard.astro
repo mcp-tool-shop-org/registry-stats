@@ -383,10 +383,10 @@ const chatContext = !missing && data ? JSON.stringify({
               <div id="voice-controls" class="hidden flex items-center gap-1.5">
                 <span id="voice-dot" class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
                 <select id="voice-select" class="rounded-lg border border-edge bg-surface px-2 py-1 text-xs text-heading">
-                  <option value="bm_george">George</option>
-                  <option value="af_bella">Bella</option>
-                  <option value="bf_emma">Emma</option>
-                  <option value="am_michael">Michael</option>
+                  <option value="bm_george">George (Narrator)</option>
+                  <option value="af_bella">Bella (Assistant)</option>
+                  <option value="bf_emma">Emma (Storyteller)</option>
+                  <option value="am_michael">Michael (Announcer)</option>
                 </select>
                 <button id="voice-auto-btn" class="text-dim hover:text-heading transition-colors" title="Toggle auto-speak">
                   <svg id="voice-auto-on" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M11 5L6 9H2v6h4l5 4V5z"></path></svg>
@@ -2985,12 +2985,45 @@ const chatContext = !missing && data ? JSON.stringify({
       });
     }
 
+    // Map voice IDs to presets for enhanced prosody
+    var VOICE_PRESETS = {
+      'bm_george': 'narrator',
+      'af_bella': 'assistant',
+      'bf_emma': 'storyteller',
+      'am_michael': 'announcer'
+    };
+
+    // Add SSML prosody to AI response text for natural speech
+    function enhanceForSpeech(text) {
+      // Strip markdown formatting that doesn't translate to speech
+      var clean = text
+        .replace(/#{1,6}\s+/g, '')              // headings
+        .replace(/\*\*([^*]+)\*\*/g, '<emphasis level="strong">$1</emphasis>')  // bold → emphasis
+        .replace(/\*([^*]+)\*/g, '$1')           // italic → plain
+        .replace(/`([^`]+)`/g, '$1')             // inline code → plain
+        .replace(/```[\s\S]*?```/g, '')          // code blocks → remove
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links → text only
+        .replace(/^[-*]\s+/gm, '')               // bullet points
+        .replace(/^\d+\.\s+/gm, '')              // numbered lists
+        .replace(/\n{3,}/g, '\n\n')              // collapse whitespace
+        .trim();
+
+      // Add natural pauses between paragraphs
+      clean = clean.replace(/\n\n+/g, ' <break time="400ms"/> ');
+      // Add brief pauses at sentence boundaries followed by new topics
+      clean = clean.replace(/([.!?])\s+([A-Z])/g, '$1 <break time="200ms"/> $2');
+
+      return clean;
+    }
+
     function speakText(text) {
       if (!voiceReady || !voiceSessionId) {
         console.warn('[Pulse voice] Not ready:', { voiceReady: voiceReady, voiceSessionId: voiceSessionId });
         return;
       }
-      var voice = voiceSelect ? voiceSelect.value : 'bm_george';
+      var voiceId = voiceSelect ? voiceSelect.value : 'bm_george';
+      var preset = VOICE_PRESETS[voiceId] || 'narrator';
+      var enhanced = enhanceForSpeech(text);
       if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse';
 
       // Unlock AudioContext on user gesture (before async fetch)
@@ -3003,7 +3036,7 @@ const chatContext = !missing && data ? JSON.stringify({
         headers: speakHeaders,
         body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method: 'tools/call', params: {
           name: 'voice_speak',
-          arguments: { text: text, voice: voice, artifactMode: 'base64' }
+          arguments: { text: enhanced, voice: preset, artifactMode: 'base64' }
         }})
       }).then(function (r) { return parseMcpResponse(r); })
         .then(function (data) {
