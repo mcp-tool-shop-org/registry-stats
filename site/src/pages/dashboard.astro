@@ -3040,18 +3040,27 @@ const chatContext = !missing && data ? JSON.stringify({
         .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // links
         .replace(/^[-*]\s+/gm, '')                // bullets
         .replace(/^\d+\.\s+/gm, '')               // numbered lists
-        .replace(/\n{2,}/g, '. ')                  // paragraph breaks → pause
-        .replace(/\n/g, ' ')                       // newlines → space
-        .replace(/\s{2,}/g, ' ')                   // collapse whitespace
+        .replace(/[^\S\n]+/g, ' ')                   // collapse spaces (preserve newlines for chunking)
         .trim();
     }
 
-    // Split text into sentences for chunked synthesis
-    function splitSentences(text) {
-      // Split on sentence-ending punctuation followed by space/end
-      var parts = text.match(/[^.!?]*[.!?]+[\s]?|[^.!?]+$/g);
-      if (!parts) return [text];
-      return parts.map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 0; });
+    // Split into prosody-friendly chunks (paragraphs, or groups of 2-3 sentences)
+    // Keeps enough context per chunk for natural intonation flow
+    function splitChunks(text) {
+      // First try paragraph splits
+      var paragraphs = text.split(/\n{2,}/).map(function(p) { return p.replace(/\n/g, ' ').trim(); }).filter(function(p) { return p.length > 0; });
+      if (paragraphs.length > 1) return paragraphs;
+      // Single paragraph — if short enough, send as one chunk
+      var clean = paragraphs[0] || text.replace(/\n/g, ' ').trim();
+      if (clean.length < 250) return [clean];
+      // Long single paragraph — group every 2-3 sentences
+      var sentences = clean.match(/[^.!?]*[.!?]+[\s]?|[^.!?]+$/g);
+      if (!sentences || sentences.length <= 3) return [clean];
+      var chunks = [];
+      for (var i = 0; i < sentences.length; i += 3) {
+        chunks.push(sentences.slice(i, i + 3).join(' ').trim());
+      }
+      return chunks.filter(function(c) { return c.length > 0; });
     }
 
     // Synthesize one chunk and return decoded AudioBuffer
@@ -3101,7 +3110,7 @@ const chatContext = !missing && data ? JSON.stringify({
       var voiceId = voiceSelect ? voiceSelect.value : 'bm_george';
       var preset = VOICE_PRESETS[voiceId] || 'narrator';
       var cleaned = cleanForSpeech(text);
-      var sentences = splitSentences(cleaned);
+      var sentences = splitChunks(cleaned);
       if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse';
 
       // Unlock AudioContext on user gesture (before async fetch)
