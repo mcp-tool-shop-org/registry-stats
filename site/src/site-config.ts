@@ -15,7 +15,7 @@ export const config: SiteConfig = {
     headlineAccent: 'one AI-powered platform.',
     description: 'Engine, Pulse AI co-pilot with voice output, six interactive charts, smart growth engine, and desktop app — all from one repo. Query npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub through a single CLI, API, or live dashboard.',
     primaryCta: { href: '/registry-stats/dashboard/', label: 'Open dashboard' },
-    secondaryCta: { href: '#usage', label: 'Get started' },
+    secondaryCta: { href: 'handbook/', label: 'Read the Handbook' },
     previews: [
       { label: 'Install', code: 'npm install @mcptoolshop/registry-stats' },
       { label: 'Query', code: "await stats('npm', 'express')" },
