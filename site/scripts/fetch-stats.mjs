@@ -49,14 +49,16 @@ function fmtPct(p) {
   return `${(Math.round(p * (10 ** digits)) / (10 ** digits)).toFixed(digits)}%`;
 }
 
-function summarizeConfidence({ confidence, errors }) {
+function summarizeConfidence({ confidence, errors, staleCounts }) {
   const missing = Object.entries(confidence ?? {}).filter(([, v]) => v === "missing").map(([k]) => regLabel(k));
   const partial = Object.entries(confidence ?? {}).filter(([, v]) => v === "partial").map(([k]) => regLabel(k));
-  if (!errors?.length && missing.length === 0 && partial.length === 0) return "All sources fetched cleanly";
-  if (missing.length && partial.length) return `Data is partial (missing: ${missing.join(", ")}; degraded: ${partial.join(", ")})`;
-  if (missing.length) return `Data is partial (missing: ${missing.join(", ")})`;
-  if (partial.length) return `Data is partial (degraded: ${partial.join(", ")})`;
-  return `Data is partial (${errors.length} fetch issues)`;
+  const totalStale = Object.values(staleCounts ?? {}).reduce((s, n) => s + n, 0);
+  const staleNote = totalStale > 0 ? ` (${totalStale} packages used cached previous data)` : "";
+  if (!errors?.length && missing.length === 0 && partial.length === 0) return "All sources fetched cleanly" + staleNote;
+  if (missing.length && partial.length) return `Data is partial (missing: ${missing.join(", ")}; degraded: ${partial.join(", ")})${staleNote}`;
+  if (missing.length) return `Data is partial (missing: ${missing.join(", ")})${staleNote}`;
+  if (partial.length) return `Data is partial (degraded: ${partial.join(", ")})${staleNote}`;
+  return `Data is partial (${errors.length} fetch issues)${staleNote}`;
 }
 
 function pickTopGainer(movers) {
@@ -81,6 +83,17 @@ async function main() {
   const opts = { cache, cacheTtlMs: 600_000 };
 
   const manifest = JSON.parse(await fs.readFile(MANIFEST_PATH, "utf8"));
+
+  // --- Load previous stats for fallback on fetch failures ---
+  let prevLeaderboard = {};
+  try {
+    const prevStats = JSON.parse(await fs.readFile(OUT_PATH, "utf8"));
+    for (const row of prevStats.leaderboard ?? []) {
+      prevLeaderboard[`${row.registry}:${row.name}`] = row;
+    }
+  } catch {
+    // First run — no previous stats
+  }
 
   // --- Load previous snapshot for cumulative-only delta tracking ---
   const SNAPSHOT_PATH = path.join(DATA_DIR, "snapshots.json");
@@ -133,18 +146,29 @@ async function main() {
       const results = await stats.bulk(registry, packages, opts);
       for (let i = 0; i < packages.length; i++) {
         const r = results[i];
-        items.push({
-          registry,
-          name: packages[i],
-          week: safeNumber(r?.downloads?.lastWeek),
-          month: safeNumber(r?.downloads?.lastMonth),
-          day: safeNumber(r?.downloads?.lastDay),
-          total: safeNumber(r?.downloads?.total),
-          extra: r?.extra ?? null,
-          range30: null,
-          trendPct: null,
-          error: r === null,
-        });
+        if (r === null) {
+          // Bulk returned null for this package — use previous stats if available
+          const prev = prevLeaderboard[`${registry}:${packages[i]}`];
+          if (prev) {
+            console.warn(`  ${registry}:${packages[i]} — bulk returned null, using previous stats (stale)`);
+            items.push({ registry, name: packages[i], week: safeNumber(prev.week), month: safeNumber(prev.month), day: safeNumber(prev.day), total: safeNumber(prev.total), extra: prev.extra ?? null, range30: prev.range30 ?? null, trendPct: prev.trendPct ?? null, error: false, stale: true });
+          } else {
+            items.push({ registry, name: packages[i], week: 0, month: 0, day: 0, total: 0, extra: null, range30: null, trendPct: null, error: true });
+          }
+        } else {
+          items.push({
+            registry,
+            name: packages[i],
+            week: safeNumber(r?.downloads?.lastWeek),
+            month: safeNumber(r?.downloads?.lastMonth),
+            day: safeNumber(r?.downloads?.lastDay),
+            total: safeNumber(r?.downloads?.total),
+            extra: r?.extra ?? null,
+            range30: null,
+            trendPct: null,
+            error: false,
+          });
+        }
       }
     } catch (e) {
       trackError(`${registry}.bulk`, String(e?.message ?? e));
@@ -168,13 +192,22 @@ async function main() {
           });
         } catch (err) {
           trackError(`${registry}:${pkg}`, String(err?.message ?? err));
-          items.push({ registry, name: pkg, week: 0, month: 0, day: 0, total: 0, extra: null, range30: null, trendPct: null, error: true });
+          // Preserve previous stats on fetch failure instead of zeroing out
+          const prev = prevLeaderboard[`${registry}:${pkg}`];
+          if (prev) {
+            console.warn(`  ${registry}:${pkg} — using previous stats (stale)`);
+            items.push({ registry, name: pkg, week: safeNumber(prev.week), month: safeNumber(prev.month), day: safeNumber(prev.day), total: safeNumber(prev.total), extra: prev.extra ?? null, range30: prev.range30 ?? null, trendPct: prev.trendPct ?? null, error: false, stale: true });
+          } else {
+            items.push({ registry, name: pkg, week: 0, month: 0, day: 0, total: 0, extra: null, range30: null, trendPct: null, error: true });
+          }
         }
       }
     }
 
     perRegistry[registry] = items;
-    console.log(`  ${registry}: done (${items.filter((i) => !i.error).length}/${items.length} ok)`);
+    const staleCount = items.filter((i) => i.stale).length;
+    const okCount = items.filter((i) => !i.error).length;
+    console.log(`  ${registry}: done (${okCount}/${items.length} ok${staleCount ? `, ${staleCount} stale` : ""})`);
   }
 
   // --- npm 30-day range for sparklines + trend ---
@@ -243,8 +276,10 @@ async function main() {
     Object.entries(registryLists).map(([reg, names]) => [reg, names.length])
   );
   const fetchedCounts = {};
+  const staleCounts = {};
   for (const [registry, items] of Object.entries(perRegistry)) {
     fetchedCounts[registry] = items.filter((x) => !x.error).length;
+    staleCounts[registry] = items.filter((x) => x.stale).length;
   }
 
   // --- Aggregate ---
@@ -286,6 +321,7 @@ async function main() {
       delta7: x.delta7 ?? null,
       range30: x.range30 ?? null,
       extra: x.extra ?? null,
+      ...(x.stale ? { stale: true } : {}),
     }))
     .sort((a, b) => b.week - a.week || b.month - a.month || b.total - a.total)
     .slice(0, 250);
@@ -366,7 +402,7 @@ async function main() {
       moverStr = `Newly active: ${g.row.name} (${fmtInt(g.row.week)} this week)`;
     }
 
-    const opsStr = summarizeConfidence({ confidence, errors });
+    const opsStr = summarizeConfidence({ confidence, errors, staleCounts });
 
     return `${leadRegStr}. ${leadPkgStr}. ${moverStr}. ${concStr}. ${opsStr}.`;
   })();
@@ -441,7 +477,7 @@ async function main() {
     }
 
     // Data health
-    const opsStr = summarizeConfidence({ confidence, errors });
+    const opsStr = summarizeConfidence({ confidence, errors, staleCounts });
     const healthIcon = confidence && Object.values(confidence).every(v => v === "ok") ? "✅" : "⚠️";
     lines.push({
       icon: healthIcon,
@@ -458,6 +494,7 @@ async function main() {
     registryTotals,
     manifestCounts,
     fetchedCounts,
+    staleCounts,
     errorsByRegistry,
     confidence,
     narrative,
