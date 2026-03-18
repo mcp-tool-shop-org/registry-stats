@@ -13,13 +13,16 @@ export const docker: RegistryProvider = {
       headers['Authorization'] = `Bearer ${options.dockerToken}`;
     }
 
+    // URL-encode each path segment to prevent path traversal / injection
+    const safePkg = pkg.split('/').map(s => encodeURIComponent(s)).join('/');
+
     const json = await fetchWithRetry<{
       name: string;
       namespace: string;
       pull_count: number;
       star_count: number;
       last_updated: string;
-    }>(`${API}/${pkg}`, 'docker', { headers });
+    }>(`${API}/${safePkg}`, 'docker', { headers });
 
     if (!json || !json.name || !json.namespace) return null;
 
