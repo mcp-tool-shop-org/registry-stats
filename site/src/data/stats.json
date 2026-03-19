@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-03-19T17:55:53.406Z",
+  "fetchedAt": "2026-03-19T19:10:50.065Z",
   "totals": {
     "packages": 168,
     "week": 6573,
@@ -23,7 +23,7 @@
       "packages": 6,
       "week": 0,
       "month": 0,
-      "total": 177
+      "total": 176
     },
     "nuget": {
       "packages": 27,
@@ -50,16 +50,14 @@
     "vscode": 0,
     "nuget": 0
   },
-  "errorsByRegistry": {
-    "npm": 5
-  },
+  "errorsByRegistry": {},
   "confidence": {
-    "npm": "partial",
+    "npm": "ok",
     "pypi": "ok",
     "vscode": "ok",
     "nuget": "ok"
   },
-  "narrative": "npm led with 89% of weekly downloads. Top package: @ai-rpg-engine/modules (375 this week). Top gainer: @mcptoolshop/xrpl-lab (+145%; Δ16). Concentration: top 5 = 24.1%. Data is partial (degraded: npm) (21 packages used cached previous data).",
+  "narrative": "npm led with 89% of weekly downloads. Top package: @ai-rpg-engine/modules (375 this week). Top gainer: @mcptoolshop/xrpl-lab (+145%; Δ16). Concentration: top 5 = 24.1%. All sources fetched cleanly (21 packages used cached previous data).",
   "narrativeLines": [
     {
       "icon": "📊",
@@ -87,9 +85,9 @@
       "text": "Top 5 packages account for 24.1% of weekly downloads. Downloads are well-distributed across the portfolio."
     },
     {
-      "icon": "⚠️",
+      "icon": "✅",
       "label": "Data Health",
-      "text": "Data is partial (degraded: npm) (21 packages used cached previous data)."
+      "text": "All sources fetched cleanly (21 packages used cached previous data)."
     }
   ],
   "movers": {
@@ -4067,11 +4065,42 @@
       "month": 108,
       "day": 0,
       "total": 0,
-      "trendPct": null,
-      "last7": null,
-      "prev7": null,
-      "delta7": null,
-      "range30": null,
+      "trendPct": -50,
+      "last7": 3,
+      "prev7": 6,
+      "delta7": -3,
+      "range30": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        83,
+        5,
+        3,
+        3,
+        3,
+        2,
+        1,
+        0,
+        2,
+        1,
+        0,
+        1,
+        1,
+        2,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
       "extra": null
     },
     {
@@ -4611,7 +4640,7 @@
       "week": 0,
       "month": 0,
       "day": 0,
-      "total": 6,
+      "total": 5,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -4762,9 +4791,9 @@
       "day": 0,
       "total": 0,
       "trendPct": 0,
-      "last7": null,
-      "prev7": null,
-      "delta7": null,
+      "last7": 0,
+      "prev7": 0,
+      "delta7": 0,
       "range30": [
         0,
         0,
@@ -4808,9 +4837,9 @@
       "day": 0,
       "total": 0,
       "trendPct": 0,
-      "last7": null,
-      "prev7": null,
-      "delta7": null,
+      "last7": 0,
+      "prev7": 0,
+      "delta7": 0,
       "range30": [
         0,
         0,
@@ -4853,11 +4882,42 @@
       "month": 0,
       "day": 0,
       "total": 0,
-      "trendPct": null,
-      "last7": null,
-      "prev7": null,
-      "delta7": null,
-      "range30": null,
+      "trendPct": 0,
+      "last7": 0,
+      "prev7": 0,
+      "delta7": 0,
+      "range30": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
       "extra": null,
       "stale": true
     },
@@ -4869,9 +4929,9 @@
       "day": 0,
       "total": 0,
       "trendPct": 0,
-      "last7": null,
-      "prev7": null,
-      "delta7": null,
+      "last7": 0,
+      "prev7": 0,
+      "delta7": 0,
       "range30": [
         0,
         0,
@@ -5471,49 +5531,28 @@
     1126,
     2254,
     1215,
-    2703,
-    697,
-    2176,
-    800,
-    993,
-    511,
-    1934,
+    2786,
+    702,
+    2179,
+    803,
+    996,
+    513,
+    1935,
     7724,
-    6745,
-    12188,
+    6747,
+    12189,
     0,
-    5316,
-    1615,
-    1634,
+    5317,
+    1616,
+    1636,
     1000,
-    2011,
+    2012,
     1021,
     0,
     0,
     0
   ],
-  "errors": [
-    {
-      "scope": "npm.range:@mcptoolshop/repomesh",
-      "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-02-17:2026-03-19/@mcptoolshop/repomesh"
-    },
-    {
-      "scope": "npm.range:@mcptoolshop/prov-engine",
-      "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-02-17:2026-03-19/@mcptoolshop/prov-engine"
-    },
-    {
-      "scope": "npm.range:@attestia/types",
-      "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-02-17:2026-03-19/@attestia/types"
-    },
-    {
-      "scope": "npm.range:@attestia/verify",
-      "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-02-17:2026-03-19/@attestia/verify"
-    },
-    {
-      "scope": "npm.range:@attestia/registrum",
-      "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-02-17:2026-03-19/@attestia/registrum"
-    }
-  ],
+  "errors": [],
   "history": {
     "weeklyPortfolio": [
       {
@@ -5527,11 +5566,11 @@
           "vscode": 0,
           "nuget": 0
         },
-        "updatedAt": "2026-03-19T18:03:10.097Z"
+        "updatedAt": "2026-03-19T19:17:32.017Z"
       }
     ],
     "packageCount": 168,
-    "lastUpdated": "2026-03-19T18:03:10.097Z"
+    "lastUpdated": "2026-03-19T19:17:32.017Z"
   },
   "inference": {
     "forecastTotal7": [
@@ -5580,7 +5619,7 @@
         "type": "attention",
         "severity": "critical",
         "urgency": "immediate",
-        "title": "77 packages in critical health",
+        "title": "75 packages in critical health",
         "detail": "a11y-lint, a11y-ci, voice-soundboard, aspire-ai, backpropagate scored below 20/100.",
         "action": "Review these packages for broken installs, outdated dependencies, or missing documentation. Consider archiving if no longer maintained.",
         "packages": [
@@ -5623,7 +5662,6 @@
           "nullout-mcp",
           "scalarscope",
           "venvkit",
-          "@mcptoolshop/repomesh",
           "mcp-select",
           "mcp-kv-context",
           "nexus-attest",
@@ -5659,8 +5697,7 @@
           "mcp-tool-shop.vscode-voice-soundboard",
           "mcp-tool-shop.registry-stats-vscode",
           "mcp-tool-shop.polyglot-vscode",
-          "mcp-tool-shop.websketch-vscode",
-          "@attestia/verify"
+          "mcp-tool-shop.websketch-vscode"
         ]
       },
       {
