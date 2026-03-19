@@ -39,8 +39,8 @@ Zero runtime dependencies. Uses native `fetch()`. Node 18+.
 
 | Layer | What it does |
 |-------|-------------|
-| **Engine** | TypeScript library + CLI + REST server. Query five registries with one interface. Published to npm as `@mcptoolshop/registry-stats`. |
-| **Dashboard** | Astro-powered web app with Pulse AI co-pilot (streaming voice, web search, fullscreen, GitHub data connectors), six interactive charts, live refresh, export reports (PDF / JSONL / Markdown), and tabbed Help guide. Rebuilt weekly by CI; refreshable on demand. |
+| **Engine** | TypeScript library + CLI + REST server + AI inference. Query five registries with one interface. Published to npm as `@mcptoolshop/registry-stats`. |
+| **Dashboard** | Astro-powered web app with AI inference panel, Pulse AI co-pilot (streaming voice, web search, fullscreen, GitHub data connectors), six interactive charts, live refresh, export reports (PDF / JSONL / Markdown), and tabbed Help guide. Rebuilt daily by CI; refreshable on demand. |
 | **Desktop** | WinUI 3 + WebView2 native Windows app. Bundles the dashboard offline, fetches live stats on demand. |
 
 ## Dashboard
@@ -52,16 +52,56 @@ A self-updating stats dashboard lives at [`/dashboard/`](https://mcp-tool-shop-o
 - **Executive snapshot** — health score (0–100), diversity index, weekly change, total downloads across all registries
 - **Six interactive charts** — 30-day trend (aggregate / per-registry / top-5 toggles), registry share (polar area), portfolio risk (histogram + Gini & P90), top-10 momentum, velocity tracker with sparklines, and 30-day heatmap with spike detection (>2σ)
 - **Smart growth engine** — handles small-denominator distortion with baseline threshold, percentage cap, and damped velocity formula
+- **AI Inference Panel** — portfolio momentum (-100 to +100), risk score, 7-day forecast with confidence intervals, and automated recommendations (growth, risk, opportunity, attention)
 - **Actionable insights** — auto-generated recommendations and attention alerts for declining packages
 - **Pulse panel** — split view of Established Movers (≥ 50 downloads/wk) and Emerging & New packages, with inline 7-day sparklines, absolute + percentage deltas, baseline context, and a one-line executive summary
 - **Live refresh** — on-demand client-side fetch from npm and PyPI APIs with progress indicator; results cached in sessionStorage (5 min TTL) so tab switches are instant
 - **Export reports** — dropdown next to the Refresh button offering three formats: **Exec PDF** (via jsPDF), **LLM JSONL** (typed records for AI ingestion), and **Dev Markdown** (GFM tables)
 - **Leaderboard** — 132 packages ranked by weekly downloads with inline 30-day sparklines and smart trend badges
 - **Setup page** — portfolio editor with validation, registry-sync companion section, and pipeline overview
-- **Help tab** — human-friendly guide covering every tab, key concepts, AI assistant tips, data pipeline, and useful links
+- **Leaderboard search** — instant text filter for finding packages by name or registry
+- **Keyboard navigation** — arrow keys to cycle between tabs
+- **Help tab** — human-friendly guide covering every tab, key concepts, AI inference engine, data pipeline, and useful links
 - **Dark / light theme** — follows system preference
+- **Mobile responsive** — hamburger menu for small screens
 
-Data is fetched at build time and rebuilt weekly by CI (Mondays 06:00 UTC). Live refresh pulls the latest numbers directly from registry APIs. Configure tracked packages in `site/src/data/packages.json` (132 packages across 5 registries).
+Data is fetched at build time and rebuilt daily by CI (06:00 UTC). Live refresh pulls the latest numbers directly from registry APIs. Configure tracked packages in `site/src/data/packages.json`.
+
+## AI Inference Engine
+
+Zero-dependency, pure-math inference that runs at build time — no ML runtime, no external APIs.
+
+```typescript
+import {
+  forecast, detectAnomalies, segmentTrends,
+  detectSeasonality, computeMomentum,
+  generateRecommendations, inferPortfolio,
+} from '@mcptoolshop/registry-stats';
+
+// 7-day forecast with 80% confidence intervals
+const predictions = forecast(dailySeries, 7);
+// → [{ day: 1, predicted: 142, lower: 98, upper: 186 }, ...]
+
+// Anomaly detection (adaptive rolling z-score, 14-day window)
+const anomalies = detectAnomalies(dailySeries);
+// → [{ day: 20, value: 1500, expected: 120, zscore: 4.2, type: 'spike' }]
+
+// Composite momentum score (-100 to +100)
+const momentum = computeMomentum(dailySeries);
+
+// Full portfolio analysis
+const result = inferPortfolio(leaderboard, { gini: 0.6, npmPct: 85 });
+// → { packages, forecastTotal7, riskScore, portfolioMomentum, recommendations }
+```
+
+| Capability | Method | What it does |
+|-----------|--------|-------------|
+| **Forecast** | Weighted linear regression | Exponential recency bias, 80% CI that widens over time |
+| **Anomaly detection** | Adaptive rolling z-score | 14-day baseline window, detects spikes and drops |
+| **Trend segmentation** | Piecewise linear | Identifies up/down/flat segments in time series |
+| **Seasonality** | Day-of-week decomposition | Detects weekly patterns, reports peak day |
+| **Momentum** | Composite score | Direction + acceleration + consistency + volume |
+| **Recommendations** | Rule engine | Growth, risk, opportunity, and attention categories |
 
 ## Desktop App
 
@@ -212,8 +252,10 @@ await stats('npm', 'express', { cache });  // cache hit
 
 - Automatic retry with exponential backoff on 429/5xx errors
 - Respects `Retry-After` headers
+- 30-second request timeouts via `AbortSignal.timeout`
 - Concurrency limiting for bulk requests
 - Optional TTL cache (pluggable — bring your own Redis/file backend via `StatsCache` interface)
+- SHA-pinned GitHub Actions for supply chain security
 
 ## REST API Server
 
