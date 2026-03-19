@@ -14,6 +14,8 @@ export { RegistryError } from './types.js';
 export { loadConfig, defaultConfig, starterConfig } from './config.js';
 export { createHandler, serve } from './server.js';
 export type { ServerOptions } from './server.js';
+export { forecast, detectAnomalies, segmentTrends, detectSeasonality, computeMomentum, generateRecommendations, inferPortfolio } from './inference.js';
+export type { ForecastPoint, Anomaly, TrendSegment, Recommendation, PackageInference, PortfolioInference } from './inference.js';
 
 // --- Built-in TTL cache ---
 

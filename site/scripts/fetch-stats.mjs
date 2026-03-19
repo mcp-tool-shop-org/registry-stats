@@ -7,7 +7,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
-import { stats, calc, createCache } from "@mcptoolshop/registry-stats";
+import { stats, calc, createCache, inferPortfolio } from "@mcptoolshop/registry-stats";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, ".."); // site/
@@ -488,6 +488,36 @@ async function main() {
     return lines;
   })();
 
+  // --- AI Inference Pipeline ---
+  console.log("  Running AI inference pipeline...");
+  const inferenceInput = leaderboard.map((r) => ({
+    name: r.name,
+    registry: r.registry,
+    week: r.week,
+    range30: r.range30,
+    trendPct: r.trendPct,
+  }));
+
+  const npmWeekTotal = Number((registryTotals.npm ?? {}).week ?? 0);
+  const allWeekTotal = Object.values(registryTotals).reduce((s, r) => s + Number(r?.week ?? 0), 0);
+  const npmPctInf = allWeekTotal > 0 ? Math.round((npmWeekTotal / allWeekTotal) * 100) : 0;
+
+  // Gini coefficient for inference
+  const weeklyDls = leaderboard.map((r) => Number(r.week ?? 0)).sort((a, b) => a - b);
+  const giniN = weeklyDls.length;
+  const giniTotal = weeklyDls.reduce((a, b) => a + b, 0);
+  let giniNumerator = 0;
+  weeklyDls.forEach((x, i) => { giniNumerator += (2 * (i + 1) - giniN - 1) * x; });
+  const giniCoeff = giniN > 1 && giniTotal > 0 ? giniNumerator / (giniN * giniTotal) : 0;
+
+  const inference = inferPortfolio(inferenceInput, {
+    gini: giniCoeff,
+    npmPct: npmPctInf,
+    totalWeekly: allWeekTotal,
+  });
+
+  console.log(`  Inference: ${inference.packages.length} packages analyzed, ${inference.recommendations.length} recommendations, risk=${inference.riskScore}, momentum=${inference.portfolioMomentum}`);
+
   const payload = {
     fetchedAt,
     totals,
@@ -503,6 +533,21 @@ async function main() {
     leaderboard,
     sparkline30,
     errors,
+    inference: {
+      forecastTotal7: inference.forecastTotal7,
+      riskScore: inference.riskScore,
+      portfolioMomentum: inference.portfolioMomentum,
+      diversityTrend: inference.diversityTrend,
+      recommendations: inference.recommendations,
+      packages: inference.packages.filter((p) => p.forecast7.length > 0).slice(0, 30).map((p) => ({
+        name: p.name,
+        registry: p.registry,
+        forecast7: p.forecast7,
+        anomalies: p.anomalies,
+        momentum: p.momentum,
+        seasonality: p.seasonality,
+      })),
+    },
   };
 
   await fs.mkdir(DATA_DIR, { recursive: true });

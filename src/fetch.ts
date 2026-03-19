@@ -39,7 +39,7 @@ export async function fetchWithRetry<T>(
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     await acquireSlot(registry);
 
-    const res = await fetch(url, init);
+    const res = await fetch(url, { signal: AbortSignal.timeout(30_000), ...init });
 
     if (res.status === 404) return null;
 
@@ -79,7 +79,7 @@ export async function fetchDirect<T>(
   let lastError: RegistryError | undefined;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const res = await fetch(url, init);
+    const res = await fetch(url, { signal: AbortSignal.timeout(30_000), ...init });
 
     if (res.status === 404) return null;
 

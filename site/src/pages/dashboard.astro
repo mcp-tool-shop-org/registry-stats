@@ -259,6 +259,20 @@ if (attentionPkgs.length > 0) insights.push({ icon: '\uD83D\uDD0D', text: `${att
 const npmPctOfTotal = totalWeekAll > 0 ? Math.round(Number((registryTotals as any).npm?.week ?? 0) / totalWeekAll * 100) : 0;
 if (npmPctOfTotal > 70) insights.push({ icon: '\uD83C\uDFAF', text: `${npmPctOfTotal}% of downloads from npm — consider diversifying to PyPI/NuGet`, type: 'info' });
 
+// ── Inference data ──
+const inference = data?.inference ?? null;
+const forecastTotal7 = inference?.forecastTotal7 ?? [];
+const aiRecs = inference?.recommendations ?? [];
+const portfolioMomentum = inference?.portfolioMomentum ?? 0;
+const riskScore = inference?.riskScore ?? 0;
+
+// Merge AI recommendations into insights
+for (const rec of aiRecs) {
+  const icon = rec.type === 'growth' ? '\uD83D\uDCC8' : rec.type === 'risk' ? '\u26A0\uFE0F' : rec.type === 'opportunity' ? '\uD83D\uDE80' : '\uD83D\uDD0D';
+  const insType = rec.priority === 'high' ? 'warning' : rec.type === 'opportunity' || rec.type === 'growth' ? 'positive' : 'info';
+  insights.push({ icon, text: `${rec.title}: ${rec.detail}`, type: insType });
+}
+
 const chartPayload = !missing && data ? JSON.stringify({
   sparkline30,
   registryTotals,
@@ -274,6 +288,12 @@ const chartPayload = !missing && data ? JSON.stringify({
   attentionPkgs,
   npmPctOfTotal,
   leaderboard: velocityBoard,
+  inference: inference ? {
+    forecastTotal7,
+    riskScore,
+    portfolioMomentum,
+    packages: inference.packages?.slice(0, 10) ?? [],
+  } : null,
 }) : null;
 
 const chatContext = !missing && data ? JSON.stringify({
@@ -866,6 +886,96 @@ const chatContext = !missing && data ? JSON.stringify({
           ) : null}
         </div>
       </div>
+
+      {/* ── AI Inference Panel ── */}
+      {inference && (
+        <div class="mb-6 rounded-2xl border border-edge bg-surface-raised/50 p-5">
+          <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
+            <div>
+              <div class="text-xs font-medium tracking-wide uppercase text-dim flex items-center gap-2">
+                <span class="inline-block w-2 h-2 rounded-full bg-violet-400 animate-pulse"></span>
+                AI Inference Engine
+              </div>
+              <p class="mt-1 text-sm text-muted">Forecasting, anomaly detection, and automated recommendations.</p>
+            </div>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-4">
+            <div class="rounded-xl border border-edge bg-surface p-3">
+              <div class="text-[10px] text-dim uppercase tracking-wide">Portfolio Momentum</div>
+              <div class="mt-1">
+                <span class={`text-2xl font-bold tabular-nums ${portfolioMomentum >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {portfolioMomentum >= 0 ? '+' : ''}{portfolioMomentum}
+                </span>
+                <span class="ml-1 text-xs text-dim">/ 100</span>
+              </div>
+            </div>
+            <div class="rounded-xl border border-edge bg-surface p-3">
+              <div class="text-[10px] text-dim uppercase tracking-wide">Risk Score</div>
+              <div class="mt-1 flex items-center gap-2">
+                <span class={`text-2xl font-bold tabular-nums ${riskScore <= 30 ? 'text-emerald-400' : riskScore <= 60 ? 'text-amber-400' : 'text-rose-400'}`}>{riskScore}</span>
+                <div class="flex-1 h-2 rounded-full bg-surface-strong overflow-hidden">
+                  <div class="h-2 rounded-full transition-all" style={`width:${riskScore}%;background:${riskScore <= 30 ? '#059669' : riskScore <= 60 ? '#f59e0b' : '#ef4444'}`} />
+                </div>
+              </div>
+            </div>
+            <div class="rounded-xl border border-edge bg-surface p-3">
+              <div class="text-[10px] text-dim uppercase tracking-wide">7-Day Forecast</div>
+              <div class="mt-1 text-2xl font-bold tabular-nums text-heading">
+                {forecastTotal7.length > 0 ? fmtCompact.format(forecastTotal7.reduce((a: number, b: number) => a + b, 0)) : '\u2014'}
+              </div>
+              <div class="mt-0.5 text-xs text-dim">predicted total</div>
+            </div>
+            <div class="rounded-xl border border-edge bg-surface p-3">
+              <div class="text-[10px] text-dim uppercase tracking-wide">AI Recommendations</div>
+              <div class="mt-1 text-2xl font-bold tabular-nums text-heading">{aiRecs.length}</div>
+              <div class="mt-0.5 text-xs text-dim">
+                {aiRecs.filter((r: any) => r.priority === 'high').length > 0
+                  ? `${aiRecs.filter((r: any) => r.priority === 'high').length} high priority`
+                  : 'all clear'}
+              </div>
+            </div>
+          </div>
+
+          {/* Forecast sparkline area */}
+          {forecastTotal7.length > 0 && (
+            <div class="rounded-xl border border-edge bg-surface p-4">
+              <div class="flex items-center justify-between gap-3 mb-3">
+                <div class="text-sm font-semibold text-heading">7-Day Download Forecast</div>
+                <div class="text-[10px] text-dim">Weighted linear regression + 80% CI</div>
+              </div>
+              <div class="mt-3" style="position:relative;height:160px;">
+                <canvas id="chart-forecast"></canvas>
+              </div>
+            </div>
+          )}
+
+          {/* AI Recommendations */}
+          {aiRecs.length > 0 && (
+            <div class="mt-4 space-y-2">
+              {aiRecs.map((rec: any) => {
+                const borderColor = rec.priority === 'high' ? 'border-rose-500/30' : rec.priority === 'medium' ? 'border-amber-500/30' : 'border-edge';
+                const bgColor = rec.priority === 'high' ? 'bg-rose-500/5' : rec.priority === 'medium' ? 'bg-amber-500/5' : 'bg-surface';
+                const typeIcon = rec.type === 'growth' ? '\uD83D\uDCC8' : rec.type === 'risk' ? '\u26A0\uFE0F' : rec.type === 'opportunity' ? '\uD83D\uDE80' : '\uD83D\uDD0D';
+                const priorityBadge = rec.priority === 'high' ? 'bg-rose-500/20 text-rose-400' : rec.priority === 'medium' ? 'bg-amber-500/20 text-amber-400' : 'bg-surface-strong text-dim';
+                return (
+                  <div class={`flex items-start gap-3 rounded-xl border ${borderColor} ${bgColor} px-4 py-3`}>
+                    <span class="text-lg shrink-0 mt-0.5">{typeIcon}</span>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm font-semibold text-heading">{rec.title}</span>
+                        <span class={`text-[10px] font-medium uppercase px-1.5 py-0.5 rounded ${priorityBadge}`}>{rec.priority}</span>
+                      </div>
+                      <p class="mt-0.5 text-xs text-muted leading-relaxed">{rec.detail}</p>
+                      {rec.metric && <div class="mt-1 text-[10px] text-dim font-mono">{rec.metric}</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Portfolio Intelligence ── */}
       <div class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -1547,7 +1657,7 @@ const chatContext = !missing && data ? JSON.stringify({
     function initCharts() {
       if (typeof Chart === 'undefined') return;
       // Destroy existing Chart.js instances for clean re-init
-      ['chart-trend', 'chart-share', 'chart-distribution', 'chart-top10'].forEach(function (id) {
+      ['chart-trend', 'chart-share', 'chart-distribution', 'chart-top10', 'chart-forecast'].forEach(function (id) {
         var c = document.getElementById(id);
         if (c && typeof Chart.getChart === 'function') { var ch = Chart.getChart(c); if (ch) ch.destroy(); }
       });
@@ -2082,6 +2192,78 @@ const chatContext = !missing && data ? JSON.stringify({
             spikeMode = btn.getAttribute('data-heatmode') === 'spikes';
             drawHeatmap();
           });
+        });
+      }
+    }
+
+      // ═══════════════════════════════════════════════
+      // 7. AI Forecast Chart
+      // ═══════════════════════════════════════════════
+      var forecastCanvas = document.getElementById('chart-forecast');
+      if (forecastCanvas && cdata.inference && cdata.inference.forecastTotal7) {
+        var fc7 = cdata.inference.forecastTotal7;
+        var fcLabels = fc7.map(function (_, i) { return 'D+' + (i + 1); });
+
+        // Get top 5 package forecasts for overlay
+        var pkgForecasts = (cdata.inference.packages || []).slice(0, 5);
+        var fcDatasets = [
+          {
+            label: 'Portfolio forecast',
+            data: fc7,
+            borderColor: '#8b5cf6',
+            backgroundColor: '#8b5cf620',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 4,
+            pointBackgroundColor: '#8b5cf6',
+            borderWidth: 2.5,
+          }
+        ];
+
+        // Add confidence band using first package's bounds as proxy
+        // (actual per-package CIs available in inference.packages)
+        var lastActualWeek = sp.slice(-7);
+        if (lastActualWeek.length === 7) {
+          fcDatasets.unshift({
+            label: 'Last 7 actual',
+            data: lastActualWeek.concat(new Array(7).fill(null)),
+            borderColor: tc.accent,
+            backgroundColor: tc.accent + '15',
+            fill: false,
+            tension: 0.3,
+            pointRadius: 3,
+            pointBackgroundColor: tc.accent,
+            borderWidth: 2,
+          });
+          // Extend labels to include last 7 days
+          fcLabels = lastActualWeek.map(function (_, i) { return 'D-' + (7 - i); }).concat(fcLabels);
+          // Shift forecast data to start after actuals
+          fcDatasets[1].data = new Array(7).fill(null).concat(fc7);
+        }
+
+        new Chart(forecastCanvas, {
+          type: 'line',
+          data: { labels: fcLabels, datasets: fcDatasets },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
+            scales: {
+              x: { display: true, ticks: { font: { size: 10 } } },
+              y: { beginAtZero: true, ticks: { maxTicksLimit: 5, callback: function (v) { return fmtK(v); } } }
+            },
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } },
+              tooltip: {
+                callbacks: {
+                  label: function (ctx) {
+                    var v = ctx.raw;
+                    if (v === null) return '';
+                    return ctx.dataset.label + ': ' + Number(v).toLocaleString();
+                  }
+                }
+              }
+            }
+          }
         });
       }
     }

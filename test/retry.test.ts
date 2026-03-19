@@ -111,10 +111,13 @@ describe('fetchWithRetry', () => {
       headers: { 'Content-Type': 'application/json' },
       body: '{}',
     });
-    expect(mock).toHaveBeenCalledWith('https://example.com', {
+    expect(mock).toHaveBeenCalledWith('https://example.com', expect.objectContaining({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{}',
-    });
+    }));
+    // Verify AbortSignal.timeout is merged in
+    const callArgs = mock.mock.calls[0][1] as any;
+    expect(callArgs.signal).toBeDefined();
   });
 });
