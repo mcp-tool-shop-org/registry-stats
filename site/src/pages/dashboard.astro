@@ -265,6 +265,9 @@ const forecastTotal7 = inference?.forecastTotal7 ?? [];
 const aiRecs = inference?.recommendations ?? [];
 const portfolioMomentum = inference?.portfolioMomentum ?? 0;
 const riskScore = inference?.riskScore ?? 0;
+const healthScores = inference?.healthScores ?? [];
+const actionableAdvice = inference?.actionableAdvice ?? [];
+const historyData = data?.history ?? null;
 
 // Merge AI recommendations into insights
 for (const rec of aiRecs) {
@@ -294,6 +297,8 @@ const chartPayload = !missing && data ? JSON.stringify({
     portfolioMomentum,
     packages: inference.packages?.slice(0, 10) ?? [],
   } : null,
+  healthScores: healthScores.slice(0, 30),
+  history: historyData,
 }) : null;
 
 const chatContext = !missing && data ? JSON.stringify({
@@ -372,10 +377,10 @@ const chatContext = !missing && data ? JSON.stringify({
 
       {/* ── Tab bar ── */}
       <nav class="flex gap-1 border-b border-edge mb-6" role="tablist" id="tab-bar">
-        <button role="tab" data-tab="home" class="tab-btn tab-active" aria-selected="true">Home</button>
-        <button role="tab" data-tab="analytics" class="tab-btn" aria-selected="false">Analytics</button>
-        <button role="tab" data-tab="leaderboard" class="tab-btn" aria-selected="false">Leaderboard</button>
-        <button role="tab" data-tab="help" class="tab-btn" aria-selected="false">Help</button>
+        <button type="button" role="tab" data-tab="home" class="tab-btn tab-active" aria-selected="true">Home</button>
+        <button type="button" role="tab" data-tab="analytics" class="tab-btn" aria-selected="false">Analytics</button>
+        <button type="button" role="tab" data-tab="leaderboard" class="tab-btn" aria-selected="false">Leaderboard</button>
+        <button type="button" role="tab" data-tab="help" class="tab-btn" aria-selected="false">Help</button>
       </nav>
 
       {/* ── Tab: Home ── */}
@@ -974,6 +979,119 @@ const chatContext = !missing && data ? JSON.stringify({
               })}
             </div>
           )}
+
+          {/* ── Actionable Advice (enhanced) ── */}
+          {actionableAdvice.length > 0 && (
+            <div class="mt-4">
+              <div class="text-xs font-medium tracking-wide uppercase text-dim mb-2">Actionable Advice</div>
+              <div class="space-y-2">
+                {actionableAdvice.map((adv: any) => {
+                  const sevColors = {
+                    critical: 'border-rose-500/40 bg-rose-500/10',
+                    warning: 'border-amber-500/30 bg-amber-500/5',
+                    success: 'border-emerald-500/30 bg-emerald-500/5',
+                    info: 'border-edge bg-surface',
+                  };
+                  const sevBadge = {
+                    critical: 'bg-rose-500/20 text-rose-400',
+                    warning: 'bg-amber-500/20 text-amber-400',
+                    success: 'bg-emerald-500/20 text-emerald-400',
+                    info: 'bg-surface-strong text-dim',
+                  };
+                  const urgBadge = {
+                    immediate: 'bg-rose-500/15 text-rose-300',
+                    'this-week': 'bg-amber-500/15 text-amber-300',
+                    'this-month': 'bg-blue-500/15 text-blue-300',
+                    informational: 'bg-surface-strong text-dim',
+                  };
+                  const typeIcon = {
+                    growth: '\uD83D\uDCC8', risk: '\u26A0\uFE0F', opportunity: '\uD83D\uDE80',
+                    attention: '\uD83D\uDD0D', milestone: '\uD83C\uDFC6',
+                  };
+                  return (
+                    <div class={`rounded-xl border px-4 py-3 ${sevColors[adv.severity] ?? 'border-edge bg-surface'}`}>
+                      <div class="flex items-start gap-3">
+                        <span class="text-lg shrink-0 mt-0.5">{typeIcon[adv.type] ?? '\uD83D\uDCA1'}</span>
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-sm font-semibold text-heading">{adv.title}</span>
+                            <span class={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${sevBadge[adv.severity] ?? ''}`}>{adv.severity}</span>
+                            <span class={`text-[9px] font-medium uppercase px-1.5 py-0.5 rounded ${urgBadge[adv.urgency] ?? ''}`}>{adv.urgency}</span>
+                          </div>
+                          <p class="mt-0.5 text-xs text-muted leading-relaxed">{adv.detail}</p>
+                          <div class="mt-1.5 flex items-center gap-1.5">
+                            <span class="text-[10px] font-semibold text-violet-400">Action:</span>
+                            <span class="text-[10px] text-muted">{adv.action}</span>
+                          </div>
+                          {adv.packages && adv.packages.length > 0 && (
+                            <div class="mt-1 flex flex-wrap gap-1">
+                              {adv.packages.slice(0, 5).map((pkg: string) => (
+                                <span class="text-[9px] font-mono bg-surface-strong px-1.5 py-0.5 rounded text-dim">{pkg.replace('@mcptoolshop/', '')}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── Health Scoreboard ── */}
+          {healthScores.length > 0 && (
+            <div class="mt-4">
+              <div class="text-xs font-medium tracking-wide uppercase text-dim mb-2">Package Health</div>
+              <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {healthScores.slice(0, 12).map((h: any) => {
+                  const gradeColor = {
+                    A: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+                    B: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
+                    C: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+                    D: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
+                    F: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+                  };
+                  const barColor = {
+                    A: '#059669', B: '#3b82f6', C: '#f59e0b', D: '#f97316', F: '#ef4444',
+                  };
+                  return (
+                    <div class="rounded-lg border border-edge bg-surface p-3">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-mono text-heading truncate">{h.name.replace('@mcptoolshop/', '')}</span>
+                        <span class={`text-xs font-bold px-1.5 py-0.5 rounded border ${gradeColor[h.grade] ?? ''}`}>{h.grade}</span>
+                      </div>
+                      <div class="mt-2 flex items-center gap-2">
+                        <div class="flex-1 h-1.5 rounded-full bg-surface-strong overflow-hidden">
+                          <div class="h-1.5 rounded-full transition-all" style={`width:${h.score}%;background:${barColor[h.grade] ?? '#71717a'}`} />
+                        </div>
+                        <span class="text-[10px] tabular-nums text-dim">{h.score}/100</span>
+                      </div>
+                      <div class="mt-1.5 grid grid-cols-4 gap-1 text-[9px] text-dim">
+                        <div title="Activity">Act {h.components.activity}</div>
+                        <div title="Consistency">Con {h.components.consistency}</div>
+                        <div title="Growth">Grw {h.components.growth}</div>
+                        <div title="Stability">Stb {h.components.stability}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── Yearly Progress (from history) ── */}
+          {historyData && historyData.weeklyPortfolio && historyData.weeklyPortfolio.length > 1 && (
+            <div class="mt-4 rounded-xl border border-edge bg-surface p-4">
+              <div class="flex items-center justify-between gap-3 mb-3">
+                <div class="text-sm font-semibold text-heading">Portfolio Trend</div>
+                <div class="text-[10px] text-dim">{historyData.weeklyPortfolio.length} weeks tracked</div>
+              </div>
+              <div style="position:relative;height:160px;">
+                <canvas id="chart-yearly"></canvas>
+              </div>
+            </div>
+          )}
         </div>
       )}
       {!inference && !missing && (
@@ -1066,6 +1184,7 @@ const chatContext = !missing && data ? JSON.stringify({
                 <button class="trend-toggle active" data-mode="aggregate">Aggregate</button>
                 <button class="trend-toggle" data-mode="registry">Per Registry</button>
                 <button class="trend-toggle" data-mode="top5">Top 5</button>
+                <button class="trend-toggle text-[10px] opacity-60 hover:opacity-100" id="trend-reset-zoom" title="Reset zoom">Reset Zoom</button>
               </div>
             </div>
             <div class="mt-2 flex items-center gap-4 text-xs text-dim flex-wrap" id="trend-summary"></div>
@@ -1627,6 +1746,8 @@ const chatContext = !missing && data ? JSON.stringify({
 </style>
 
 <script is:inline src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script is:inline src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2/dist/chartjs-plugin-zoom.min.js"></script>
+<script is:inline src="https://cdn.jsdelivr.net/npm/hammerjs@2/hammer.min.js"></script>
 
 <script is:inline>
   // Shared helper — cumulative registries show total instead of weekly
@@ -1725,8 +1846,12 @@ const chatContext = !missing && data ? JSON.stringify({
 
     function initCharts() {
       if (typeof Chart === 'undefined') return;
+      // Register zoom plugin if available
+      if (typeof ChartZoom !== 'undefined') {
+        Chart.register(ChartZoom);
+      }
       // Destroy existing Chart.js instances for clean re-init
-      ['chart-trend', 'chart-share', 'chart-distribution', 'chart-top10', 'chart-forecast'].forEach(function (id) {
+      ['chart-trend', 'chart-share', 'chart-distribution', 'chart-top10', 'chart-forecast', 'chart-yearly'].forEach(function (id) {
         var c = document.getElementById(id);
         if (c && typeof Chart.getChart === 'function') { var ch = Chart.getChart(c); if (ch) ch.destroy(); }
       });
@@ -1854,7 +1979,39 @@ const chatContext = !missing && data ? JSON.stringify({
           responsive: true, maintainAspectRatio: false,
           interaction: { intersect: false, mode: 'index' },
           scales: { x: { display: false }, y: { beginAtZero: true, ticks: { maxTicksLimit: 5, callback: function (v) { return fmtK(v); } } } },
-          plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } } }
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } },
+            zoom: (typeof ChartZoom !== 'undefined' || (Chart.registry && Chart.registry.getPlugin('zoom'))) ? {
+              pan: { enabled: true, mode: 'x' },
+              zoom: {
+                wheel: { enabled: true },
+                pinch: { enabled: true },
+                mode: 'x',
+              }
+            } : undefined,
+            tooltip: {
+              callbacks: {
+                afterBody: function (items) {
+                  if (trendMode !== 'aggregate' || !items[0]) return '';
+                  var idx = items[0].dataIndex;
+                  var val = Number(sp[idx] || 0);
+                  var z = spStd > 0 ? (val - spMean) / spStd : 0;
+                  if (Math.abs(z) >= 2) return '\u26A0 Anomaly (z=' + z.toFixed(1) + ')';
+                  return '';
+                }
+              }
+            }
+          },
+          onClick: function (evt, elements) {
+            if (trendMode !== 'aggregate' || !elements.length) return;
+            // Click on aggregate chart → drill down to top5
+            trendMode = 'top5';
+            trendChart.data.datasets = buildTrendDatasets('top5');
+            trendChart.update();
+            toggleBtns.forEach(function (b) {
+              b.classList.toggle('active', b.getAttribute('data-mode') === 'top5');
+            });
+          }
         }
       });
 
@@ -1862,13 +2019,22 @@ const chatContext = !missing && data ? JSON.stringify({
       var toggleBtns = document.querySelectorAll('[data-mode]');
       toggleBtns.forEach(function (btn) {
         btn.addEventListener('click', function () {
-          toggleBtns.forEach(function (b) { b.classList.remove('active'); });
+          if (btn.id === 'trend-reset-zoom') return; // handled separately
+          toggleBtns.forEach(function (b) { if (b.id !== 'trend-reset-zoom') b.classList.remove('active'); });
           btn.classList.add('active');
           trendMode = btn.getAttribute('data-mode');
           trendChart.data.datasets = buildTrendDatasets(trendMode);
           trendChart.update();
         });
       });
+
+      // Reset zoom button
+      var resetZoomBtn = document.getElementById('trend-reset-zoom');
+      if (resetZoomBtn) {
+        resetZoomBtn.addEventListener('click', function () {
+          if (trendChart && trendChart.resetZoom) trendChart.resetZoom();
+        });
+      }
 
       // ═══════════════════════════════════════════════
       // 2. Registry Share — polar area + stat rows
@@ -2263,7 +2429,6 @@ const chatContext = !missing && data ? JSON.stringify({
           });
         });
       }
-    }
 
       // ═══════════════════════════════════════════════
       // 7. AI Forecast Chart
@@ -2328,6 +2493,63 @@ const chatContext = !missing && data ? JSON.stringify({
                     var v = ctx.raw;
                     if (v === null) return '';
                     return ctx.dataset.label + ': ' + Number(v).toLocaleString();
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // ═══════════════════════════════════════════════
+      // 8. Yearly Portfolio Trend Chart
+      // ═══════════════════════════════════════════════
+      var yearlyCanvas = document.getElementById('chart-yearly');
+      if (yearlyCanvas && cdata.history && cdata.history.weeklyPortfolio && cdata.history.weeklyPortfolio.length > 1) {
+        var wp = cdata.history.weeklyPortfolio;
+        var wpLabels = wp.map(function (e) { return e.week; });
+        var wpData = wp.map(function (e) { return e.totalWeek; });
+
+        // Per-registry breakdown stacked
+        var regKeys = Object.keys(wp[0].registries || {});
+        var regDatasets = regKeys.map(function (reg, idx) {
+          return {
+            label: REG_NAMES[reg] || reg,
+            data: wp.map(function (e) { return (e.registries || {})[reg] || 0; }),
+            backgroundColor: CHART_PALETTE[idx % CHART_PALETTE.length] + '60',
+            borderColor: CHART_PALETTE[idx % CHART_PALETTE.length],
+            borderWidth: 1,
+            fill: true,
+            tension: 0.3,
+            pointRadius: 0,
+          };
+        });
+
+        new Chart(yearlyCanvas, {
+          type: 'line',
+          data: { labels: wpLabels, datasets: regDatasets },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
+            scales: {
+              x: { display: true, ticks: { maxTicksLimit: 12, font: { size: 9 } } },
+              y: {
+                stacked: true,
+                beginAtZero: true,
+                ticks: { maxTicksLimit: 5, callback: function (v) { return fmtK(v); } }
+              }
+            },
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { size: 10 } } },
+              zoom: (typeof ChartZoom !== 'undefined' || (Chart.registry && Chart.registry.getPlugin('zoom'))) ? {
+                pan: { enabled: true, mode: 'x' },
+                zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
+              } : undefined,
+              tooltip: {
+                callbacks: {
+                  footer: function (items) {
+                    var total = items.reduce(function (s, item) { return s + (Number(item.raw) || 0); }, 0);
+                    return 'Total: ' + total.toLocaleString();
                   }
                 }
               }

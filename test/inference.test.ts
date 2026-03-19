@@ -6,6 +6,9 @@ import {
   detectSeasonality,
   computeMomentum,
   generateRecommendations,
+  computeYearlyProgress,
+  computeHealthScore,
+  generateActionableAdvice,
   inferPortfolio,
 } from '../src/inference.js';
 
@@ -279,6 +282,200 @@ describe('inferPortfolio', () => {
     // Each day's aggregate should be > 0 since both packages have data
     for (const v of result.forecastTotal7) {
       expect(v).toBeGreaterThan(0);
+    }
+  });
+
+  it('includes healthScores and actionableAdvice in result', () => {
+    const leaderboard = [
+      { name: 'pkg-a', registry: 'npm', week: 1000, range30: growingSeries, trendPct: 15 },
+      { name: 'pkg-b', registry: 'npm', week: 500, range30: flatSeries, trendPct: 0 },
+    ];
+
+    const result = inferPortfolio(leaderboard, { gini: 0.6, npmPct: 85 });
+    expect(result.healthScores).toHaveLength(2);
+    expect(result.healthScores[0]).toHaveProperty('score');
+    expect(result.healthScores[0]).toHaveProperty('grade');
+    expect(Array.isArray(result.actionableAdvice)).toBe(true);
+  });
+});
+
+describe('computeYearlyProgress', () => {
+  const currentYear = new Date().getFullYear();
+  const prevYear = currentYear - 1;
+
+  it('computes yearly totals from monthly history', () => {
+    const monthlyHistory = {
+      [`${currentYear}-01`]: { week: 100, month: 400, total: 5000, lastUpdated: '2026-01-15T00:00:00Z' },
+      [`${currentYear}-02`]: { week: 120, month: 480, total: 5480, lastUpdated: '2026-02-15T00:00:00Z' },
+      [`${currentYear}-03`]: { week: 150, month: 600, total: 6080, lastUpdated: '2026-03-15T00:00:00Z' },
+    };
+
+    const result = computeYearlyProgress('test-pkg', 'npm', monthlyHistory);
+    expect(result.name).toBe('test-pkg');
+    expect(result.currentYearTotal).toBe(400 + 480 + 600);
+    expect(result.projectedYearEnd).toBeGreaterThan(0);
+    expect(result.monthlyTotals).toHaveLength(3);
+  });
+
+  it('computes YoY growth when previous year data exists', () => {
+    const monthlyHistory = {
+      [`${prevYear}-01`]: { week: 50, month: 200, total: 200, lastUpdated: '' },
+      [`${prevYear}-02`]: { week: 50, month: 200, total: 400, lastUpdated: '' },
+      [`${currentYear}-01`]: { week: 100, month: 400, total: 5000, lastUpdated: '' },
+      [`${currentYear}-02`]: { week: 120, month: 480, total: 5480, lastUpdated: '' },
+    };
+
+    const result = computeYearlyProgress('test-pkg', 'npm', monthlyHistory);
+    expect(result.previousYearTotal).toBe(400);
+    expect(result.yoyGrowthPct).toBeGreaterThan(0);
+  });
+
+  it('returns null YoY when no previous year data', () => {
+    const monthlyHistory = {
+      [`${currentYear}-01`]: { week: 100, month: 400, total: 5000, lastUpdated: '' },
+    };
+
+    const result = computeYearlyProgress('test-pkg', 'npm', monthlyHistory);
+    expect(result.previousYearTotal).toBeNull();
+    expect(result.yoyGrowthPct).toBeNull();
+  });
+
+  it('identifies milestones', () => {
+    const monthlyHistory = {
+      [`${currentYear}-01`]: { week: 250, month: 1000, total: 5000, lastUpdated: '' },
+      [`${currentYear}-02`]: { week: 250, month: 1000, total: 6000, lastUpdated: '' },
+    };
+
+    const result = computeYearlyProgress('test-pkg', 'npm', monthlyHistory);
+    const crossed500 = result.milestones.find((m) => m.threshold === 500);
+    const crossed1000 = result.milestones.find((m) => m.threshold === 1000);
+    expect(crossed500?.crossed).toBe(true);
+    expect(crossed1000?.crossed).toBe(true);
+  });
+
+  it('handles empty history', () => {
+    const result = computeYearlyProgress('test-pkg', 'npm', {});
+    expect(result.currentYearTotal).toBe(0);
+    expect(result.projectedYearEnd).toBe(0);
+    expect(result.monthlyTotals).toHaveLength(0);
+  });
+});
+
+describe('computeHealthScore', () => {
+  it('returns high score for growing series', () => {
+    const result = computeHealthScore('test', 'npm', growingSeries, 50);
+    expect(result.score).toBeGreaterThan(50);
+    expect(['A', 'B', 'C']).toContain(result.grade);
+  });
+
+  it('returns lower score for declining series than growing', () => {
+    const declining = computeHealthScore('test', 'npm', decliningSeries, -50);
+    const growing = computeHealthScore('test', 'npm', growingSeries, 50);
+    expect(declining.score).toBeLessThan(growing.score);
+    expect(declining.components.growth).toBeLessThan(growing.components.growth);
+  });
+
+  it('returns F grade for null series', () => {
+    const result = computeHealthScore('test', 'npm', null, 0);
+    expect(result.grade).toBe('F');
+    expect(result.score).toBe(0);
+  });
+
+  it('returns F grade for short series', () => {
+    const result = computeHealthScore('test', 'npm', shortSeries, 0);
+    expect(result.grade).toBe('F');
+  });
+
+  it('score is between 0 and 100', () => {
+    const scores = [
+      computeHealthScore('a', 'npm', growingSeries, 80),
+      computeHealthScore('b', 'npm', flatSeries, 0),
+      computeHealthScore('c', 'npm', decliningSeries, -80),
+      computeHealthScore('d', 'npm', spikeSeries, 10),
+    ];
+    for (const s of scores) {
+      expect(s.score).toBeGreaterThanOrEqual(0);
+      expect(s.score).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it('components sum to score', () => {
+    const result = computeHealthScore('test', 'npm', growingSeries, 50);
+    const sum = result.components.activity + result.components.consistency + result.components.growth + result.components.stability;
+    expect(sum).toBe(result.score);
+  });
+});
+
+describe('generateActionableAdvice', () => {
+  it('generates critical advice for F-grade packages', () => {
+    const packages = [
+      { name: 'dead-pkg', registry: 'npm', forecast7: [], anomalies: [], trendSegments: [], seasonality: null, momentum: -80 },
+    ];
+    const healthScores = [
+      { name: 'dead-pkg', registry: 'npm', score: 10, grade: 'F' as const, components: { activity: 2, consistency: 3, growth: 2, stability: 3 } },
+    ];
+
+    const advice = generateActionableAdvice(packages, healthScores);
+    const critical = advice.find((a) => a.severity === 'critical');
+    expect(critical).toBeDefined();
+    expect(critical!.urgency).toBe('immediate');
+  });
+
+  it('generates warning for steep decliners', () => {
+    const packages = [
+      { name: 'falling-pkg', registry: 'npm', forecast7: [], anomalies: [], trendSegments: [], seasonality: null, momentum: -60 },
+    ];
+    const healthScores = [
+      { name: 'falling-pkg', registry: 'npm', score: 35, grade: 'D' as const, components: { activity: 10, consistency: 10, growth: 5, stability: 10 } },
+    ];
+
+    const advice = generateActionableAdvice(packages, healthScores);
+    const warning = advice.find((a) => a.severity === 'warning' && a.type === 'attention');
+    expect(warning).toBeDefined();
+  });
+
+  it('generates success advice for surging packages', () => {
+    const packages = [
+      { name: 'hot-pkg', registry: 'npm', forecast7: [], anomalies: [], trendSegments: [], seasonality: null, momentum: 70 },
+    ];
+    const healthScores = [
+      { name: 'hot-pkg', registry: 'npm', score: 85, grade: 'A' as const, components: { activity: 22, consistency: 22, growth: 22, stability: 19 } },
+    ];
+
+    const advice = generateActionableAdvice(packages, healthScores);
+    const success = advice.find((a) => a.severity === 'success');
+    expect(success).toBeDefined();
+  });
+
+  it('includes concentration risk when gini is high', () => {
+    const packages = [
+      { name: 'a', registry: 'npm', forecast7: [], anomalies: [], trendSegments: [], seasonality: null, momentum: 0 },
+    ];
+    const healthScores = [
+      { name: 'a', registry: 'npm', score: 50, grade: 'C' as const, components: { activity: 15, consistency: 15, growth: 10, stability: 10 } },
+    ];
+
+    const advice = generateActionableAdvice(packages, healthScores, { gini: 0.88 });
+    const risk = advice.find((a) => a.type === 'risk' && a.title.includes('concentration'));
+    expect(risk).toBeDefined();
+  });
+
+  it('sorted by severity (critical first)', () => {
+    const packages = [
+      { name: 'a', registry: 'npm', forecast7: [], anomalies: [], trendSegments: [], seasonality: null, momentum: -80 },
+      { name: 'b', registry: 'npm', forecast7: [], anomalies: [], trendSegments: [], seasonality: null, momentum: 70 },
+    ];
+    const healthScores = [
+      { name: 'a', registry: 'npm', score: 10, grade: 'F' as const, components: { activity: 2, consistency: 3, growth: 2, stability: 3 } },
+      { name: 'b', registry: 'npm', score: 85, grade: 'A' as const, components: { activity: 22, consistency: 22, growth: 22, stability: 19 } },
+    ];
+
+    const advice = generateActionableAdvice(packages, healthScores);
+    if (advice.length >= 2) {
+      const order = { critical: 0, warning: 1, success: 2, info: 3 };
+      for (let i = 1; i < advice.length; i++) {
+        expect(order[advice[i].severity]).toBeGreaterThanOrEqual(order[advice[i - 1].severity]);
+      }
     }
   });
 });

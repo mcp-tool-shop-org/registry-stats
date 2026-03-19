@@ -40,7 +40,7 @@ Zero runtime dependencies. Uses native `fetch()`. Node 18+.
 | Layer | What it does |
 |-------|-------------|
 | **Engine** | TypeScript library + CLI + REST server + AI inference. Query five registries with one interface. Published to npm as `@mcptoolshop/registry-stats`. |
-| **Dashboard** | Astro-powered web app with AI inference panel, Pulse AI co-pilot (streaming voice, web search, fullscreen, GitHub data connectors), six interactive charts, live refresh, export reports (PDF / JSONL / Markdown), and tabbed Help guide. Rebuilt daily by CI; refreshable on demand. |
+| **Dashboard** | Astro-powered web app with AI inference panel (health scores, forecasts, actionable advice), Pulse AI co-pilot (streaming voice, web search, fullscreen, GitHub data connectors), seven interactive charts with zoom/pan, live refresh, export reports (PDF / JSONL / Markdown), and tabbed Help guide. Rebuilt daily by CI; refreshable on demand. |
 | **Desktop** | WinUI 3 + WebView2 native Windows app. Bundles the dashboard offline, fetches live stats on demand. |
 
 ## Dashboard
@@ -50,10 +50,12 @@ A self-updating stats dashboard lives at [`/dashboard/`](https://mcp-tool-shop-o
 - **Tabbed interface** — Home, Analytics, Leaderboard, and Help tabs
 - **Pulse AI co-pilot** — Ollama-powered conversational assistant with streaming voice synthesis (speaks as the LLM streams, 4 voices via [mcp-voice-soundboard](https://github.com/mcp-tool-shop-org/mcp-voice-soundboard)), web search (Wikipedia + optional SearXNG), auto-speak, fullscreen mode, GitHub org data connector, model selector, and conversation memory
 - **Executive snapshot** — health score (0–100), diversity index, weekly change, total downloads across all registries
-- **Six interactive charts** — 30-day trend (aggregate / per-registry / top-5 toggles), registry share (polar area), portfolio risk (histogram + Gini & P90), top-10 momentum, velocity tracker with sparklines, and 30-day heatmap with spike detection (>2σ)
+- **Seven interactive charts** — 30-day trend (aggregate / per-registry / top-5 toggles + click-to-drill-down + scroll zoom/pan), registry share (polar area), portfolio risk (histogram + Gini & P90), top-10 momentum, velocity tracker with sparklines, 30-day heatmap with spike detection (>2σ), and portfolio trend (stacked area, yearly)
 - **Smart growth engine** — handles small-denominator distortion with baseline threshold, percentage cap, and damped velocity formula
-- **AI Inference Panel** — portfolio momentum (-100 to +100), risk score, 7-day forecast with confidence intervals, and automated recommendations (growth, risk, opportunity, attention)
-- **Actionable insights** — auto-generated recommendations and attention alerts for declining packages
+- **AI Inference Panel** — portfolio momentum (-100 to +100), risk score, 7-day forecast with confidence intervals, automated recommendations, actionable advice with severity/urgency levels, and package health scoreboard (A–F grades)
+- **Actionable advice** — severity-tagged advice cards (critical/warning/info/success) with urgency levels, specific action steps, and affected package lists
+- **Package health scores** — 0–100 composite score (activity + consistency + growth + stability) with letter grades per package
+- **Yearly progress tracking** — persistent history layer accumulates monthly per-package and weekly portfolio aggregates; portfolio trend chart with per-registry stacking
 - **Pulse panel** — split view of Established Movers (≥ 50 downloads/wk) and Emerging & New packages, with inline 7-day sparklines, absolute + percentage deltas, baseline context, and a one-line executive summary
 - **Live refresh** — on-demand client-side fetch from npm and PyPI APIs with progress indicator; results cached in sessionStorage (5 min TTL) so tab switches are instant
 - **Export reports** — dropdown next to the Refresh button offering three formats: **Exec PDF** (via jsPDF), **LLM JSONL** (typed records for AI ingestion), and **Dev Markdown** (GFM tables)
@@ -75,7 +77,9 @@ Zero-dependency, pure-math inference that runs at build time — no ML runtime, 
 import {
   forecast, detectAnomalies, segmentTrends,
   detectSeasonality, computeMomentum,
-  generateRecommendations, inferPortfolio,
+  generateRecommendations, computeHealthScore,
+  generateActionableAdvice, computeYearlyProgress,
+  inferPortfolio,
 } from '@mcptoolshop/registry-stats';
 
 // 7-day forecast with 80% confidence intervals
@@ -89,9 +93,17 @@ const anomalies = detectAnomalies(dailySeries);
 // Composite momentum score (-100 to +100)
 const momentum = computeMomentum(dailySeries);
 
-// Full portfolio analysis
+// Package health score (0-100 with A-F grade)
+const health = computeHealthScore('my-pkg', 'npm', dailySeries, momentum);
+// → { score: 72, grade: 'B', components: { activity: 20, consistency: 18, growth: 16, stability: 18 } }
+
+// Yearly progress from monthly history
+const progress = computeYearlyProgress('my-pkg', 'npm', monthlyHistory);
+// → { currentYearTotal, yoyGrowthPct, projectedYearEnd, milestones, ... }
+
+// Full portfolio analysis (now includes health scores + actionable advice)
 const result = inferPortfolio(leaderboard, { gini: 0.6, npmPct: 85 });
-// → { packages, forecastTotal7, riskScore, portfolioMomentum, recommendations }
+// → { packages, forecastTotal7, riskScore, portfolioMomentum, recommendations, healthScores, actionableAdvice }
 ```
 
 | Capability | Method | What it does |
@@ -101,6 +113,9 @@ const result = inferPortfolio(leaderboard, { gini: 0.6, npmPct: 85 });
 | **Trend segmentation** | Piecewise linear | Identifies up/down/flat segments in time series |
 | **Seasonality** | Day-of-week decomposition | Detects weekly patterns, reports peak day |
 | **Momentum** | Composite score | Direction + acceleration + consistency + volume |
+| **Health score** | Multi-factor composite | Activity + consistency + growth + stability (0–100, A–F grade) |
+| **Yearly progress** | Monthly accumulation | YoY growth, projected year-end, milestone tracking |
+| **Actionable advice** | Severity rule engine | Critical/warning/info/success with urgency and specific actions |
 | **Recommendations** | Rule engine | Growth, risk, opportunity, and attention categories |
 
 ## Desktop App

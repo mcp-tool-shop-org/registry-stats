@@ -38,6 +38,49 @@ export interface Recommendation {
   metric?: string;
 }
 
+export interface MonthlyAggregate {
+  week: number;
+  month: number;
+  total: number;
+  lastUpdated: string;
+}
+
+export interface YearlyProgress {
+  name: string;
+  registry: string;
+  currentYearTotal: number;
+  previousYearTotal: number | null;
+  yoyGrowthPct: number | null;
+  projectedYearEnd: number;
+  monthlyTotals: Array<{ month: string; downloads: number }>;
+  bestMonth: { month: string; downloads: number } | null;
+  milestones: Array<{ threshold: number; crossed: boolean; crossedAt?: string }>;
+}
+
+export interface PackageHealthScore {
+  name: string;
+  registry: string;
+  score: number;        // 0-100
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  components: {
+    activity: number;      // 0-25: has recent downloads
+    consistency: number;   // 0-25: low variance in daily downloads
+    growth: number;        // 0-25: positive trend
+    stability: number;     // 0-25: no anomalies / drops
+  };
+}
+
+export interface ActionableAdvice {
+  type: 'growth' | 'risk' | 'opportunity' | 'attention' | 'milestone';
+  severity: 'critical' | 'warning' | 'info' | 'success';
+  urgency: 'immediate' | 'this-week' | 'this-month' | 'informational';
+  title: string;
+  detail: string;
+  action: string;        // specific step to take
+  metric?: string;
+  packages?: string[];   // affected packages
+}
+
 export interface PackageInference {
   name: string;
   registry: string;
@@ -55,6 +98,8 @@ export interface PortfolioInference {
   riskScore: number;                // 0-100 portfolio risk
   diversityTrend: 'improving' | 'stable' | 'declining';
   portfolioMomentum: number;        // -100 to +100
+  healthScores: PackageHealthScore[];
+  actionableAdvice: ActionableAdvice[];
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -317,6 +362,262 @@ export function computeMomentum(series: number[]): number {
   return Math.round(Math.max(-100, Math.min(100, dirScore + accelScore + consistencyScore + volumeScore)));
 }
 
+// ── Yearly Progress ──────────────────────────────────────────
+
+const MILESTONE_THRESHOLDS = [100, 500, 1_000, 5_000, 10_000, 50_000, 100_000, 500_000, 1_000_000];
+
+/**
+ * Compute yearly progress for a package given its monthly history.
+ * `monthlyHistory` maps month keys ("2026-01") to MonthlyAggregate.
+ */
+export function computeYearlyProgress(
+  name: string,
+  registry: string,
+  monthlyHistory: Record<string, MonthlyAggregate>,
+): YearlyProgress {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0-indexed
+  const prevYear = currentYear - 1;
+
+  // Gather monthly totals for current and previous year
+  const currentMonths: Array<{ month: string; downloads: number }> = [];
+  const prevMonths: Array<{ month: string; downloads: number }> = [];
+
+  for (const [monthKey, agg] of Object.entries(monthlyHistory)) {
+    const [yearStr, monthStr] = monthKey.split('-');
+    const year = parseInt(yearStr, 10);
+    const dl = agg.month || agg.week * 4; // approximate if only weekly available
+
+    if (year === currentYear) {
+      currentMonths.push({ month: monthKey, downloads: dl });
+    } else if (year === prevYear) {
+      prevMonths.push({ month: monthKey, downloads: dl });
+    }
+  }
+
+  currentMonths.sort((a, b) => a.month.localeCompare(b.month));
+  prevMonths.sort((a, b) => a.month.localeCompare(b.month));
+
+  const currentYearTotal = currentMonths.reduce((s, m) => s + m.downloads, 0);
+  const previousYearTotal = prevMonths.length > 0 ? prevMonths.reduce((s, m) => s + m.downloads, 0) : null;
+
+  // YoY growth
+  const yoyGrowthPct = previousYearTotal !== null && previousYearTotal > 0
+    ? ((currentYearTotal - previousYearTotal) / previousYearTotal) * 100
+    : null;
+
+  // Project year-end based on current run rate
+  const monthsElapsed = currentMonth + 1;
+  const monthlyRate = monthsElapsed > 0 ? currentYearTotal / monthsElapsed : 0;
+  const projectedYearEnd = Math.round(monthlyRate * 12);
+
+  // Best month
+  const bestMonth = currentMonths.length > 0
+    ? currentMonths.reduce((best, m) => m.downloads > best.downloads ? m : best)
+    : null;
+
+  // Milestones
+  const milestones = MILESTONE_THRESHOLDS
+    .filter((t) => t <= projectedYearEnd * 2) // only show relevant ones
+    .map((threshold) => {
+      const crossed = currentYearTotal >= threshold;
+      const crossedAt = crossed
+        ? currentMonths.find((_, idx) => {
+            const running = currentMonths.slice(0, idx + 1).reduce((s, m) => s + m.downloads, 0);
+            return running >= threshold;
+          })?.month
+        : undefined;
+      return { threshold, crossed, ...(crossedAt ? { crossedAt } : {}) };
+    });
+
+  return {
+    name,
+    registry,
+    currentYearTotal,
+    previousYearTotal,
+    yoyGrowthPct: yoyGrowthPct !== null ? Math.round(yoyGrowthPct * 10) / 10 : null,
+    projectedYearEnd,
+    monthlyTotals: currentMonths,
+    bestMonth,
+    milestones,
+  };
+}
+
+// ── Health Score ──────────────────────────────────────────────
+
+/**
+ * Compute a health score (0-100) for a package based on its 30-day series.
+ * Grade scale: A (80-100), B (60-79), C (40-59), D (20-39), F (0-19).
+ */
+export function computeHealthScore(
+  name: string,
+  registry: string,
+  series: number[] | null,
+  momentum: number,
+): PackageHealthScore {
+  const empty: PackageHealthScore = {
+    name, registry, score: 0, grade: 'F',
+    components: { activity: 0, consistency: 0, growth: 0, stability: 0 },
+  };
+
+  if (!series || series.length < 7) return empty;
+
+  // Activity (0-25): does the package have meaningful downloads?
+  const last7Sum = series.slice(-7).reduce((a, b) => a + b, 0);
+  const activity = Math.min(25, Math.round(Math.log10(last7Sum + 1) * 7));
+
+  // Consistency (0-25): low coefficient of variation = consistent
+  const last14 = series.slice(-14);
+  const m = mean(last14);
+  const cv = m > 0 ? stddev(last14) / m : 1;
+  const consistency = Math.min(25, Math.round(Math.max(0, 25 - cv * 25)));
+
+  // Growth (0-25): based on momentum score (map -100..100 to 0..25)
+  const growth = Math.round(Math.max(0, Math.min(25, (momentum + 100) / 8)));
+
+  // Stability (0-25): fewer anomalies = more stable
+  const anomalies = detectAnomalies(series, 2.5);
+  const anomalyPenalty = Math.min(25, anomalies.length * 8);
+  const stability = Math.max(0, 25 - anomalyPenalty);
+
+  const score = activity + consistency + growth + stability;
+  const grade: 'A' | 'B' | 'C' | 'D' | 'F' =
+    score >= 80 ? 'A' : score >= 60 ? 'B' : score >= 40 ? 'C' : score >= 20 ? 'D' : 'F';
+
+  return {
+    name, registry, score, grade,
+    components: { activity, consistency, growth, stability },
+  };
+}
+
+// ── Actionable Advice ────────────────────────────────────────
+
+/**
+ * Generate specific, actionable advice with severity and urgency levels.
+ * More detailed than `generateRecommendations` — includes concrete steps.
+ */
+export function generateActionableAdvice(
+  packages: PackageInference[],
+  healthScores: PackageHealthScore[],
+  opts: { gini?: number; npmPct?: number; totalWeekly?: number } = {},
+): ActionableAdvice[] {
+  const advice: ActionableAdvice[] = [];
+
+  // 1. Critical: packages with F health grade
+  const failing = healthScores.filter((h) => h.grade === 'F');
+  if (failing.length > 0) {
+    advice.push({
+      type: 'attention',
+      severity: 'critical',
+      urgency: 'immediate',
+      title: `${failing.length} package${failing.length > 1 ? 's' : ''} in critical health`,
+      detail: `${failing.map((h) => h.name).slice(0, 5).join(', ')} scored below 20/100.`,
+      action: 'Review these packages for broken installs, outdated dependencies, or missing documentation. Consider archiving if no longer maintained.',
+      packages: failing.map((h) => h.name),
+    });
+  }
+
+  // 2. Warning: steep decliners (momentum < -50)
+  const steepDecline = packages.filter((p) => p.momentum < -50);
+  if (steepDecline.length > 0) {
+    advice.push({
+      type: 'attention',
+      severity: 'warning',
+      urgency: 'this-week',
+      title: `${steepDecline.length} package${steepDecline.length > 1 ? 's' : ''} in rapid decline`,
+      detail: `${steepDecline.map((p) => p.name).slice(0, 3).join(', ')} lost significant download momentum.`,
+      action: 'Check for competing packages, broken releases, or ecosystem changes. Push a patch release or announcement.',
+      packages: steepDecline.map((p) => p.name),
+    });
+  }
+
+  // 3. Concentration risk
+  if (opts.gini !== undefined && opts.gini > 0.7) {
+    advice.push({
+      type: 'risk',
+      severity: opts.gini > 0.85 ? 'warning' : 'info',
+      urgency: 'this-month',
+      title: 'Portfolio concentration risk',
+      detail: `Gini coefficient ${opts.gini.toFixed(2)} — downloads are concentrated in a few packages.`,
+      action: 'Promote underperforming packages in README badges, blog posts, and release notes of popular packages.',
+      metric: `Gini: ${opts.gini.toFixed(2)}`,
+    });
+  }
+
+  // 4. Registry dependency
+  if (opts.npmPct !== undefined && opts.npmPct > 75) {
+    advice.push({
+      type: 'risk',
+      severity: 'info',
+      urgency: 'this-month',
+      title: `${opts.npmPct}% of traffic from npm`,
+      detail: 'Single-registry dependency increases blast radius if npm has outages or policy changes.',
+      action: 'Cross-publish key packages to PyPI (via wrapper) or NuGet. Add install instructions for all registries in READMEs.',
+      metric: `npm share: ${opts.npmPct}%`,
+    });
+  }
+
+  // 5. Growth opportunities — strong momentum + spikes
+  const surging = packages.filter((p) => p.momentum > 50);
+  if (surging.length > 0) {
+    advice.push({
+      type: 'opportunity',
+      severity: 'success',
+      urgency: 'this-week',
+      title: `${surging.length} package${surging.length > 1 ? 's' : ''} surging`,
+      detail: `${surging.map((p) => p.name).slice(0, 3).join(', ')} have strong positive momentum.`,
+      action: 'Capitalize now: write a blog post, tweet, or submit to newsletters. Post a "Thank you" issue or discussion.',
+      packages: surging.map((p) => p.name),
+    });
+  }
+
+  // 6. Milestone celebrations
+  const highVolume = packages.filter((p) => {
+    const pkg = packages.find((pp) => pp.name === p.name);
+    return pkg && pkg.forecast7.length > 0 && pkg.forecast7[6]?.predicted > 100;
+  });
+  for (const pkg of highVolume.slice(0, 3)) {
+    const weekSum = pkg.forecast7.reduce((s, f) => s + f.predicted, 0);
+    for (const threshold of [1000, 5000, 10000]) {
+      if (weekSum >= threshold * 0.9 && weekSum <= threshold * 1.1) {
+        advice.push({
+          type: 'milestone',
+          severity: 'success',
+          urgency: 'informational',
+          title: `${pkg.name} approaching ${threshold.toLocaleString()} weekly downloads`,
+          detail: `Forecasted at ~${weekSum.toLocaleString()} downloads next week.`,
+          action: 'Prepare a milestone announcement and update the README with a downloads badge.',
+          packages: [pkg.name],
+        });
+      }
+    }
+  }
+
+  // 7. D-grade packages with easy wins
+  const dGrade = healthScores.filter((h) => h.grade === 'D');
+  const easyWins = dGrade.filter((h) => {
+    return h.components.activity >= 10 && h.components.growth < 10;
+  });
+  if (easyWins.length > 0) {
+    advice.push({
+      type: 'opportunity',
+      severity: 'info',
+      urgency: 'this-month',
+      title: `${easyWins.length} package${easyWins.length > 1 ? 's' : ''} with untapped potential`,
+      detail: `${easyWins.map((h) => h.name).slice(0, 3).join(', ')} have active users but stalled growth.`,
+      action: 'Add new features, improve docs, or create tutorials. Small efforts can shift these from D to C+ quickly.',
+      packages: easyWins.map((h) => h.name),
+    });
+  }
+
+  // Sort: critical first, then warning, then success, then info
+  const severityOrder = { critical: 0, warning: 1, success: 2, info: 3 };
+  advice.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+
+  return advice;
+}
+
 // ── Portfolio-Level Analysis ─────────────────────────────────
 
 /**
@@ -483,6 +784,15 @@ export function inferPortfolio(
 
   const recommendations = generateRecommendations(packages, opts);
 
+  // Health scores for each package
+  const healthScores = leaderboard.map((row) => {
+    const pkg = packages.find((p) => p.name === row.name);
+    return computeHealthScore(row.name, row.registry, row.range30 ?? null, pkg?.momentum ?? 0);
+  });
+
+  // Actionable advice (richer than recommendations)
+  const actionableAdvice = generateActionableAdvice(packages, healthScores, opts);
+
   return {
     packages,
     recommendations,
@@ -490,5 +800,7 @@ export function inferPortfolio(
     riskScore,
     diversityTrend,
     portfolioMomentum: Math.round(weightedMomentum),
+    healthScores,
+    actionableAdvice,
   };
 }

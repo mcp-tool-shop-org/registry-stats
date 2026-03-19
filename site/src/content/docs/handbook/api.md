@@ -1,6 +1,6 @@
 ---
 title: API
-description: Programmatic usage and REST server.
+description: Programmatic usage, AI inference, and REST server.
 sidebar:
   order: 3
 ---
@@ -78,6 +78,36 @@ await stats('npm', 'express', { cache });  // cache hit (5 min TTL)
 ```
 
 The `StatsCache` interface is pluggable — bring your own Redis or file backend.
+
+## AI Inference
+
+Zero-dependency, pure-math inference — no ML runtime, no external APIs.
+
+```typescript
+import {
+  forecast, detectAnomalies, computeMomentum,
+  computeHealthScore, generateActionableAdvice,
+  computeYearlyProgress, inferPortfolio,
+} from '@mcptoolshop/registry-stats';
+
+// 7-day forecast with 80% confidence intervals
+const predictions = forecast(dailySeries, 7);
+
+// Anomaly detection (adaptive rolling z-score, 14-day window)
+const anomalies = detectAnomalies(dailySeries);
+
+// Package health score (0-100 with A-F grade)
+const health = computeHealthScore('my-pkg', 'npm', dailySeries, momentum);
+// → { score: 72, grade: 'B', components: { activity, consistency, growth, stability } }
+
+// Actionable advice with severity/urgency
+const advice = generateActionableAdvice(healthScores, portfolioMetrics);
+// → [{ type, severity, urgency, title, detail, action, packages }]
+
+// Full portfolio analysis
+const result = inferPortfolio(leaderboard, { gini: 0.6, npmPct: 85 });
+// → { packages, forecastTotal7, riskScore, portfolioMomentum, recommendations, healthScores, actionableAdvice }
+```
 
 ## REST server
 

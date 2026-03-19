@@ -14,9 +14,89 @@ const ROOT = path.resolve(__dirname, ".."); // site/
 const DATA_DIR = path.join(ROOT, "src", "data");
 const MANIFEST_PATH = path.join(DATA_DIR, "packages.json");
 const OUT_PATH = path.join(DATA_DIR, "stats.json");
+const HISTORY_PATH = path.join(DATA_DIR, "history.json");
 
 function safeNumber(n) {
   return Number.isFinite(n) ? n : 0;
+}
+
+// ── History accumulator ──────────────────────────────────────
+// Appends monthly per-package aggregates and weekly portfolio totals
+// to history.json. Idempotent — same month/week won't duplicate.
+
+async function loadHistory() {
+  try {
+    return JSON.parse(await fs.readFile(HISTORY_PATH, "utf8"));
+  } catch {
+    return { version: 1, lastUpdated: null, monthly: {}, weeklyPortfolio: [] };
+  }
+}
+
+function getISOWeek(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil(((date - yearStart) / 86400000 + 1) / 7);
+  return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+}
+
+async function updateHistory(leaderboard, registryTotals, totals) {
+  const history = await loadHistory();
+  const now = new Date();
+  const monthKey = now.toISOString().slice(0, 7); // "2026-03"
+  const weekKey = getISOWeek(now);
+
+  // --- Monthly per-package aggregates ---
+  for (const row of leaderboard) {
+    const pkgKey = `${row.registry}:${row.name}`;
+    if (!history.monthly[pkgKey]) history.monthly[pkgKey] = {};
+
+    const existing = history.monthly[pkgKey][monthKey];
+    // Accumulate: keep the highest weekly value seen this month (build runs daily)
+    history.monthly[pkgKey][monthKey] = {
+      week: Math.max(safeNumber(row.week), safeNumber(existing?.week)),
+      month: Math.max(safeNumber(row.month), safeNumber(existing?.month)),
+      total: Math.max(safeNumber(row.total), safeNumber(existing?.total)),
+      lastUpdated: now.toISOString(),
+    };
+  }
+
+  // --- Weekly portfolio aggregates ---
+  const weekEntry = history.weeklyPortfolio.find((e) => e.week === weekKey);
+  const portfolioWeek = Object.values(registryTotals).reduce((s, r) => s + safeNumber(r.week), 0);
+  const portfolioMonth = Object.values(registryTotals).reduce((s, r) => s + safeNumber(r.month), 0);
+
+  const regBreakdown = {};
+  for (const [reg, rt] of Object.entries(registryTotals)) {
+    regBreakdown[reg] = safeNumber(rt.week);
+  }
+
+  if (weekEntry) {
+    // Update in place — keep highest values
+    weekEntry.totalWeek = Math.max(weekEntry.totalWeek, portfolioWeek);
+    weekEntry.totalMonth = Math.max(weekEntry.totalMonth, portfolioMonth);
+    weekEntry.packages = totals.packages;
+    weekEntry.registries = regBreakdown;
+    weekEntry.updatedAt = now.toISOString();
+  } else {
+    history.weeklyPortfolio.push({
+      week: weekKey,
+      totalWeek: portfolioWeek,
+      totalMonth: portfolioMonth,
+      packages: totals.packages,
+      registries: regBreakdown,
+      updatedAt: now.toISOString(),
+    });
+    // Keep max 104 weeks (2 years)
+    if (history.weeklyPortfolio.length > 104) {
+      history.weeklyPortfolio = history.weeklyPortfolio.slice(-104);
+    }
+  }
+
+  history.lastUpdated = now.toISOString();
+  await fs.writeFile(HISTORY_PATH, JSON.stringify(history, null, 2) + "\n", "utf8");
+  console.log(`  History updated: ${Object.keys(history.monthly).length} packages, ${history.weeklyPortfolio.length} weekly entries`);
+  return history;
 }
 
 function pctChange(curr, prev) {
@@ -518,6 +598,10 @@ async function main() {
 
   console.log(`  Inference: ${inference.packages.length} packages analyzed, ${inference.recommendations.length} recommendations, risk=${inference.riskScore}, momentum=${inference.portfolioMomentum}`);
 
+  // --- Update historical data ---
+  console.log("  Updating history...");
+  const history = await updateHistory(leaderboard, registryTotals, totals);
+
   const payload = {
     fetchedAt,
     totals,
@@ -533,12 +617,19 @@ async function main() {
     leaderboard,
     sparkline30,
     errors,
+    history: {
+      weeklyPortfolio: history.weeklyPortfolio.slice(-52), // last year
+      packageCount: Object.keys(history.monthly).length,
+      lastUpdated: history.lastUpdated,
+    },
     inference: {
       forecastTotal7: inference.forecastTotal7,
       riskScore: inference.riskScore,
       portfolioMomentum: inference.portfolioMomentum,
       diversityTrend: inference.diversityTrend,
       recommendations: inference.recommendations,
+      actionableAdvice: inference.actionableAdvice,
+      healthScores: inference.healthScores.slice(0, 50),
       packages: inference.packages.filter((p) => p.forecast7.length > 0).slice(0, 30).map((p) => ({
         name: p.name,
         registry: p.registry,
