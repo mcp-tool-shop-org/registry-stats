@@ -16,7 +16,12 @@ const repoUrl = "https://github.com/mcp-tool-shop-org/registry-stats";
       <div class="text-sm font-semibold text-heading" id="nav-brand">Registry Pulse</div>
     </div>
 
-    <div class="flex items-center gap-2 text-sm">
+    {/* Mobile hamburger */}
+    <button id="nav-toggle" class="sm:hidden text-muted hover:text-heading transition-colors p-1" aria-label="Toggle menu">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+    </button>
+
+    <div class="hidden sm:flex items-center gap-2 text-sm">
       <a
         href={dashboardHref}
         aria-disabled={!hasSnapshot ? "true" : undefined}
@@ -39,7 +44,7 @@ const repoUrl = "https://github.com/mcp-tool-shop-org/registry-stats";
       </a>
     </div>
 
-    <div class="flex items-center gap-3 text-sm">
+    <div class="hidden sm:flex items-center gap-3 text-sm">
       <!-- Export dropdown (dashboard only) -->
       {active === "dashboard" && (
         <div class="export-wrap relative">
@@ -84,6 +89,34 @@ const repoUrl = "https://github.com/mcp-tool-shop-org/registry-stats";
       <a href={repoUrl} target="_blank" rel="noreferrer" class="text-muted hover:text-heading transition-colors">GitHub</a>
     </div>
   </div>
+
+  {/* Mobile menu panel */}
+  <div id="nav-mobile" class="hidden sm:hidden border-t border-edge bg-surface-raised px-6 py-3 space-y-2 text-sm">
+    <a
+      href={dashboardHref}
+      aria-disabled={!hasSnapshot ? "true" : undefined}
+      class:list={[
+        "block px-3 py-2 rounded-md transition-colors",
+        active === "dashboard" ? "bg-surface-strong text-heading" : "text-muted hover:text-heading hover:bg-surface-strong/40",
+        !hasSnapshot && "opacity-60 cursor-not-allowed"
+      ]}
+    >
+      Dashboard
+    </a>
+    <a
+      href={`${base}/setup/`}
+      class:list={[
+        "block px-3 py-2 rounded-md transition-colors",
+        active === "setup" ? "bg-surface-strong text-heading" : "text-muted hover:text-heading hover:bg-surface-strong/40",
+      ]}
+    >
+      Setup
+    </a>
+    <div class="flex items-center gap-3 pt-2 border-t border-edge">
+      <button type="button" class="mobile-help-btn text-muted hover:text-heading transition-colors">Help</button>
+      <a href={repoUrl} target="_blank" rel="noreferrer" class="text-muted hover:text-heading transition-colors">GitHub</a>
+    </div>
+  </div>
 </nav>
 
 <!-- Help modal -->
@@ -111,9 +144,21 @@ const repoUrl = "https://github.com/mcp-tool-shop-org/registry-stats";
 </div>
 
 <script is:inline>
+  // Mobile nav toggle
+  (function() {
+    var toggle = document.getElementById("nav-toggle");
+    var mobile = document.getElementById("nav-mobile");
+    if (toggle && mobile) {
+      toggle.addEventListener("click", function() {
+        mobile.classList.toggle("hidden");
+      });
+    }
+  })();
+
   // Help modal
   (function() {
     var btn = document.getElementById("helpBtn");
+    var mobileBtn = document.querySelector(".mobile-help-btn");
     var modal = document.getElementById("helpModal");
     var close = document.getElementById("helpClose");
     var backdrop = document.getElementById("helpBackdrop");
@@ -122,6 +167,7 @@ const repoUrl = "https://github.com/mcp-tool-shop-org/registry-stats";
     function shut() { if (modal) modal.classList.add("hidden"); }
 
     if (btn) btn.addEventListener("click", open);
+    if (mobileBtn) mobileBtn.addEventListener("click", open);
     if (close) close.addEventListener("click", shut);
     if (backdrop) backdrop.addEventListener("click", shut);
     window.addEventListener("keydown", function(e) {
