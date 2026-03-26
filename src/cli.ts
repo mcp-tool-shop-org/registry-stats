@@ -1,9 +1,14 @@
-import { writeFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { resolve, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { stats, createCache, calc } from './index.js';
 import { serve } from './server.js';
 import { loadConfig, starterConfig } from './config.js';
 import type { PackageStats, StatsOptions, Config, ComparisonResult } from './types.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'));
+const VERSION: string = pkg.version;
 
 function usage() {
   console.log(`
@@ -22,6 +27,7 @@ Options:
   --compare       Compare package across registries side-by-side
   --format        Output format: table (default), json, csv, chart
   --init          Create a starter registry-stats.config.json
+  --version, -V   Show version
   --help, -h      Show this help
 
 Subcommands:
@@ -237,6 +243,11 @@ async function runMine(maintainer: string, format: string, config: Config | null
 
 async function main() {
   const args = process.argv.slice(2);
+
+  if (args.includes('--version') || args.includes('-V')) {
+    console.log(`registry-stats ${VERSION}`);
+    process.exit(0);
+  }
 
   if (args.includes('--help') || args.includes('-h')) {
     usage();

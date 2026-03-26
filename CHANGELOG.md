@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.2.2] - 2026-03-25
+
+### Added
+- `--version` / `-V` CLI flag (reads from package.json)
+- 5 version consistency tests
+
 ## [3.0.0] - 2026-03-04
 
 ### Added
