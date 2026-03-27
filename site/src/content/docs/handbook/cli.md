@@ -23,11 +23,14 @@ registry-stats
 | Flag | Description |
 |------|-------------|
 | `-r, --registry` | Registry to query: `npm`, `pypi`, `nuget`, `vscode`, `docker` |
-| `--json` | Raw JSON output |
+| `--mine <username>` | Discover all npm packages by a maintainer and show stats |
+| `--json` | Raw JSON output (shorthand for `--format json`) |
 | `--range <start>:<end>` | Time series (YYYY-MM-DD format) |
-| `--format csv\|chart` | Export format for time series data |
+| `--format json\|csv\|chart` | Output format (default: `table`) |
 | `--compare` | Compare across all registries |
 | `--init` | Create a config file |
+| `-V, --version` | Show version |
+| `-h, --help` | Show help |
 
 ## Time series
 
@@ -54,6 +57,20 @@ registry-stats express --compare
 ```
 
 Shows the same package across all registries side by side.
+
+## Maintainer discovery
+
+Find all npm packages published by a maintainer and see their stats:
+
+```bash
+# Table output (sorted by monthly downloads)
+registry-stats --mine mikefrilot
+
+# JSON output
+registry-stats --mine mikefrilot --format json
+```
+
+The `--mine` flag uses the npm search API to discover packages, then fetches stats for each using the smart bulk API. Scoped packages are fetched sequentially with throttling; unscoped packages use a single bulk API call.
 
 ## REST server
 

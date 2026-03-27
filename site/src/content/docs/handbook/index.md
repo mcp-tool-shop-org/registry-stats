@@ -15,6 +15,7 @@ Welcome to the registry-stats handbook. This is the complete guide to querying p
 - **[Dashboard](/registry-stats/handbook/dashboard/)** — Live web dashboard with Pulse AI
 - **[Configuration](/registry-stats/handbook/configuration/)** — Config file, caching, and custom registries
 - **[Registries](/registry-stats/handbook/registries/)** — Supported registries and data available
+- **[Beginners](/registry-stats/handbook/beginners/)** — New to registry-stats? Start here
 
 ## What is registry-stats?
 

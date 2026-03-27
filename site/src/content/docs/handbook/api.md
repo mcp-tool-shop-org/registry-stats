@@ -56,6 +56,21 @@ const cmp = await stats.compare('express');
 await stats.compare('express', ['npm', 'pypi']);
 ```
 
+### stats.mine()
+
+Discover all npm packages by a maintainer, then fetch stats for each:
+
+```typescript
+const results = await stats.mine('mikefrilot', {
+  onProgress(done, total, pkg) {
+    console.log(`${done}/${total}: ${pkg}`);
+  },
+});
+// Returns PackageStats[] sorted by monthly downloads (descending)
+```
+
+Uses the npm search API for discovery and the smart bulk API for stats (single HTTP call for unscoped packages, throttled sequential for scoped).
+
 ## Calculations
 
 ```typescript
@@ -85,9 +100,11 @@ Zero-dependency, pure-math inference — no ML runtime, no external APIs.
 
 ```typescript
 import {
-  forecast, detectAnomalies, computeMomentum,
-  computeHealthScore, generateActionableAdvice,
-  computeYearlyProgress, inferPortfolio,
+  forecast, detectAnomalies, segmentTrends,
+  detectSeasonality, computeMomentum,
+  generateRecommendations, computeHealthScore,
+  generateActionableAdvice, computeYearlyProgress,
+  inferPortfolio,
 } from '@mcptoolshop/registry-stats';
 
 // 7-day forecast with 80% confidence intervals
@@ -96,15 +113,22 @@ const predictions = forecast(dailySeries, 7);
 // Anomaly detection (adaptive rolling z-score, 14-day window)
 const anomalies = detectAnomalies(dailySeries);
 
+// Piecewise trend segmentation
+const segments = segmentTrends(dailySeries);
+
+// Composite momentum score (-100 to +100)
+const momentum = computeMomentum(dailySeries);
+
 // Package health score (0-100 with A-F grade)
 const health = computeHealthScore('my-pkg', 'npm', dailySeries, momentum);
 // → { score: 72, grade: 'B', components: { activity, consistency, growth, stability } }
 
 // Actionable advice with severity/urgency
-const advice = generateActionableAdvice(healthScores, portfolioMetrics);
+// Takes: (packageInferences[], healthScores[], opts)
+const advice = generateActionableAdvice(packages, healthScores, { gini: 0.6, npmPct: 85 });
 // → [{ type, severity, urgency, title, detail, action, packages }]
 
-// Full portfolio analysis
+// Full portfolio analysis (the main entry point)
 const result = inferPortfolio(leaderboard, { gini: 0.6, npmPct: 85 });
 // → { packages, forecastTotal7, riskScore, portfolioMomentum, recommendations, healthScores, actionableAdvice }
 ```
@@ -122,3 +146,15 @@ import { createServer } from 'node:http';
 const handler = createHandler();
 createServer(handler).listen(3000);
 ```
+
+### Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/` | Health check (lists available endpoints) |
+| `GET` | `/stats/:package` | All registries for a package |
+| `GET` | `/stats/:registry/:package` | Single registry |
+| `GET` | `/compare/:package?registries=npm,pypi` | Cross-registry comparison |
+| `GET` | `/range/:registry/:package?start=...&end=...&format=json\|csv\|chart` | Time series data |
+
+All endpoints return JSON by default. The `/range` endpoint supports `format=csv` (returns CSV with `Content-Disposition` header) and `format=chart` (returns Chart.js-compatible JSON). CORS is enabled for all origins.

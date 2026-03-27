@@ -67,7 +67,7 @@ A self-updating stats dashboard lives at [`/dashboard/`](https://mcp-tool-shop-o
 - **Dark / light theme** — follows system preference
 - **Mobile responsive** — hamburger menu for small screens
 
-Data is fetched at build time and rebuilt daily by CI (06:00 UTC). Live refresh pulls the latest numbers directly from registry APIs. Configure tracked packages in `site/src/data/packages.json`.
+Data is refreshed daily by CI (06:00 UTC) and the full site is rebuilt weekly (Mondays 06:00 UTC). Live refresh pulls the latest numbers directly from registry APIs on demand. Configure tracked packages in `site/src/data/packages.json`.
 
 ## AI Inference Engine
 

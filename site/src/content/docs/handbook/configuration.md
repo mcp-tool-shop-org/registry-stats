@@ -55,12 +55,12 @@ const cache = createCache();
 await stats('npm', 'express', { cache });
 ```
 
-The `StatsCache` interface supports custom backends:
+The `StatsCache` interface supports custom backends (synchronous — no async needed):
 
 ```typescript
 interface StatsCache {
-  get(key: string): Promise<PackageStats | null>;
-  set(key: string, value: PackageStats): Promise<void>;
+  get(key: string): PackageStats | DailyDownloads[] | undefined;
+  set(key: string, value: PackageStats | DailyDownloads[], ttlMs: number): void;
 }
 ```
 
@@ -89,8 +89,21 @@ registerProvider(cargo);
 await stats('cargo', 'serde');
 ```
 
+## Config options reference
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `registries` | `string[]` | All five | Default registries to query |
+| `packages` | `object` | `{}` | Map of display names to registry-specific package IDs |
+| `cache` | `boolean` | `true` | Enable in-memory caching |
+| `cacheTtlMs` | `number` | `300000` | Cache TTL in milliseconds (5 minutes) |
+| `concurrency` | `number` | `5` | Max concurrent requests for bulk operations |
+| `dockerToken` | `string` | — | Docker Hub auth token (raises rate limits) |
+
 ## Built-in reliability
 
 - Automatic retry with exponential backoff on 429/5xx errors
 - Respects `Retry-After` headers
+- 30-second request timeouts via `AbortSignal.timeout`
+- Per-registry throttling (npm: 400ms, PyPI: 2.2s, Docker: 4s between requests)
 - Concurrency limiting for bulk requests (default: 5)

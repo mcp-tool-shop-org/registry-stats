@@ -65,7 +65,7 @@ All Chart.js charts support:
 
 ## Data pipeline
 
-Stats are fetched at build time and rebuilt weekly by CI (Mondays 06:00 UTC). The live refresh feature pulls latest numbers directly from registry APIs. Configure tracked packages in `site/src/data/packages.json`.
+Two CI schedules keep the dashboard current: a daily data refresh (`daily-refresh.yml` at 06:00 UTC) and a full site rebuild and deploy (`pages.yml` on Mondays at 06:00 UTC). The live refresh feature also pulls the latest numbers directly from registry APIs on demand. Configure tracked packages in `site/src/data/packages.json`.
 
 Historical data accumulates in `site/src/data/history.json`, tracking monthly per-package aggregates and weekly portfolio totals (up to 2 years).
 
