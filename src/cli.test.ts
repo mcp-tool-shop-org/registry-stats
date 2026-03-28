@@ -6,18 +6,23 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
-const CLI_PATH = resolve(__dirname, '..', 'dist', 'cli.js');
+const CLI_SOURCE = resolve(__dirname, 'cli.ts');
 const PKG = JSON.parse(readFileSync(resolve(__dirname, '..', 'package.json'), 'utf-8'));
 
+const LIVE = process.env.LIVE_API === '1';
+const liveIt = LIVE ? it : it.skip;
+
 /**
- * Run the CLI with given args via node subprocess.
+ * Run the CLI with given args via tsx (source) subprocess.
+ * Uses tsx so tests work before `npm run build`.
  * Returns { stdout, stderr, code }.
  */
 async function run(args: string[]): Promise<{ stdout: string; stderr: string; code: number }> {
   try {
-    const { stdout, stderr } = await execFileAsync('node', [CLI_PATH, ...args], {
-      timeout: 10_000,
+    const { stdout, stderr } = await execFileAsync('npx', ['tsx', CLI_SOURCE, ...args], {
+      timeout: 30_000,
       env: { ...process.env, NO_COLOR: '1' },
+      shell: true,
     });
     return { stdout, stderr, code: 0 };
   } catch (e: any) {
@@ -108,51 +113,46 @@ describe('CLI', () => {
     });
   });
 
-  // ─── Unknown flags ──────────────────────────────────────────────────
+  // ─── Unknown flags (hits live API) ────────────────────────────────
   describe('unknown flags', () => {
-    it('warns about unknown flags', async () => {
+    liveIt('warns about unknown flags', async () => {
       const r = await run(['express', '--typo']);
       expect(r.stderr).toContain('Warning: unknown option(s): --typo');
-    });
+    }, 30_000);
 
-    it('warns about multiple unknown flags', async () => {
+    liveIt('warns about multiple unknown flags', async () => {
       const r = await run(['express', '--foo', '--bar']);
       expect(r.stderr).toContain('--foo');
       expect(r.stderr).toContain('--bar');
-    });
+    }, 30_000);
   });
 
-  // ─── csv/chart without --range ──────────────────────────────────────
+  // ─── csv/chart without --range (hits live API) ────────────────────
   describe('format warnings', () => {
-    it('warns when --format csv used without --range', async () => {
+    liveIt('warns when --format csv used without --range', async () => {
       const r = await run(['express', '--format', 'csv']);
       expect(r.stderr).toContain('Warning: --format csv only produces meaningful output with --range');
-    });
+    }, 30_000);
 
-    it('warns when --format chart used without --range', async () => {
+    liveIt('warns when --format chart used without --range', async () => {
       const r = await run(['express', '--format', 'chart']);
       expect(r.stderr).toContain('Warning: --format chart only produces meaningful output with --range');
-    });
+    }, 30_000);
   });
 
-  // ─── Argument parsing ───────────────────────────────────────────────
+  // ─── Argument parsing (hits live API) ─────────────────────────────
   describe('argument parsing', () => {
-    it('--json sets format to json (shorthand)', async () => {
-      // --json + --help should still show help (--help takes priority early)
-      // We test that --json is recognized by not producing an unknown flag warning
+    liveIt('--json sets format to json (shorthand)', async () => {
       const r = await run(['express', '--json', '--typo']);
-      // --json should NOT appear in unknown flags warning
       expect(r.stderr).not.toContain('--json');
-      // but --typo should
       expect(r.stderr).toContain('--typo');
-    });
+    }, 30_000);
 
-    it('recognizes -r as --registry alias', async () => {
-      // -r should be consumed and not produce unknown flag warning
+    liveIt('recognizes -r as --registry alias', async () => {
       const r = await run(['express', '-r', 'npm', '--typo']);
       expect(r.stderr).not.toContain('-r');
       expect(r.stderr).toContain('--typo');
-    });
+    }, 30_000);
   });
 
   // ─── Range validation ──────────────────────────────────────────────
@@ -167,9 +167,7 @@ describe('CLI', () => {
   // ─── No args (no config) ───────────────────────────────────────────
   describe('no arguments', () => {
     it('prints help when no args and no config present', async () => {
-      // Run in a temp directory with no config file
       const r = await run([]);
-      // Either shows help (exit 0) or config error
       expect(r.stdout + r.stderr).toBeTruthy();
     });
   });
@@ -212,7 +210,7 @@ describe('CLI', () => {
     });
   });
 
-  // ─── .catch() on main ──────────────────────────────────────────────
+  // ─── Source-level checks (no subprocess needed) ────────────────────
   describe('main() .catch()', () => {
     it('cli.ts source has .catch() on main()', () => {
       const src = readFileSync(resolve(__dirname, 'cli.ts'), 'utf-8');
@@ -220,11 +218,9 @@ describe('CLI', () => {
     });
   });
 
-  // ─── Registry error logging ────────────────────────────────────────
   describe('registry error logging', () => {
     it('cli.ts no longer has empty catch blocks', () => {
       const src = readFileSync(resolve(__dirname, 'cli.ts'), 'utf-8');
-      // Should not have empty catch blocks
       expect(src).not.toMatch(/catch\s*\{[\s]*\}/);
       expect(src).not.toContain('skip failed registries silently');
     });

@@ -6,6 +6,9 @@ import { vscode } from '../src/providers/vscode.js';
 import { docker } from '../src/providers/docker.js';
 import type { RegistryProvider, PackageStats } from '../src/types.js';
 
+const LIVE = process.env.LIVE_API === '1';
+const liveIt = LIVE ? it : it.skip;
+
 const testCases: { provider: RegistryProvider; pkg: string; hasRange: boolean }[] = [
   { provider: npm, pkg: 'express', hasRange: true },
   { provider: pypi, pkg: 'requests', hasRange: true },
@@ -34,7 +37,7 @@ describe('provider contract', () => {
         }
       });
 
-      it('getStats returns correct shape', async () => {
+      liveIt('getStats returns correct shape', async () => {
         const result = await provider.getStats(pkg);
         expect(result).not.toBeNull();
 
@@ -47,7 +50,7 @@ describe('provider contract', () => {
         expect(new Date(s.fetchedAt).toISOString()).toBe(s.fetchedAt);
       }, 15000);
 
-      it('getStats returns null for nonexistent package', async () => {
+      liveIt('getStats returns null for nonexistent package', async () => {
         const result = await provider.getStats('this-package-absolutely-does-not-exist-xyz-999');
         expect(result).toBeNull();
       }, 15000);
