@@ -13,7 +13,7 @@ const registryLocks = new Map<string, Promise<void>>();
 const MAX_LOCK_ENTRIES = 50;
 
 const REGISTRY_DELAYS: Partial<Record<RegistryName, number>> = {
-  npm: 400,    // ~2.5 req/s — safe for 54+ scoped packages
+  npm: 800,    // ~1.25 req/s — safe for 91+ scoped packages (429s at 400ms)
   pypi: 2200,  // 30 req/60s = 1 per 2s, with headroom
   docker: 4000, // 10 req/3600s — very tight
 };
