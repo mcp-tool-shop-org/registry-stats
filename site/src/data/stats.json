@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-03-28T17:11:58.006Z",
+  "fetchedAt": "2026-03-28T17:21:51.982Z",
   "totals": {
     "packages": 168,
     "week": 4714,
@@ -39,19 +39,19 @@
     "nuget": 27
   },
   "fetchedCounts": {
-    "npm": 73,
+    "npm": 93,
     "pypi": 42,
     "vscode": 6,
     "nuget": 27
   },
   "staleCounts": {
-    "npm": 1,
+    "npm": 21,
     "pypi": 0,
     "vscode": 0,
     "nuget": 0
   },
   "errorsByRegistry": {
-    "npm": 4
+    "npm": 2
   },
   "confidence": {
     "npm": "partial",
@@ -59,7 +59,7 @@
     "vscode": "ok",
     "nuget": "ok"
   },
-  "narrative": "npm led with 69% of weekly downloads. Top package: @mcptoolshop/site-theme (481 this week). Top gainer: @mcptoolshop/claude-session-copilot (+303%; Δ88). Concentration: top 5 = 23.0%. Data is partial (degraded: npm) (1 packages used cached previous data).",
+  "narrative": "npm led with 69% of weekly downloads. Top package: @mcptoolshop/site-theme (481 this week). Top gainer: @mcptoolshop/claude-session-copilot (+303%; Δ88). Concentration: top 5 = 23.0%. Data is partial (degraded: npm) (21 packages used cached previous data).",
   "narrativeLines": [
     {
       "icon": "📊",
@@ -89,7 +89,7 @@
     {
       "icon": "⚠️",
       "label": "Data Health",
-      "text": "Data is partial (degraded: npm) (1 packages used cached previous data)."
+      "text": "Data is partial (degraded: npm) (21 packages used cached previous data)."
     }
   ],
   "movers": {
@@ -4567,7 +4567,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -4658,7 +4659,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -4703,7 +4705,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -4748,7 +4751,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -4762,7 +4766,8 @@
       "prev7": null,
       "delta7": null,
       "range30": null,
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -4807,7 +4812,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -4852,7 +4858,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -4897,7 +4904,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -4942,7 +4950,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -4987,7 +4996,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -5032,7 +5042,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -5077,7 +5088,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -5122,7 +5134,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -5167,7 +5180,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -5212,7 +5226,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -5257,7 +5272,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -5302,7 +5318,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -5347,7 +5364,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -5392,7 +5410,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -5437,7 +5456,8 @@
         0,
         0
       ],
-      "extra": null
+      "extra": null,
+      "stale": true
     }
   ],
   "sparkline30": [
@@ -5474,14 +5494,6 @@
   ],
   "errors": [
     {
-      "scope": "npm.bulk",
-      "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-02-26:2026-03-28/%40mcptoolshop%2Fprov-engine"
-    },
-    {
-      "scope": "npm:@accessibility-suite/core",
-      "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-02-26:2026-03-28/%40accessibility-suite%2Fcore"
-    },
-    {
       "scope": "npm.range:@mcptoolshop/repomesh",
       "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-02-26:2026-03-28/%40mcptoolshop%2Frepomesh"
     },
@@ -5516,11 +5528,11 @@
           "vscode": 0,
           "nuget": 0
         },
-        "updatedAt": "2026-03-28T17:20:15.841Z"
+        "updatedAt": "2026-03-28T17:29:15.260Z"
       }
     ],
     "packageCount": 168,
-    "lastUpdated": "2026-03-28T17:20:15.841Z"
+    "lastUpdated": "2026-03-28T17:29:15.260Z"
   },
   "inference": {
     "forecastTotal7": [
