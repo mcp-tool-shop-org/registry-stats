@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.2.3] - 2026-03-28
+
+### Fixed
+- Security hardening: desktop path traversal, WebView2 navigation guard, CSP headers, server rate limiting + timeouts + security headers
+- CDN SRI hashes, PAT moved to sessionStorage, innerHTML XSS fix
+- Fetch error wrapping, config validation, package name sanitization
+- npm throttle increased to 800ms preventing 429 rate limits on 91 scoped packages
+- CI stabilized: live API tests gated behind LIVE_API=1, CLI tests use tsx
+
+### Added
+- 62 new tests (CLI, server, providers, inference, core, desktop)
+- Inference engine: sample stddev, NaN guards, size cap, deterministic timestamps
+- Build pipeline: schema validation, atomic writes, stale data warnings
+
 ## [3.2.2] - 2026-03-25
 
 ### Added
