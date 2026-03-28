@@ -144,11 +144,12 @@ describe('detectSeasonality', () => {
       // Weekend dip pattern
       return dow >= 5 ? 50 : 200;
     });
-    const result = detectSeasonality(weeklySeries, 28);
-    if (result) {
-      expect(result.dayOfWeek).toHaveLength(7);
-      expect(typeof result.peakDay).toBe('string');
-    }
+    // Use a fixed reference date for deterministic day-of-week mapping
+    const refDate = new Date('2026-03-28T12:00:00Z');
+    const result = detectSeasonality(weeklySeries, 28, refDate);
+    expect(result).not.toBeNull();
+    expect(result!.dayOfWeek).toHaveLength(7);
+    expect(typeof result!.peakDay).toBe('string');
   });
 
   it('returns null for zero series', () => {
@@ -219,12 +220,11 @@ describe('generateRecommendations', () => {
       { name: 'a', registry: 'npm', forecast7: [], anomalies: [], trendSegments: [], seasonality: null, momentum: -70 },
     ];
     const recs = generateRecommendations(packages, { gini: 0.9, npmPct: 95 });
-    if (recs.length >= 2) {
-      const priorities = recs.map((r) => r.priority);
-      const order = { high: 0, medium: 1, low: 2 };
-      for (let i = 1; i < priorities.length; i++) {
-        expect(order[priorities[i]]).toBeGreaterThanOrEqual(order[priorities[i - 1]]);
-      }
+    expect(recs.length).toBeGreaterThanOrEqual(2);
+    const priorities = recs.map((r) => r.priority);
+    const order = { high: 0, medium: 1, low: 2 };
+    for (let i = 1; i < priorities.length; i++) {
+      expect(order[priorities[i]]).toBeGreaterThanOrEqual(order[priorities[i - 1]]);
     }
   });
 });
@@ -471,11 +471,137 @@ describe('generateActionableAdvice', () => {
     ];
 
     const advice = generateActionableAdvice(packages, healthScores);
-    if (advice.length >= 2) {
-      const order = { critical: 0, warning: 1, success: 2, info: 3 };
-      for (let i = 1; i < advice.length; i++) {
-        expect(order[advice[i].severity]).toBeGreaterThanOrEqual(order[advice[i - 1].severity]);
-      }
+    expect(advice.length).toBeGreaterThanOrEqual(2);
+    const order = { critical: 0, warning: 1, success: 2, info: 3 };
+    for (let i = 1; i < advice.length; i++) {
+      expect(order[advice[i].severity]).toBeGreaterThanOrEqual(order[advice[i - 1].severity]);
+    }
+  });
+});
+
+// ── Edge-case tests: NaN / Infinity / zero / negative ────────
+
+describe('NaN and Infinity input handling', () => {
+  const nanSeries = [NaN, 100, 110, 120, 130, 140, 150, 160, NaN, 170, 180, 190, 200, 210, 220];
+  const infSeries = [Infinity, 100, 110, 120, 130, 140, 150, 160, -Infinity, 170, 180, 190, 200, 210, 220];
+
+  it('forecast filters NaN values and still produces results', () => {
+    const result = forecast(nanSeries, 7);
+    expect(result.length).toBe(7);
+    for (const pt of result) {
+      expect(Number.isFinite(pt.predicted)).toBe(true);
+      expect(Number.isFinite(pt.lower)).toBe(true);
+      expect(Number.isFinite(pt.upper)).toBe(true);
+    }
+  });
+
+  it('forecast filters Infinity values and still produces results', () => {
+    const result = forecast(infSeries, 7);
+    expect(result.length).toBe(7);
+    for (const pt of result) {
+      expect(Number.isFinite(pt.predicted)).toBe(true);
+    }
+  });
+
+  it('detectAnomalies handles NaN in series', () => {
+    const result = detectAnomalies(nanSeries);
+    for (const a of result) {
+      expect(Number.isFinite(a.zscore)).toBe(true);
+    }
+  });
+
+  it('computeMomentum handles NaN in series', () => {
+    const m = computeMomentum(nanSeries);
+    expect(Number.isFinite(m)).toBe(true);
+  });
+
+  it('segmentTrends handles NaN in series', () => {
+    const result = segmentTrends(nanSeries);
+    for (const seg of result) {
+      expect(Number.isFinite(seg.slope)).toBe(true);
+    }
+  });
+
+  it('detectSeasonality handles NaN in series', () => {
+    const refDate = new Date('2026-03-28T12:00:00Z');
+    // NaN filtering may reduce below 14 points, returning null
+    const result = detectSeasonality(nanSeries, 15, refDate);
+    if (result !== null) {
+      expect(result.dayOfWeek).toHaveLength(7);
+    }
+  });
+
+  it('forecast returns empty for all-NaN series', () => {
+    expect(forecast(new Array(30).fill(NaN), 7)).toHaveLength(0);
+  });
+
+  it('computeHealthScore returns low grade for zero series', () => {
+    const result = computeHealthScore('test', 'npm', zeroSeries, 0);
+    // Zero downloads = no activity, but consistency and stability can still score
+    expect(['D', 'F']).toContain(result.grade);
+    expect(result.score).toBeLessThanOrEqual(39);
+    expect(result.components.activity).toBe(0);
+  });
+
+  it('computeMomentum returns 0 for zero series (too few after filtering)', () => {
+    // zeroSeries is all zeros, but they are finite, so 30 points remain.
+    // With 14+ points of zeros, momentum should be 0 or near 0.
+    const m = computeMomentum(zeroSeries);
+    expect(m).toBe(0);
+  });
+
+  it('forecast handles negative values without crashing', () => {
+    const negativeSeries = Array.from({ length: 14 }, (_, i) => -100 + i * 5);
+    const result = forecast(negativeSeries, 7);
+    expect(result.length).toBe(7);
+    // predicted should be clamped to >= 0
+    for (const pt of result) {
+      expect(pt.predicted).toBeGreaterThanOrEqual(0);
+    }
+  });
+});
+
+// ── Numerical correctness tests ─────────────────────────────
+
+describe('numerical correctness', () => {
+  it('forecast on a perfectly linear series produces near-exact predictions', () => {
+    // y = 10 + 5*x for x=0..13
+    const linearSeries = Array.from({ length: 14 }, (_, i) => 10 + 5 * i);
+    const result = forecast(linearSeries, 3);
+    expect(result.length).toBe(3);
+    // After 14 points (x=0..13), next predictions should be near x=14,15,16 -> 80,85,90
+    expect(result[0].predicted).toBeGreaterThanOrEqual(75);
+    expect(result[0].predicted).toBeLessThanOrEqual(85);
+  });
+
+  it('detectAnomalies correctly identifies an obvious outlier', () => {
+    // Base series with enough noise so sample stddev > 1 (avoids the s < 1 skip),
+    // then a massive spike at position 20
+    const series = Array.from({ length: 25 }, (_, i) => {
+      if (i === 20) return 500;
+      return 100 + (i % 5) * 2; // values cycle: 100, 102, 104, 106, 108
+    });
+    const anomalies = detectAnomalies(series, 2.0);
+    const spike = anomalies.find((a) => a.day === 20);
+    expect(spike).toBeDefined();
+    expect(spike!.type).toBe('spike');
+    expect(spike!.value).toBe(500);
+  });
+
+  it('computeMomentum for a steadily doubling series is strongly positive', () => {
+    // last14: each day doubles from prev
+    const doublingTail = Array.from({ length: 14 }, (_, i) => 10 + i * 20);
+    const m = computeMomentum(doublingTail);
+    expect(m).toBeGreaterThan(30);
+  });
+
+  it('segmentTrends correctly labels a perfectly flat series as flat', () => {
+    const flat = new Array(15).fill(100);
+    const segments = segmentTrends(flat);
+    expect(segments.length).toBeGreaterThan(0);
+    for (const seg of segments) {
+      expect(seg.direction).toBe('flat');
+      expect(seg.slope).toBe(0);
     }
   });
 });

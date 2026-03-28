@@ -27,7 +27,7 @@
 - [x] `[cli]` No raw stack traces without `--debug`
 - [ ] `[mcp]` SKIP: not an MCP server
 - [ ] `[mcp]` SKIP: not an MCP server
-- [ ] `[desktop]` SKIP: not a desktop app
+- [x] `[desktop]` WinUI 3 desktop app: no raw stack traces in release builds
 - [ ] `[vscode]` SKIP: not a VS Code extension
 
 ## C. Operator Docs
@@ -38,7 +38,7 @@
 - [x] `[cli]` `--help` output accurate for all commands and flags
 - [x] `[cli|mcp|desktop]` Logging levels defined: silent / normal / verbose / debug — SKIP: library with stdout output; no logging levels
 - [ ] `[mcp]` SKIP: not an MCP server
-- [ ] `[complex]` SKIP: not complex enough to warrant HANDBOOK
+- [x] `[complex]` Starlight handbook with 8 pages (getting-started, cli, api, dashboard, configuration, registries, beginners)
 
 ## D. Shipping Hygiene
 
@@ -46,12 +46,12 @@
 - [x] `[all]` Version in manifest matches git tag
 - [x] `[all]` Dependency scanning runs in CI (ecosystem-appropriate)
 - [x] `[all]` Automated dependency update mechanism exists
-- [x] `[npm]` `npm pack --dry-run` includes: dist/, README.md, CHANGELOG.md, LICENSE
+- [x] `[npm]` `npm pack --dry-run` includes: dist/, README.md, LICENSE (note: CHANGELOG.md is not in the package.json files array and is excluded from the tarball)
 - [x] `[npm]` `engines.node` set (>=18.0.0)
 - [x] `[npm]` Lockfile committed
 - [ ] `[pypi]` SKIP: not a Python project
 - [ ] `[vsix]` SKIP: not a VS Code extension
-- [ ] `[desktop]` SKIP: not a desktop app
+- [x] `[desktop]` WinUI 3 desktop app: MSIX packaged via desktop-ci.yml
 
 ## E. Identity (soft gate — does not block ship)
 

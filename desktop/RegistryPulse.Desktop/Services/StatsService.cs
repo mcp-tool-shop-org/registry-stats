@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace RegistryPulse.Desktop.Services;
 
 /// <summary>
@@ -32,8 +34,9 @@ public sealed class StatsService
             await File.WriteAllBytesAsync(CachePath, bytes);
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            Debug.WriteLine($"[StatsService] RefreshAsync error: {ex.Message}");
             return false;
         }
     }
@@ -48,9 +51,9 @@ public sealed class StatsService
             if (File.Exists(CachePath))
                 return File.ReadAllBytes(CachePath);
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore read errors
+            Debug.WriteLine($"[StatsService] GetCachedStatsBytes error: {ex.Message}");
         }
         return null;
     }

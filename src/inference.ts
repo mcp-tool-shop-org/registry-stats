@@ -104,15 +104,25 @@ export interface PortfolioInference {
 
 // ── Helpers ──────────────────────────────────────────────────
 
+/** Filter out NaN and Infinity values from an array. */
+function sanitize(arr: number[]): number[] {
+  return arr.filter((v) => Number.isFinite(v));
+}
+
 function mean(arr: number[]): number {
   if (arr.length === 0) return 0;
   return arr.reduce((a, b) => a + b, 0) / arr.length;
 }
 
+/**
+ * Sample standard deviation using Bessel's correction (n-1 denominator).
+ * For small windows of 7-14 data points, population stddev (n) underestimates
+ * variance by 7-14%. Sample stddev is the correct choice here.
+ */
 function stddev(arr: number[]): number {
   if (arr.length < 2) return 0;
   const m = mean(arr);
-  const variance = arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length;
+  const variance = arr.reduce((s, v) => s + (v - m) ** 2, 0) / (arr.length - 1);
   return Math.sqrt(variance);
 }
 
@@ -162,8 +172,16 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
  * Forecast next N days using weighted linear regression on recent data.
  * Uses the last 14 days with exponential weighting (recent days matter more).
  * Returns predictions with 80% confidence intervals.
+ *
+ * @remarks
+ * - Requires at least 7 data points; returns empty array otherwise.
+ * - NaN/Infinity values in the input are filtered before processing.
+ * - Confidence intervals use a uniform-variance approximation for the x-spread
+ *   (see inline comment) and an approximate DoF correction for weighted RSE.
+ *   Both are adequate for windows of 7-14 points but not for long series.
  */
 export function forecast(series: number[], days = 7): ForecastPoint[] {
+  series = sanitize(series);
   if (series.length < 7) return [];
 
   // Use last 14 days (or all if fewer)
@@ -193,7 +211,11 @@ export function forecast(series: number[], days = 7): ForecastPoint[] {
     intercept = (wSumY - slope * wSumX) / totalW;
   }
 
-  // Residual standard error for confidence intervals
+  // Residual standard error for confidence intervals.
+  // NOTE: totalW is the sum of exponential weights, not the effective sample size.
+  // Using (totalW - 2) as the denominator is an approximation of the degrees-of-freedom
+  // correction for weighted least squares. For the small, roughly uniform windows used
+  // here (n=7..14), this is adequate but may over- or under-estimate the true RSE.
   let ssRes = 0;
   for (let i = 0; i < n; i++) {
     ssRes += weights[i] * (window[i] - (intercept + slope * i)) ** 2;
@@ -207,6 +229,11 @@ export function forecast(series: number[], days = 7): ForecastPoint[] {
   for (let d = 1; d <= days; d++) {
     const x = n - 1 + d;
     const predicted = Math.max(0, Math.round(intercept + slope * x));
+    // Prediction interval margin. The (n*n/12) term approximates Var(x) as the
+    // variance of a Uniform(0, n) distribution, rather than computing the actual
+    // weighted sum of squared deviations sum((xi - xbar)^2). This is a deliberate
+    // simplification — for n=7..14, the uniform approximation is within ~5% of the
+    // exact value, and avoids carrying the weighted deviation sum forward.
     const margin = Math.round(z80 * rse * Math.sqrt(1 + 1 / n + ((x - n / 2) ** 2) / (n * n / 12)));
     results.push({
       day: d,
@@ -223,8 +250,14 @@ export function forecast(series: number[], days = 7): ForecastPoint[] {
  * Detect anomalies using adaptive z-score with rolling baseline.
  * More sophisticated than simple global z-score — uses a 14-day rolling
  * window so seasonal patterns don't trigger false positives.
+ *
+ * @remarks
+ * - Requires at least 7 data points; returns empty array otherwise.
+ * - NaN/Infinity values are filtered before processing.
+ * - Uses sample stddev (n-1) for z-score computation.
  */
 export function detectAnomalies(series: number[], threshold = 2.0): Anomaly[] {
+  series = sanitize(series);
   if (series.length < 7) return [];
 
   const anomalies: Anomaly[] = [];
@@ -255,9 +288,20 @@ export function detectAnomalies(series: number[], threshold = 2.0): Anomaly[] {
 /**
  * Segment a time series into directional trend segments.
  * Uses a simple piecewise linear approach with minimum segment length.
+ *
+ * @remarks
+ * - NaN/Infinity values are filtered before processing.
+ * - O(n^2) complexity: calls linearRegression in a nested loop. Designed for
+ *   series of up to ~365 points. Input is capped at 1000 elements as a safety guard.
  */
 export function segmentTrends(series: number[], minSegmentLength = 5): TrendSegment[] {
+  series = sanitize(series);
   if (series.length < minSegmentLength) return [];
+
+  // Cap input length to avoid O(n^2) blowup on unexpectedly large series
+  if (series.length > 1000) {
+    series = series.slice(-1000);
+  }
 
   const segments: TrendSegment[] = [];
   let segStart = 0;
@@ -297,13 +341,19 @@ export function segmentTrends(series: number[], minSegmentLength = 5): TrendSegm
 /**
  * Detect day-of-week seasonality patterns.
  * Requires at least 14 days of data to identify weekly cycles.
+ *
+ * @param referenceDate - Optional fixed date for day-of-week calculation.
+ *   Defaults to `new Date()`. Inject a fixed date for deterministic testing.
+ * @remarks
+ * - NaN/Infinity values are filtered before processing.
  */
-export function detectSeasonality(series: number[], startDaysAgo: number): { dayOfWeek: number[]; peakDay: string } | null {
+export function detectSeasonality(series: number[], startDaysAgo: number, referenceDate?: Date): { dayOfWeek: number[]; peakDay: string } | null {
+  series = sanitize(series);
   if (series.length < 14) return null;
 
   // Group by day of week
   const buckets: number[][] = [[], [], [], [], [], [], []];
-  const today = new Date();
+  const today = referenceDate ?? new Date();
 
   for (let i = 0; i < series.length; i++) {
     const date = new Date(today);
@@ -331,8 +381,13 @@ export function detectSeasonality(series: number[], startDaysAgo: number): { day
 /**
  * Compute a composite momentum score (-100 to +100).
  * Combines: short-term trend, acceleration, volume, and consistency.
+ *
+ * @remarks
+ * - Requires at least 14 data points; returns 0 otherwise.
+ * - NaN/Infinity values are filtered before processing.
  */
 export function computeMomentum(series: number[]): number {
+  series = sanitize(series);
   if (series.length < 14) return 0;
 
   const last7 = series.slice(-7);
@@ -574,8 +629,7 @@ export function generateActionableAdvice(
 
   // 6. Milestone celebrations
   const highVolume = packages.filter((p) => {
-    const pkg = packages.find((pp) => pp.name === p.name);
-    return pkg && pkg.forecast7.length > 0 && pkg.forecast7[6]?.predicted > 100;
+    return p.forecast7.length > 0 && p.forecast7[6]?.predicted > 100;
   });
   for (const pkg of highVolume.slice(0, 3)) {
     const weekSum = pkg.forecast7.reduce((s, f) => s + f.predicted, 0);
@@ -779,7 +833,9 @@ export function inferPortfolio(
   const anomalyRisk = Math.min(30, anomalyDensity * 10);
   const riskScore = Math.round(Math.max(0, Math.min(100, giniRisk + declineRisk + anomalyRisk)));
 
-  // Diversity trend — compare first-half vs second-half Gini (approximation)
+  // Diversity trend — NOT YET IMPLEMENTED.
+  // TODO: compute half-window Gini comparison to derive an actual trend.
+  // Currently hardcoded to 'stable'; consumers should not treat this as computed.
   const diversityTrend: 'improving' | 'stable' | 'declining' = 'stable';
 
   const recommendations = generateRecommendations(packages, opts);

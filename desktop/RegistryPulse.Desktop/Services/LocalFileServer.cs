@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 
 namespace RegistryPulse.Desktop.Services;
@@ -73,6 +74,16 @@ public sealed class LocalFileServer : IDisposable
 
             var filePath = Path.Combine(_rootPath, path.Replace('/', Path.DirectorySeparatorChar));
 
+            // Path traversal protection: resolved path must stay within wwwroot
+            var fullRoot = Path.GetFullPath(_rootPath) + Path.DirectorySeparatorChar;
+            var fullFile = Path.GetFullPath(filePath);
+            if (!fullFile.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                ctx.Response.StatusCode = 403;
+                ctx.Response.Close();
+                return;
+            }
+
             // Directory → index.html
             if (Directory.Exists(filePath))
                 filePath = Path.Combine(filePath, "index.html");
@@ -88,12 +99,29 @@ public sealed class LocalFileServer : IDisposable
             ctx.Response.StatusCode = 200;
             ctx.Response.ContentType = GetContentType(filePath);
             ctx.Response.ContentLength64 = bytes.Length;
+            AddSecurityHeaders(ctx.Response, filePath);
             ctx.Response.OutputStream.Write(bytes, 0, bytes.Length);
             ctx.Response.Close();
         }
-        catch
+        catch (Exception ex)
         {
+            Debug.WriteLine($"[LocalFileServer] Request error: {ex.Message}");
             try { ctx.Response.StatusCode = 500; ctx.Response.Close(); } catch { }
+        }
+    }
+
+    private static void AddSecurityHeaders(HttpListenerResponse response, string filePath)
+    {
+        // Only add CSP to HTML responses
+        if (filePath.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
+        {
+            response.Headers.Set("Content-Security-Policy",
+                "default-src 'self'; " +
+                "script-src 'self' 'unsafe-inline'; " +
+                "style-src 'self' 'unsafe-inline'; " +
+                "connect-src 'self' https://mcp-tool-shop-org.github.io; " +
+                "img-src 'self' data:; " +
+                "font-src 'self';");
         }
     }
 

@@ -82,7 +82,7 @@ export interface ChartData {
 
 export class RegistryError extends Error {
   constructor(
-    public registry: RegistryName,
+    public registry: RegistryName | string,
     public statusCode: number,
     message: string,
     public retryAfter?: number,

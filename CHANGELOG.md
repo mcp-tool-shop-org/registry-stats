@@ -11,6 +11,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `--version` / `-V` CLI flag (reads from package.json)
 - 5 version consistency tests
 
+## [3.2.1] - 2026-03-19
+
+### Added
+- **Package health scores** — 0–100 composite score (activity + consistency + growth + stability) with A–F letter grades per package
+- **Actionable advice engine** — severity-tagged advice cards (critical/warning/info/success) with urgency levels, specific action steps, and affected package lists
+- **Yearly progress tracking** — persistent history layer accumulates monthly per-package and weekly portfolio aggregates; portfolio trend chart with per-registry stacking
+- **Interactive charts** — seventh chart added (portfolio trend stacked area); existing charts gain click-to-drill-down and scroll zoom/pan
+- `computeHealthScore()`, `generateActionableAdvice()`, `computeYearlyProgress()` inference APIs
+- `stats.mine()` API and `--mine <username>` CLI flag for npm maintainer discovery
+
+### Changed
+- `inferPortfolio()` now returns `healthScores` and `actionableAdvice` fields
+- Dashboard upgraded from six to seven interactive charts
+
+## [3.1.0] - 2026-03-19
+
+### Added
+- **AI inference engine** — zero-dependency, pure-math inference: forecast, anomaly detection, trend segmentation, seasonality, momentum scoring, recommendations
+- **AI Inference Panel** in dashboard — portfolio momentum, risk score, 7-day forecast with confidence intervals, automated recommendations
+- **Daily stats refresh** — CI workflow fetches stats daily at 06:00 UTC
+- **Starlight handbook** — 8-page documentation site alongside landing page
+- Dashboard UX polish: tab transitions, mobile hamburger nav, inference panel verification
+
+### Fixed
+- Docker Hub URL encoding for namespaced repos
+- Stats snapshot preserved on fetch failure instead of zeroing out
+- Stats snapshot committed back to repo after each fetch
+
+### Changed
+- CI pipeline added with paths-gated triggers
+- Package tracking expanded (30+ new packages added)
+
 ## [3.0.0] - 2026-03-04
 
 ### Added

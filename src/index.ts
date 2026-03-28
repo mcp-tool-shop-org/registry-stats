@@ -17,8 +17,30 @@ export type { ServerOptions } from './server.js';
 export { forecast, detectAnomalies, segmentTrends, detectSeasonality, computeMomentum, generateRecommendations, computeYearlyProgress, computeHealthScore, generateActionableAdvice, inferPortfolio } from './inference.js';
 export type { ForecastPoint, Anomaly, TrendSegment, Recommendation, PackageInference, PortfolioInference, MonthlyAggregate, YearlyProgress, PackageHealthScore, ActionableAdvice } from './inference.js';
 
+// --- Package name validation ---
+
+/** Pattern for valid package names: alphanumeric, hyphens, dots, underscores, slashes, @ for scoped */
+const VALID_PKG_NAME = /^[@a-zA-Z0-9][\w./@-]*$/;
+
+/**
+ * Validate and sanitize a package name before use in URLs.
+ * Rejects names with path traversal, whitespace, or control characters.
+ */
+function validatePackageName(pkg: string, registry: string): void {
+  if (!pkg || typeof pkg !== 'string') {
+    throw new RegistryError(registry, 0, `Invalid package name: must be a non-empty string`);
+  }
+  if (pkg.includes('..') || pkg.includes('\\')) {
+    throw new RegistryError(registry, 0, `Invalid package name "${pkg}": path traversal not allowed`);
+  }
+  if (!VALID_PKG_NAME.test(pkg)) {
+    throw new RegistryError(registry, 0, `Invalid package name "${pkg}": contains illegal characters`);
+  }
+}
+
 // --- Built-in TTL cache ---
 
+/** Create an in-memory TTL cache for stats and range results. */
 function createCache(): StatsCache {
   const store = new Map<string, { value: PackageStats | DailyDownloads[]; expiresAt: number }>();
   return {
@@ -41,6 +63,7 @@ export { createCache };
 
 // --- Concurrency limiter ---
 
+/** Simple promise-based concurrency limiter. Limits parallel async tasks to `concurrency`. */
 function pLimit(concurrency: number) {
   let active = 0;
   const queue: (() => void)[] = [];
@@ -72,20 +95,27 @@ const providers: Record<string, RegistryProvider> = {
   docker,
 };
 
+/** Register a custom registry provider. The provider's name becomes the registry key for stats(). */
 function registerProvider(provider: RegistryProvider): void {
   providers[provider.name] = provider;
 }
 
 const DEFAULT_TTL = 300_000; // 5 minutes
 
+/**
+ * Fetch download stats for a single package from one registry.
+ * Returns null if the package is not found (404).
+ * Supports caching via options.cache.
+ */
 async function stats(
   registry: string,
   pkg: string,
   options?: StatsOptions,
 ): Promise<PackageStats | null> {
+  validatePackageName(pkg, registry);
   const provider = providers[registry];
   if (!provider) {
-    throw new RegistryError(registry as RegistryName, 0, `Unknown registry "${registry}". Use registerProvider() to add custom registries.`);
+    throw new RegistryError(registry, 0, `Unknown registry "${registry}". Use registerProvider() to add custom registries.`);
   }
 
   const cache = options?.cache;
@@ -101,6 +131,7 @@ async function stats(
   return provider.getStats(pkg, options);
 }
 
+/** Fetch stats from all registered providers. Errors are swallowed; only successful results returned. */
 stats.all = async function all(
   pkg: string,
   options?: StatsOptions,
@@ -117,6 +148,7 @@ stats.all = async function all(
     .map((r) => r.value!);
 };
 
+/** Fetch stats for multiple packages from one registry with concurrency control. */
 stats.bulk = async function bulk(
   registry: string,
   packages: string[],
@@ -124,7 +156,7 @@ stats.bulk = async function bulk(
 ): Promise<(PackageStats | null)[]> {
   const provider = providers[registry];
   if (!provider) {
-    throw new RegistryError(registry as RegistryName, 0, `Unknown registry "${registry}".`);
+    throw new RegistryError(registry, 0, `Unknown registry "${registry}".`);
   }
 
   // Smart path for npm: use bulk API for unscoped, throttled for scoped
@@ -195,6 +227,7 @@ async function npmBulkStats(
   return packages.map((pkg) => unscopedResults.get(pkg) ?? scopedMap.get(pkg) ?? null);
 }
 
+/** Fetch daily download time-series for a package. Only npm and pypi support this. */
 stats.range = async function range(
   registry: string,
   pkg: string,
@@ -204,11 +237,11 @@ stats.range = async function range(
 ): Promise<DailyDownloads[]> {
   const provider = providers[registry];
   if (!provider) {
-    throw new RegistryError(registry as RegistryName, 0, `Unknown registry "${registry}".`);
+    throw new RegistryError(registry, 0, `Unknown registry "${registry}".`);
   }
   if (!provider.getRange) {
     throw new RegistryError(
-      registry as RegistryName,
+      registry,
       0,
       `${registry} does not support time-series data. Only npm and pypi support getRange().`,
     );
@@ -227,6 +260,7 @@ stats.range = async function range(
   return provider.getRange(pkg, start, end);
 };
 
+/** Compare a package's stats across multiple registries. Errors are swallowed per-registry. */
 stats.compare = async function compare(
   pkg: string,
   registries?: string[],

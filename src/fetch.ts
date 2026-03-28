@@ -10,6 +10,7 @@ const BASE_DELAY = 1000; // 1 second
 // Uses a mutex pattern: each caller awaits the previous, then schedules the next slot.
 
 const registryLocks = new Map<string, Promise<void>>();
+const MAX_LOCK_ENTRIES = 50;
 
 const REGISTRY_DELAYS: Partial<Record<RegistryName, number>> = {
   npm: 400,    // ~2.5 req/s — safe for 54+ scoped packages
@@ -26,20 +27,47 @@ function acquireSlot(registry: RegistryName): Promise<void> {
   // Each caller waits for the previous to finish, then holds the slot for minDelay
   const slot = prev.then(() => new Promise<void>((r) => setTimeout(r, minDelay)));
   registryLocks.set(registry, slot);
+
+  // Guard against unbounded growth from custom providers
+  if (registryLocks.size > MAX_LOCK_ENTRIES) {
+    const oldest = registryLocks.keys().next().value;
+    if (oldest !== undefined) registryLocks.delete(oldest);
+  }
+
   return prev; // caller proceeds as soon as the PREVIOUS slot's delay has passed
 }
 
-export async function fetchWithRetry<T>(
+/**
+ * Shared retry loop used by both throttled and unthrottled fetch paths.
+ * Wraps network errors (DNS, timeout, connection refused) in RegistryError
+ * so callers always receive structured errors.
+ */
+async function fetchRetryCore<T>(
   url: string,
   registry: RegistryName,
-  init?: RequestInit,
+  init: RequestInit | undefined,
+  preRequest?: () => Promise<void>,
 ): Promise<T | null> {
   let lastError: RegistryError | undefined;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    await acquireSlot(registry);
+    if (preRequest) await preRequest();
 
-    const res = await fetch(url, { signal: AbortSignal.timeout(30_000), ...init });
+    let res: Response;
+    try {
+      res = await fetch(url, { signal: AbortSignal.timeout(30_000), ...init });
+    } catch (err) {
+      // Network-level failures: DNS, connection refused, abort/timeout
+      const message = err instanceof Error ? err.message : String(err);
+      lastError = new RegistryError(registry, 0, `Network error: ${message} — ${url}`);
+
+      // Network errors are transient — retry unless exhausted
+      if (attempt === MAX_RETRIES) break;
+
+      const backoff = BASE_DELAY * Math.pow(2, attempt);
+      await new Promise((r) => setTimeout(r, backoff));
+      continue;
+    }
 
     if (res.status === 404) return null;
 
@@ -64,44 +92,31 @@ export async function fetchWithRetry<T>(
     await new Promise((r) => setTimeout(r, delay));
   }
 
-  throw lastError!;
+  throw lastError ?? new RegistryError(registry, 0, `Fetch failed after ${MAX_RETRIES} retries: ${url}`);
 }
 
 /**
- * Unthrottled fetch — for endpoints where we do our own batching
+ * Fetch with per-registry throttling and retry.
+ * Serializes requests per registry to respect rate limits.
+ * Returns null for 404, throws RegistryError for all other failures.
+ */
+export async function fetchWithRetry<T>(
+  url: string,
+  registry: RegistryName,
+  init?: RequestInit,
+): Promise<T | null> {
+  return fetchRetryCore<T>(url, registry, init, () => acquireSlot(registry));
+}
+
+/**
+ * Unthrottled fetch -- for endpoints where we do our own batching
  * (e.g. npm bulk API, npm search). Still retries on transient errors.
+ * Returns null for 404, throws RegistryError for all other failures.
  */
 export async function fetchDirect<T>(
   url: string,
   registry: RegistryName,
   init?: RequestInit,
 ): Promise<T | null> {
-  let lastError: RegistryError | undefined;
-
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const res = await fetch(url, { signal: AbortSignal.timeout(30_000), ...init });
-
-    if (res.status === 404) return null;
-
-    if (res.ok) return res.json() as Promise<T>;
-
-    const retryAfter = res.headers.get('retry-after');
-    const retryAfterSeconds = retryAfter ? parseInt(retryAfter, 10) : undefined;
-
-    lastError = new RegistryError(
-      registry,
-      res.status,
-      `${res.statusText}: ${url}`,
-      retryAfterSeconds,
-    );
-
-    if (!RETRYABLE.has(res.status) || attempt === MAX_RETRIES) break;
-
-    const backoff = BASE_DELAY * Math.pow(2, attempt);
-    const retryAfterMs = retryAfterSeconds ? retryAfterSeconds * 1000 : 0;
-    const delay = Math.max(backoff, retryAfterMs);
-    await new Promise((r) => setTimeout(r, delay));
-  }
-
-  throw lastError!;
+  return fetchRetryCore<T>(url, registry, init);
 }

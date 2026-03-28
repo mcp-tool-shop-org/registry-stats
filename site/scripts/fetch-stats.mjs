@@ -3,6 +3,7 @@
 // Uses @mcptoolshop/registry-stats library API directly.
 
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -16,6 +17,57 @@ const MANIFEST_PATH = path.join(DATA_DIR, "packages.json");
 const OUT_PATH = path.join(DATA_DIR, "stats.json");
 const HISTORY_PATH = path.join(DATA_DIR, "history.json");
 
+// ── Schema validation helpers ──────────────────────────────────
+
+const KNOWN_REGISTRIES = ["npm", "pypi", "vscode", "nuget", "docker"];
+
+function validateManifest(manifest) {
+  if (manifest == null || typeof manifest !== "object" || Array.isArray(manifest)) {
+    throw new Error("packages.json must be a JSON object");
+  }
+  if ("npmMaintainer" in manifest && typeof manifest.npmMaintainer !== "string") {
+    throw new Error("packages.json: npmMaintainer must be a string");
+  }
+  for (const reg of KNOWN_REGISTRIES) {
+    if (!(reg in manifest)) continue;
+    if (!Array.isArray(manifest[reg])) {
+      throw new Error(`packages.json: "${reg}" must be an array, got ${typeof manifest[reg]}`);
+    }
+    for (let i = 0; i < manifest[reg].length; i++) {
+      if (typeof manifest[reg][i] !== "string") {
+        throw new Error(`packages.json: ${reg}[${i}] must be a string, got ${typeof manifest[reg][i]}`);
+      }
+    }
+  }
+}
+
+function validateOutputPayload(payload) {
+  const problems = [];
+  if (typeof payload.fetchedAt !== "string") problems.push("fetchedAt must be a string");
+  if (payload.totals == null || typeof payload.totals !== "object") problems.push("totals must be an object");
+  else if (typeof payload.totals.packages !== "number") problems.push("totals.packages must be a number");
+  if (!Array.isArray(payload.leaderboard)) problems.push("leaderboard must be an array");
+  if (payload.inference == null || typeof payload.inference !== "object") problems.push("inference must be an object");
+  else if (!Array.isArray(payload.inference.recommendations)) problems.push("inference.recommendations must be an array");
+  if (!Array.isArray(payload.sparkline30)) problems.push("sparkline30 must be an array");
+  if (problems.length > 0) {
+    throw new Error(`Output payload validation failed:\n  - ${problems.join("\n  - ")}`);
+  }
+}
+
+// ── Atomic file write (write to temp, then rename) ─────────────
+
+async function atomicWrite(filePath, content) {
+  const dir = path.dirname(filePath);
+  const tmpPath = path.join(dir, `.${path.basename(filePath)}.tmp.${process.pid}`);
+  await fs.writeFile(tmpPath, content, "utf8");
+  await fs.rename(tmpPath, filePath);
+}
+
+// ── History version check ──────────────────────────────────────
+
+const HISTORY_VERSION = 1;
+
 function safeNumber(n) {
   return Number.isFinite(n) ? n : 0;
 }
@@ -26,9 +78,13 @@ function safeNumber(n) {
 
 async function loadHistory() {
   try {
-    return JSON.parse(await fs.readFile(HISTORY_PATH, "utf8"));
+    const history = JSON.parse(await fs.readFile(HISTORY_PATH, "utf8"));
+    if (history.version != null && history.version !== HISTORY_VERSION) {
+      console.warn(`  WARNING: history.json version is ${history.version}, expected ${HISTORY_VERSION}. Data may need migration.`);
+    }
+    return history;
   } catch {
-    return { version: 1, lastUpdated: null, monthly: {}, weeklyPortfolio: [] };
+    return { version: HISTORY_VERSION, lastUpdated: null, monthly: {}, weeklyPortfolio: [] };
   }
 }
 
@@ -94,7 +150,7 @@ async function updateHistory(leaderboard, registryTotals, totals) {
   }
 
   history.lastUpdated = now.toISOString();
-  await fs.writeFile(HISTORY_PATH, JSON.stringify(history, null, 2) + "\n", "utf8");
+  await atomicWrite(HISTORY_PATH, JSON.stringify(history, null, 2) + "\n");
   console.log(`  History updated: ${Object.keys(history.monthly).length} packages, ${history.weeklyPortfolio.length} weekly entries`);
   return history;
 }
@@ -149,6 +205,119 @@ function pickTopGainer(movers) {
   return null;
 }
 
+// ── Extracted helpers for main() decomposition ─────────────────
+
+async function fetchAllRegistries(registryLists, prevLeaderboard, trackError, opts) {
+  const perRegistry = {};
+
+  for (const [registry, packages] of Object.entries(registryLists)) {
+    if (!packages.length) {
+      perRegistry[registry] = [];
+      continue;
+    }
+
+    console.log(`  ${registry}: fetching ${packages.length} packages...`);
+    const items = [];
+
+    try {
+      const results = await stats.bulk(registry, packages, opts);
+      for (let i = 0; i < packages.length; i++) {
+        const r = results[i];
+        if (r === null) {
+          const prev = prevLeaderboard[`${registry}:${packages[i]}`];
+          if (prev) {
+            console.warn(`  ${registry}:${packages[i]} — bulk returned null, using previous stats (stale)`);
+            items.push({ registry, name: packages[i], week: safeNumber(prev.week), month: safeNumber(prev.month), day: safeNumber(prev.day), total: safeNumber(prev.total), extra: prev.extra ?? null, range30: prev.range30 ?? null, trendPct: prev.trendPct ?? null, error: false, stale: true });
+          } else {
+            items.push({ registry, name: packages[i], week: 0, month: 0, day: 0, total: 0, extra: null, range30: null, trendPct: null, error: true });
+          }
+        } else {
+          items.push({
+            registry,
+            name: packages[i],
+            week: safeNumber(r?.downloads?.lastWeek),
+            month: safeNumber(r?.downloads?.lastMonth),
+            day: safeNumber(r?.downloads?.lastDay),
+            total: safeNumber(r?.downloads?.total),
+            extra: r?.extra ?? null,
+            range30: null,
+            trendPct: null,
+            error: false,
+          });
+        }
+      }
+    } catch (e) {
+      trackError(`${registry}.bulk`, String(e?.message ?? e));
+      console.warn(`  ${registry}.bulk failed, falling back to individual: ${e?.message}`);
+
+      for (const pkg of packages) {
+        try {
+          const r = await stats(registry, pkg, opts);
+          items.push({
+            registry,
+            name: pkg,
+            week: safeNumber(r?.downloads?.lastWeek),
+            month: safeNumber(r?.downloads?.lastMonth),
+            day: safeNumber(r?.downloads?.lastDay),
+            total: safeNumber(r?.downloads?.total),
+            extra: r?.extra ?? null,
+            range30: null,
+            trendPct: null,
+            error: r === null,
+          });
+        } catch (err) {
+          trackError(`${registry}:${pkg}`, String(err?.message ?? err));
+          const prev = prevLeaderboard[`${registry}:${pkg}`];
+          if (prev) {
+            console.warn(`  ${registry}:${pkg} — using previous stats (stale)`);
+            items.push({ registry, name: pkg, week: safeNumber(prev.week), month: safeNumber(prev.month), day: safeNumber(prev.day), total: safeNumber(prev.total), extra: prev.extra ?? null, range30: prev.range30 ?? null, trendPct: prev.trendPct ?? null, error: false, stale: true });
+          } else {
+            items.push({ registry, name: pkg, week: 0, month: 0, day: 0, total: 0, extra: null, range30: null, trendPct: null, error: true });
+          }
+        }
+      }
+    }
+
+    perRegistry[registry] = items;
+    const staleCount = items.filter((i) => i.stale).length;
+    const okCount = items.filter((i) => !i.error).length;
+    console.log(`  ${registry}: done (${okCount}/${items.length} ok${staleCount ? `, ${staleCount} stale` : ""})`);
+  }
+
+  return perRegistry;
+}
+
+function runInference(leaderboard, registryTotals) {
+  console.log("  Running AI inference pipeline...");
+  const inferenceInput = leaderboard.map((r) => ({
+    name: r.name,
+    registry: r.registry,
+    week: r.week,
+    range30: r.range30,
+    trendPct: r.trendPct,
+  }));
+
+  const npmWeekTotal = Number((registryTotals.npm ?? {}).week ?? 0);
+  const allWeekTotal = Object.values(registryTotals).reduce((s, r) => s + Number(r?.week ?? 0), 0);
+  const npmPctInf = allWeekTotal > 0 ? Math.round((npmWeekTotal / allWeekTotal) * 100) : 0;
+
+  const weeklyDls = leaderboard.map((r) => Number(r.week ?? 0)).sort((a, b) => a - b);
+  const giniN = weeklyDls.length;
+  const giniTotal = weeklyDls.reduce((a, b) => a + b, 0);
+  let giniNumerator = 0;
+  weeklyDls.forEach((x, i) => { giniNumerator += (2 * (i + 1) - giniN - 1) * x; });
+  const giniCoeff = giniN > 1 && giniTotal > 0 ? giniNumerator / (giniN * giniTotal) : 0;
+
+  const result = inferPortfolio(inferenceInput, {
+    gini: giniCoeff,
+    npmPct: npmPctInf,
+    totalWeekly: allWeekTotal,
+  });
+
+  console.log(`  Inference: ${result.packages.length} packages analyzed, ${result.recommendations.length} recommendations, risk=${result.riskScore}, momentum=${result.portfolioMomentum}`);
+  return result;
+}
+
 async function main() {
   const fetchedAt = new Date().toISOString();
   const errors = [];
@@ -163,6 +332,7 @@ async function main() {
   const opts = { cache, cacheTtlMs: 600_000 };
 
   const manifest = JSON.parse(await fs.readFile(MANIFEST_PATH, "utf8"));
+  validateManifest(manifest);
 
   // --- Load previous stats for fallback on fetch failures ---
   let prevLeaderboard = {};
@@ -179,7 +349,14 @@ async function main() {
   const SNAPSHOT_PATH = path.join(DATA_DIR, "snapshots.json");
   let prevSnapshots = {};
   try {
-    prevSnapshots = JSON.parse(await fs.readFile(SNAPSHOT_PATH, "utf8"));
+    const raw = JSON.parse(await fs.readFile(SNAPSHOT_PATH, "utf8"));
+    // Support versioned envelope: { version, snapshots: { ... } }
+    if (raw && typeof raw === "object" && raw.version != null && raw.snapshots) {
+      prevSnapshots = raw.snapshots;
+    } else {
+      // Legacy flat format — migrate on next write
+      prevSnapshots = raw;
+    }
   } catch {
     // First run — no snapshots yet
   }
@@ -211,84 +388,7 @@ async function main() {
     ...(manifest.docker?.length ? { docker: [...manifest.docker] } : {}),
   };
 
-  const perRegistry = {};
-
-  for (const [registry, packages] of Object.entries(registryLists)) {
-    if (!packages.length) {
-      perRegistry[registry] = [];
-      continue;
-    }
-
-    console.log(`  ${registry}: fetching ${packages.length} packages...`);
-    const items = [];
-
-    try {
-      const results = await stats.bulk(registry, packages, opts);
-      for (let i = 0; i < packages.length; i++) {
-        const r = results[i];
-        if (r === null) {
-          // Bulk returned null for this package — use previous stats if available
-          const prev = prevLeaderboard[`${registry}:${packages[i]}`];
-          if (prev) {
-            console.warn(`  ${registry}:${packages[i]} — bulk returned null, using previous stats (stale)`);
-            items.push({ registry, name: packages[i], week: safeNumber(prev.week), month: safeNumber(prev.month), day: safeNumber(prev.day), total: safeNumber(prev.total), extra: prev.extra ?? null, range30: prev.range30 ?? null, trendPct: prev.trendPct ?? null, error: false, stale: true });
-          } else {
-            items.push({ registry, name: packages[i], week: 0, month: 0, day: 0, total: 0, extra: null, range30: null, trendPct: null, error: true });
-          }
-        } else {
-          items.push({
-            registry,
-            name: packages[i],
-            week: safeNumber(r?.downloads?.lastWeek),
-            month: safeNumber(r?.downloads?.lastMonth),
-            day: safeNumber(r?.downloads?.lastDay),
-            total: safeNumber(r?.downloads?.total),
-            extra: r?.extra ?? null,
-            range30: null,
-            trendPct: null,
-            error: false,
-          });
-        }
-      }
-    } catch (e) {
-      trackError(`${registry}.bulk`, String(e?.message ?? e));
-      console.warn(`  ${registry}.bulk failed, falling back to individual: ${e?.message}`);
-
-      // Fallback: individual calls
-      for (const pkg of packages) {
-        try {
-          const r = await stats(registry, pkg, opts);
-          items.push({
-            registry,
-            name: pkg,
-            week: safeNumber(r?.downloads?.lastWeek),
-            month: safeNumber(r?.downloads?.lastMonth),
-            day: safeNumber(r?.downloads?.lastDay),
-            total: safeNumber(r?.downloads?.total),
-            extra: r?.extra ?? null,
-            range30: null,
-            trendPct: null,
-            error: r === null,
-          });
-        } catch (err) {
-          trackError(`${registry}:${pkg}`, String(err?.message ?? err));
-          // Preserve previous stats on fetch failure instead of zeroing out
-          const prev = prevLeaderboard[`${registry}:${pkg}`];
-          if (prev) {
-            console.warn(`  ${registry}:${pkg} — using previous stats (stale)`);
-            items.push({ registry, name: pkg, week: safeNumber(prev.week), month: safeNumber(prev.month), day: safeNumber(prev.day), total: safeNumber(prev.total), extra: prev.extra ?? null, range30: prev.range30 ?? null, trendPct: prev.trendPct ?? null, error: false, stale: true });
-          } else {
-            items.push({ registry, name: pkg, week: 0, month: 0, day: 0, total: 0, extra: null, range30: null, trendPct: null, error: true });
-          }
-        }
-      }
-    }
-
-    perRegistry[registry] = items;
-    const staleCount = items.filter((i) => i.stale).length;
-    const okCount = items.filter((i) => !i.error).length;
-    console.log(`  ${registry}: done (${okCount}/${items.length} ok${staleCount ? `, ${staleCount} stale` : ""})`);
-  }
+  const perRegistry = await fetchAllRegistries(registryLists, prevLeaderboard, trackError, opts);
 
   // --- npm 30-day range for sparklines + trend ---
   const today = dateStr(0);
@@ -569,34 +669,7 @@ async function main() {
   })();
 
   // --- AI Inference Pipeline ---
-  console.log("  Running AI inference pipeline...");
-  const inferenceInput = leaderboard.map((r) => ({
-    name: r.name,
-    registry: r.registry,
-    week: r.week,
-    range30: r.range30,
-    trendPct: r.trendPct,
-  }));
-
-  const npmWeekTotal = Number((registryTotals.npm ?? {}).week ?? 0);
-  const allWeekTotal = Object.values(registryTotals).reduce((s, r) => s + Number(r?.week ?? 0), 0);
-  const npmPctInf = allWeekTotal > 0 ? Math.round((npmWeekTotal / allWeekTotal) * 100) : 0;
-
-  // Gini coefficient for inference
-  const weeklyDls = leaderboard.map((r) => Number(r.week ?? 0)).sort((a, b) => a - b);
-  const giniN = weeklyDls.length;
-  const giniTotal = weeklyDls.reduce((a, b) => a + b, 0);
-  let giniNumerator = 0;
-  weeklyDls.forEach((x, i) => { giniNumerator += (2 * (i + 1) - giniN - 1) * x; });
-  const giniCoeff = giniN > 1 && giniTotal > 0 ? giniNumerator / (giniN * giniTotal) : 0;
-
-  const inference = inferPortfolio(inferenceInput, {
-    gini: giniCoeff,
-    npmPct: npmPctInf,
-    totalWeekly: allWeekTotal,
-  });
-
-  console.log(`  Inference: ${inference.packages.length} packages analyzed, ${inference.recommendations.length} recommendations, risk=${inference.riskScore}, momentum=${inference.portfolioMomentum}`);
+  const inference = runInference(leaderboard, registryTotals);
 
   // --- Update historical data ---
   console.log("  Updating history...");
@@ -641,22 +714,36 @@ async function main() {
     },
   };
 
+  // --- Validate output payload before writing ---
+  validateOutputPayload(payload);
+
+  // --- Warn if all data is zero/stale ---
+  const allMissing = Object.values(confidence).every((v) => v === "missing");
+  if (totals.week === 0 && allMissing) {
+    console.warn("\n  *** WARNING: All registry data is zero or missing. Output may be unusable. ***");
+    payload.dataQuality = "unusable";
+  } else if (totals.week === 0) {
+    console.warn("\n  *** WARNING: Total weekly downloads is zero. Data may be stale. ***");
+    payload.dataQuality = "degraded";
+  }
+
   await fs.mkdir(DATA_DIR, { recursive: true });
 
-  // Save snapshots for next run's delta computation
-  await fs.writeFile(SNAPSHOT_PATH, JSON.stringify(newSnapshots, null, 2) + "\n", "utf8");
+  // Save snapshots for next run's delta computation (versioned envelope)
+  const snapshotEnvelope = { version: 1, snapshots: newSnapshots };
+  await atomicWrite(SNAPSHOT_PATH, JSON.stringify(snapshotEnvelope, null, 2) + "\n");
 
   const jsonStr = JSON.stringify(payload, null, 2) + "\n";
-  await fs.writeFile(OUT_PATH, jsonStr, "utf8");
+  await atomicWrite(OUT_PATH, jsonStr);
 
   // Also copy to public/data/ so it's available as a static file at runtime
   const publicDataDir = path.join(ROOT, "public", "data");
   await fs.mkdir(publicDataDir, { recursive: true });
-  await fs.writeFile(path.join(publicDataDir, "stats.json"), jsonStr, "utf8");
+  await atomicWrite(path.join(publicDataDir, "stats.json"), jsonStr);
 
   // Also copy the package manifest so the live refresh engine can discover all packages
   const manifestStr = await fs.readFile(MANIFEST_PATH, "utf8");
-  await fs.writeFile(path.join(publicDataDir, "packages.json"), manifestStr, "utf8");
+  await atomicWrite(path.join(publicDataDir, "packages.json"), manifestStr);
 
   const errCount = errors.length;
   console.log(`\n  Wrote ${path.relative(ROOT, OUT_PATH)} (${leaderboard.length} packages, ${errCount} errors)`);

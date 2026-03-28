@@ -26,6 +26,7 @@ Options:
                   Only npm and pypi support this
   --compare       Compare package across registries side-by-side
   --format        Output format: table (default), json, csv, chart
+  --json          Shorthand for --format json
   --init          Create a starter registry-stats.config.json
   --version, -V   Show version
   --help, -h      Show this help
@@ -184,8 +185,8 @@ async function runConfigPackages(config: Config, format: string) {
       try {
         const result = await stats(registry, pkgId, opts);
         if (result) results.push(result);
-      } catch {
-        // skip failed registries silently in config mode
+      } catch (e: any) {
+        console.error(`Warning: failed to fetch ${registry} for ${displayName}: ${e.message}`);
       }
     });
 
@@ -272,6 +273,10 @@ async function main() {
     for (let i = 1; i < args.length; i++) {
       if (args[i] === '--port' && args[i + 1]) {
         port = parseInt(args[++i], 10);
+        if (Number.isNaN(port) || port < 1 || port > 65535) {
+          console.error('Error: --port must be a number between 1 and 65535');
+          process.exit(1);
+        }
       }
     }
     serve({ port });
@@ -286,6 +291,7 @@ async function main() {
   let compare = false;
   let mineUser: string | undefined;
 
+  const unknownFlags: string[] = [];
   for (let i = 0; i < args.length; i++) {
     if ((args[i] === '--registry' || args[i] === '-r') && args[i + 1]) {
       registry = args[++i];
@@ -301,10 +307,22 @@ async function main() {
       mineUser = args[++i];
     } else if (!args[i].startsWith('-') && !pkg) {
       pkg = args[i];
+    } else if (args[i].startsWith('-')) {
+      unknownFlags.push(args[i]);
     }
   }
 
+  if (unknownFlags.length > 0) {
+    console.error(`Warning: unknown option(s): ${unknownFlags.join(', ')}`);
+  }
+
   const config = loadConfig();
+
+  // Warn if csv/chart is used without --range
+  if ((format === 'csv' || format === 'chart') && !range) {
+    console.error(`Warning: --format ${format} only produces meaningful output with --range. Falling back to table.`);
+    format = 'table';
+  }
 
   // --mine mode: discover and show all packages by maintainer
   if (mineUser) {
@@ -400,4 +418,7 @@ async function main() {
   }
 }
 
-main();
+main().catch((e: any) => {
+  console.error(`Error: ${e.message}`);
+  process.exit(1);
+});

@@ -28,9 +28,10 @@ export const pypi: RegistryProvider = {
   rateLimit: { maxRequests: 30, windowSeconds: 60, authRaisesLimit: false },
 
   async getStats(pkg: string): Promise<PackageStats | null> {
+    const safePkg = encodeURIComponent(pkg);
     const [recent, overall] = await Promise.all([
-      fetchWithRetry<RecentResponse>(`${API}/packages/${pkg}/recent`, 'pypi'),
-      fetchWithRetry<OverallResponse>(`${API}/packages/${pkg}/overall?mirrors=false`, 'pypi'),
+      fetchWithRetry<RecentResponse>(`${API}/packages/${safePkg}/recent`, 'pypi'),
+      fetchWithRetry<OverallResponse>(`${API}/packages/${safePkg}/overall?mirrors=false`, 'pypi'),
     ]);
 
     if (!recent && !overall) return null;
@@ -53,8 +54,9 @@ export const pypi: RegistryProvider = {
   },
 
   async getRange(pkg: string, start: string, end: string): Promise<DailyDownloads[]> {
+    const safePkg = encodeURIComponent(pkg);
     const data = await fetchWithRetry<OverallResponse>(
-      `${API}/packages/${pkg}/overall?mirrors=false`, 'pypi',
+      `${API}/packages/${safePkg}/overall?mirrors=false`, 'pypi',
     );
 
     if (!data) return [];

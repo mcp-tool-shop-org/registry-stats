@@ -22,6 +22,11 @@ public partial class App : Application
             MinimumHeight = 600
         };
 
+        window.Destroying += (_, _) =>
+        {
+            mainPage.Dispose();
+        };
+
         return window;
     }
 }

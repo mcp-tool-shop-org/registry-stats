@@ -144,7 +144,13 @@ const baseUrl = "/registry-stats";
 
     if (branding.logoUrl) {
       const badge = document.getElementById('nav-badge');
-      if (badge) badge.innerHTML = '<img src="' + branding.logoUrl + '" alt="" class="h-5 w-5 rounded" />';
+      if (badge) {
+        const img = document.createElement('img');
+        img.src = branding.logoUrl;
+        img.alt = '';
+        img.className = 'h-5 w-5 rounded';
+        badge.replaceChildren(img);
+      }
     }
   }
 
@@ -424,7 +430,13 @@ const baseUrl = "/registry-stats";
             if (ac) ac.textContent = branding.companyName;
             if (branding.logoUrl) {
               const badge = document.getElementById('nav-badge');
-              if (badge) badge.innerHTML = '<img src="' + branding.logoUrl + '" alt="" class="h-5 w-5 rounded" />';
+              if (badge) {
+                const img = document.createElement('img');
+                img.src = branding.logoUrl;
+                img.alt = '';
+                img.className = 'h-5 w-5 rounded';
+                badge.replaceChildren(img);
+              }
             }
           }
           break;

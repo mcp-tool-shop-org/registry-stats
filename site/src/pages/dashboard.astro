@@ -1,6 +1,58 @@
 ---
+// ============================================================================
+// STRUCTURAL DEBT: [F-001] Monolithic 4500+ line file
+// ============================================================================
+// This file should be decomposed into separate client-side modules:
+//   1. chart-init.js    — Chart.js setup, heatmap, analytics tab charts
+//   2. chat-engine.js   — Ollama chat, voice integration, web search
+//   3. export-engine.js — PDF/JSONL/MD export functionality
+//   4. runtime-render.js — live data rendering, refresh, and WebSocket
+//   5. utils.js         — shared helpers (formatGrowth, regDisplayVal, relTime, trendBadge)
+//
+// Extraction plan:
+//   - Each module becomes a standalone .ts file under site/src/scripts/
+//   - Dashboard.astro imports them via <script src="..."> or dynamic import()
+//   - Target: reduce this file to ~1500 lines of Astro template + frontmatter
+//   - Risk: 4 tightly-coupled inline <script> blocks share DOM IDs and globals
+//   - Approach: extract one block at a time, starting with utils.js (lowest coupling)
+//
+// This is acknowledged structural debt — not safe to refactor in-place without
+// a dedicated multi-step extraction effort with regression testing.
+// ============================================================================
+
 import AppShell from '../components/AppShell.astro';
 import AppNav from '../components/AppNav.astro';
+
+// ── Frontmatter types [F-005] ──
+interface RegistryTotal {
+  week?: number;
+  month?: number;
+  total?: number;
+}
+
+interface LeaderboardEntry {
+  name: string;
+  registry: string;
+  week: number;
+  month?: number;
+  trendPct: number | null;
+  range30?: number[];
+  delta7?: number;
+}
+
+interface MoverEntry {
+  name: string;
+  week?: number;
+  trendPct?: number | null;
+  delta7?: number;
+  range30?: number[];
+}
+
+interface AnomalyPoint {
+  day: number;
+  value: number;
+  z: number;
+}
 
 let data = null;
 let missing = false;
@@ -77,7 +129,7 @@ const leaderboard = data?.leaderboard ?? [];
 const sparkline30 = data?.sparkline30 ?? [];
 const movers = data?.movers;
 
-const maxBar = Math.max(1, ...Object.entries(registryTotals).map(([k, r]: [string, any]) => ['vscode','nuget','docker'].includes(k) ? Number(r?.total ?? r?.week ?? 0) : Number(r?.week ?? 0)));
+const maxBar = Math.max(1, ...Object.entries(registryTotals).map(([k, r]: [string, RegistryTotal]) => ['vscode','nuget','docker'].includes(k) ? Number(r?.total ?? r?.week ?? 0) : Number(r?.week ?? 0)));
 const sparkMax = Math.max(1, ...sparkline30.map((n: number) => Number(n ?? 0)));
 
 const gainers = movers?.topGainers ?? [];
@@ -87,21 +139,25 @@ const concentrationPct = Math.round(movers?.concentrationTop5Pct ?? 0);
 
 // ── Categorize movers: Established (prev ≥ 50) vs Emerging (prev < 50) ──
 const ESTABLISHED_FLOOR = 50;
-function moverPrev(r: any): number { return r.delta7 !== undefined ? (r.week ?? 0) - r.delta7 : 0; }
-function moverCurr(r: any): number { return r.week ?? 0; }
-const establishedGainers = gainers.filter((r: any) => moverPrev(r) >= ESTABLISHED_FLOOR);
-const emergingGainers = gainers.filter((r: any) => moverPrev(r) < ESTABLISHED_FLOOR);
+function moverPrev(r: MoverEntry): number { return r.delta7 !== undefined ? (r.week ?? 0) - r.delta7 : 0; }
+function moverCurr(r: MoverEntry): number { return r.week ?? 0; }
+const establishedGainers = gainers.filter((r: MoverEntry) => moverPrev(r) >= ESTABLISHED_FLOOR);
+const emergingGainers = gainers.filter((r: MoverEntry) => moverPrev(r) < ESTABLISHED_FLOOR);
 // Merge newly-active into emerging pool for display
-const emergingAll = [...emergingGainers, ...awakening.filter((a: any) => !emergingGainers.some((g: any) => g.name === a.name))].sort((a: any, b: any) => (b.week ?? 0) - (a.week ?? 0)).slice(0, 5);
-const establishedDecliners = decliners.filter((r: any) => moverPrev(r) >= ESTABLISHED_FLOOR);
-const emergingDecliners = decliners.filter((r: any) => moverPrev(r) < ESTABLISHED_FLOOR);
+const emergingAll = [...emergingGainers, ...awakening.filter((a: MoverEntry) => !emergingGainers.some((g: MoverEntry) => g.name === a.name))].sort((a: MoverEntry, b: MoverEntry) => (b.week ?? 0) - (a.week ?? 0)).slice(0, 5);
+const establishedDecliners = decliners.filter((r: MoverEntry) => moverPrev(r) >= ESTABLISHED_FLOOR);
+const emergingDecliners = decliners.filter((r: MoverEntry) => moverPrev(r) < ESTABLISHED_FLOOR);
 
 // Summary line
-const accelCount = gainers.filter((r: any) => (r.trendPct ?? 0) > 10).length;
+const accelCount = gainers.filter((r: MoverEntry) => (r.trendPct ?? 0) > 10).length;
 const stabilCount = gainers.length - accelCount;
 const pulseSummary = `Top 5 packages drive ${concentrationPct}% of weekly downloads. ${accelCount} accelerating, ${stabilCount > 0 ? stabilCount + ' stabilizing' : '0 stabilizing'}.`;
 
 // Mini sparkline SVG helper (7-day from range30)
+// SAFETY [F-009]: This function outputs raw HTML via set:html, but is safe because:
+// - Input is number[] from stats.json (server-generated, not user-controlled)
+// - All interpolated values are numeric (v, i, mx) — no string/user input enters the SVG
+// - The SVG template is a fixed structure with only computed coordinates
 function miniSparkSvg(range30: number[] | null): string {
   if (!range30 || range30.length < 7) return '';
   const vals = range30.slice(-7);
@@ -116,10 +172,10 @@ const npmPrev7 = sparkline30.slice(-14, -7).reduce((a: number, b: number) => a +
 const weekDelta = npmLast7 - npmPrev7;
 const weekDeltaPct = npmPrev7 > 0 ? ((npmLast7 - npmPrev7) / npmPrev7 * 100) : 0;
 
-const okRegistries = data ? Object.values(data.confidence ?? {}).filter((c: any) => c === 'ok').length : 0;
+const okRegistries = data ? Object.values(data.confidence ?? {}).filter((c: string) => c === 'ok').length : 0;
 const totalRegistries = data ? Object.keys(data.confidence ?? {}).length : 0;
 
-const regWeeks = Object.values(registryTotals).map((r: any) => Number(r?.week ?? 0)).filter((v: number) => v > 0);
+const regWeeks = Object.values(registryTotals).map((r: RegistryTotal) => Number(r?.week ?? 0)).filter((v: number) => v > 0);
 const totalWeekAll = regWeeks.reduce((a: number, b: number) => a + b, 0);
 const shannonH = totalWeekAll > 0 ? -regWeeks.reduce((h: number, w: number) => { const p = w / totalWeekAll; return h + (p > 0 ? p * Math.log2(p) : 0); }, 0) : 0;
 const maxEntropy = regWeeks.length > 1 ? Math.log2(regWeeks.length) : 1;
@@ -133,27 +189,27 @@ const healthScore = Math.round(Math.max(0, Math.min(100, coveragePts - errorPts 
 
 // ── Derived analytics metrics ──
 // Per-registry daily breakdown (synthesize from npm range30 + proportional split)
-const npmDailyByPkg = (leaderboard as any[])
-  .filter((r: any) => r.registry === 'npm' && r.range30?.length === 30);
+const npmDailyByPkg = (leaderboard as LeaderboardEntry[])
+  .filter((r: LeaderboardEntry) => r.registry === 'npm' && r.range30?.length === 30);
 const perRegistryDaily: Record<string, number[]> = {};
 for (const reg of Object.keys(registryTotals)) {
   if (reg === 'npm') {
     // Aggregate all npm package range30 arrays
     const agg = new Array(30).fill(0);
-    npmDailyByPkg.forEach((r: any) => r.range30.forEach((v: number, i: number) => agg[i] += Number(v)));
+    npmDailyByPkg.forEach((r: LeaderboardEntry) => r.range30!.forEach((v: number, i: number) => agg[i] += Number(v)));
     perRegistryDaily.npm = agg;
   } else {
     // Estimate daily from weekly total (flat distribution — best available)
-    const weekVal = Number((registryTotals as any)[reg]?.week ?? 0);
+    const weekVal = Number((registryTotals as Record<string, RegistryTotal>)[reg]?.week ?? 0);
     perRegistryDaily[reg] = new Array(30).fill(Math.round(weekVal / 7));
   }
 }
 
 // Top 5 per-package daily overlay
 const top5Daily = npmDailyByPkg
-  .sort((a: any, b: any) => (b.week ?? 0) - (a.week ?? 0))
+  .sort((a: LeaderboardEntry, b: LeaderboardEntry) => (b.week ?? 0) - (a.week ?? 0))
   .slice(0, 5)
-  .map((r: any) => ({ name: (r.name ?? '').replace('@mcptoolshop/', ''), range30: r.range30 }));
+  .map((r: LeaderboardEntry) => ({ name: (r.name ?? '').replace('@mcptoolshop/', ''), range30: r.range30 }));
 
 // Z-score anomaly detection on aggregate sparkline
 const spMean = sparkline30.length > 0 ? sparkline30.reduce((a: number, b: number) => a + Number(b), 0) / sparkline30.length : 0;
@@ -168,7 +224,7 @@ const last30Sum = sparkline30.reduce((a: number, b: number) => a + Number(b), 0)
 const monthOverMonthPct = npmPrev7 > 0 ? Math.round(weekDeltaPct * 10) / 10 : 0;
 
 // Gini coefficient for portfolio concentration
-const weeklyDownloads = (leaderboard as any[]).map((r: any) => Number(r.week ?? 0)).sort((a: number, b: number) => a - b);
+const weeklyDownloads = (leaderboard as LeaderboardEntry[]).map((r: LeaderboardEntry) => Number(r.week ?? 0)).sort((a: number, b: number) => a - b);
 const n = weeklyDownloads.length;
 const totalDl = weeklyDownloads.reduce((a: number, b: number) => a + b, 0);
 let giniNum = 0;
@@ -184,7 +240,7 @@ const top3Pct = totalDl > 0 ? Math.round(weeklyDownloads.slice(-3).reduce((a: nu
 // Velocity scores — damped formula to avoid small-denominator distortion
 // velocity = (curr - prev) / sqrt(prev + k) — rewards real growth, penalizes tiny bases
 const VELOCITY_K = 10; // damping constant
-const velocityBoard = (leaderboard as any[]).slice(0, 30).map((r: any) => {
+const velocityBoard = (leaderboard as LeaderboardEntry[]).slice(0, 30).map((r: LeaderboardEntry) => {
   const name = (r.name ?? '').replace('@mcptoolshop/', '');
   let velocity: number | null = null;
   let prevWeek: number | null = null;
@@ -207,8 +263,8 @@ const velocityBoard = (leaderboard as any[]).slice(0, 30).map((r: any) => {
 });
 
 // Packages needing attention (declining 3+ weeks or stale)
-const attentionPkgs = (leaderboard as any[])
-  .filter((r: any) => {
+const attentionPkgs = (leaderboard as LeaderboardEntry[])
+  .filter((r: LeaderboardEntry) => {
     if (!r.range30 || r.range30.length !== 30) return (r.trendPct ?? 0) < -15;
     const w1 = r.range30.slice(0, 10).reduce((a: number, b: number) => a + Number(b), 0);
     const w2 = r.range30.slice(10, 20).reduce((a: number, b: number) => a + Number(b), 0);
@@ -216,7 +272,7 @@ const attentionPkgs = (leaderboard as any[])
     return (w3 < w2 && w2 < w1) || w3 === 0;
   })
   .slice(0, 5)
-  .map((r: any) => {
+  .map((r: LeaderboardEntry) => {
     const prev = r.range30?.length === 30 ? r.range30.slice(-14, -7).reduce((a: number, b: number) => a + Number(b), 0) : null;
     const curr = r.range30?.length === 30 ? r.range30.slice(-7).reduce((a: number, b: number) => a + Number(b), 0) : r.week;
     const sg = smartGrowth(r.trendPct, prev, curr);
@@ -230,8 +286,8 @@ if (weekDeltaPct < -5) insights.push({ icon: '\u26A0\uFE0F', text: `Portfolio de
 if (top3Pct > 60) insights.push({ icon: '\uD83E\uDDF1', text: `${top3Pct}% of downloads come from top 3 packages — high concentration risk`, type: 'warning' });
 if (gini > 0.7) insights.push({ icon: '\u26A0\uFE0F', text: `Gini coefficient ${gini.toFixed(2)} — portfolio heavily skewed toward few packages`, type: 'warning' });
 if (anomalies.length > 0) {
-  const spikeCount = anomalies.filter((a: any) => a.z > 0).length;
-  const dropCount = anomalies.filter((a: any) => a.z < 0).length;
+  const spikeCount = anomalies.filter((a: AnomalyPoint | null) => a && a.z > 0).length;
+  const dropCount = anomalies.filter((a: AnomalyPoint | null) => a && a.z < 0).length;
   if (spikeCount > 0) insights.push({ icon: '\uD83D\uDE80', text: `${spikeCount} download spike${spikeCount > 1 ? 's' : ''} detected in the last 30 days (>2σ above mean)`, type: 'positive' });
   if (dropCount > 0) insights.push({ icon: '\uD83D\uDCC9', text: `${dropCount} unusual drop${dropCount > 1 ? 's' : ''} detected in the last 30 days (>2σ below mean)`, type: 'warning' });
 }
@@ -315,7 +371,7 @@ const chatContext = !missing && data ? JSON.stringify({
   registryCoverage: okRegistries + '/' + totalRegistries,
   errorCount: (data.errors || []).length,
   fetchedAt: data.fetchedAt,
-  leaderboard: (leaderboard as any[]).slice(0, 30).map((r: any) => ({
+  leaderboard: (leaderboard as LeaderboardEntry[]).slice(0, 30).map((r: LeaderboardEntry) => ({
     name: (r.name ?? '').replace('@mcptoolshop/', ''),
     registry: r.registry,
     week: r.week,
@@ -1246,7 +1302,7 @@ const chatContext = !missing && data ? JSON.stringify({
               </div>
             </div>
             <div class="mt-4 overflow-x-auto relative">
-              <canvas id="chart-heatmap"></canvas>
+              <canvas id="chart-heatmap" role="img" aria-label="30-day download heatmap showing daily download counts per package, sorted by total downloads"></canvas>
               <div id="heatmap-tooltip" class="absolute hidden rounded-lg border border-edge bg-surface-raised px-3 py-2 text-xs shadow-lg pointer-events-none" style="z-index:10"></div>
             </div>
           </div>
@@ -1745,9 +1801,10 @@ const chatContext = !missing && data ? JSON.stringify({
   }
 </style>
 
-<script is:inline src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-<script is:inline src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2/dist/chartjs-plugin-zoom.min.js"></script>
-<script is:inline src="https://cdn.jsdelivr.net/npm/hammerjs@2/hammer.min.js"></script>
+<!-- CDN scripts pinned to exact versions with SRI hashes (F-003). Regenerate hashes if bumping versions. -->
+<script is:inline src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<script is:inline src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js" integrity="sha384-dwwI6ICEN/0ZQlS5owhUa/6ZzvwUPmjH45bFVCAcjgjTulbHJvlE+TGU3g1k0N3R" crossorigin="anonymous"></script>
+<script is:inline src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js" integrity="sha384-Cs3dgUx6+jDxxuqHvVH8Onpyj2LF1gKZurLDlhqzuJmUqVYMJ0THTWpxK5Z086Zm" crossorigin="anonymous"></script>
 
 <script is:inline>
   // Shared helper — cumulative registries show total instead of weekly
@@ -1755,6 +1812,33 @@ const chatContext = !missing && data ? JSON.stringify({
   function regDisplayVal(key, r) {
     return __CUMULATIVE.indexOf(key) !== -1 ? Number((r || {}).total || (r || {}).week || 0) : Number((r || {}).week || 0);
   }
+
+  // Shared smart growth display (F-002) — single copy used by both chart and runtime IIFEs
+  var __BASELINE_THRESHOLD = 20;
+  var __PCT_CAP = 500;
+  var __fmtCompactShared = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+  function formatGrowth(pct, prev, curr) {
+    if (pct === null || pct === undefined) {
+      if ((prev === 0 || prev === null || prev === undefined) && (curr || 0) > 0) {
+        return { text: '\uD83D\uDE80 New (+' + __fmtCompactShared.format(curr || 0) + ')', cls: 'text-amber-400', isEmerging: true };
+      }
+      return { text: '\u2014', cls: 'text-dim', isEmerging: false };
+    }
+    var absDelta = (curr || 0) - (prev || 0);
+    if ((prev || 0) < __BASELINE_THRESHOLD) {
+      return { text: '\uD83D\uDE80 Emerging (+' + __fmtCompactShared.format(Math.max(0, absDelta)) + ')', cls: 'text-amber-400', isEmerging: true };
+    }
+    var r = Math.round(pct * 10) / 10;
+    var arrow = r > 0 ? '\u25B2' : r < 0 ? '\u25BC' : '';
+    var absR = Math.abs(r);
+    if (absR > __PCT_CAP) {
+      return { text: arrow + ' ' + __PCT_CAP + '%+ (+' + __fmtCompactShared.format(Math.abs(absDelta)) + ')', cls: r > 0 ? 'text-emerald-400' : 'text-rose-400', isEmerging: false };
+    }
+    if (r > 0) return { text: arrow + ' ' + absR + '%', cls: 'text-emerald-400', isEmerging: false };
+    if (r < 0) return { text: arrow + ' ' + absR + '%', cls: 'text-rose-400', isEmerging: false };
+    return { text: '0%', cls: 'text-dim', isEmerging: false };
+  }
+  function trendBadge(pct, prev, curr) { return formatGrowth(pct, prev, curr); }
 </script>
 
 <script is:inline>
@@ -1818,31 +1902,7 @@ const chatContext = !missing && data ? JSON.stringify({
 
     var fmtK = function (n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n); };
 
-    // Smart growth display — must live in this IIFE so initCharts() can use it
-    var BASELINE_THRESHOLD_C = 20;
-    var PCT_CAP_C = 500;
-    var fmtCompactC = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
-    function formatGrowth(pct, prev, curr) {
-      if (pct === null || pct === undefined) {
-        if ((prev === 0 || prev === null || prev === undefined) && (curr || 0) > 0) {
-          return { text: '\uD83D\uDE80 New (+' + fmtCompactC.format(curr || 0) + ')', cls: 'text-amber-400', isEmerging: true };
-        }
-        return { text: '\u2014', cls: 'text-dim', isEmerging: false };
-      }
-      var absDelta = (curr || 0) - (prev || 0);
-      if ((prev || 0) < BASELINE_THRESHOLD_C) {
-        return { text: '\uD83D\uDE80 Emerging (+' + fmtCompactC.format(Math.max(0, absDelta)) + ')', cls: 'text-amber-400', isEmerging: true };
-      }
-      var r = Math.round(pct * 10) / 10;
-      var arrow = r > 0 ? '\u25B2' : r < 0 ? '\u25BC' : '';
-      var absR = Math.abs(r);
-      if (absR > PCT_CAP_C) {
-        return { text: arrow + ' ' + PCT_CAP_C + '%+ (+' + fmtCompactC.format(Math.abs(absDelta)) + ')', cls: r > 0 ? 'text-emerald-400' : 'text-rose-400', isEmerging: false };
-      }
-      if (r > 0) return { text: arrow + ' ' + absR + '%', cls: 'text-emerald-400', isEmerging: false };
-      if (r < 0) return { text: arrow + ' ' + absR + '%', cls: 'text-rose-400', isEmerging: false };
-      return { text: '0%', cls: 'text-dim', isEmerging: false };
-    }
+    // formatGrowth/trendBadge now live in the shared global script block (F-002 dedup)
 
     function initCharts() {
       if (typeof Chart === 'undefined') return;
@@ -2575,35 +2635,7 @@ const chatContext = !missing && data ? JSON.stringify({
     var REG_LABELS = { npm: 'npm', pypi: 'PyPI', vscode: 'VS Code', nuget: 'NuGet', docker: 'Docker Hub' };
     function regLabel(k) { return REG_LABELS[k] || k; }
 
-    var BASELINE_THRESHOLD = 20;
-    var PCT_CAP = 500;
-
-    // Smart growth display — handles small-denominator distortion
-    function formatGrowth(pct, prev, curr) {
-      if (pct === null || pct === undefined) {
-        if ((prev === 0 || prev === null || prev === undefined) && (curr || 0) > 0) {
-          return { text: '\uD83D\uDE80 New (+' + fmtCompact.format(curr || 0) + ')', cls: 'text-amber-400', isEmerging: true };
-        }
-        return { text: '\u2014', cls: 'text-dim', isEmerging: false };
-      }
-      var absDelta = (curr || 0) - (prev || 0);
-      if ((prev || 0) < BASELINE_THRESHOLD) {
-        return { text: '\uD83D\uDE80 Emerging (+' + fmtCompact.format(Math.max(0, absDelta)) + ')', cls: 'text-amber-400', isEmerging: true };
-      }
-      var r = Math.round(pct * 10) / 10;
-      var arrow = r > 0 ? '\u25B2' : r < 0 ? '\u25BC' : '';
-      var absR = Math.abs(r);
-      if (absR > PCT_CAP) {
-        return { text: arrow + ' ' + PCT_CAP + '%+ (+' + fmtCompact.format(Math.abs(absDelta)) + ')', cls: r > 0 ? 'text-emerald-400' : 'text-rose-400', isEmerging: false };
-      }
-      if (r > 0) return { text: arrow + ' ' + absR + '%', cls: 'text-emerald-400', isEmerging: false };
-      if (r < 0) return { text: arrow + ' ' + absR + '%', cls: 'text-rose-400', isEmerging: false };
-      return { text: '0%', cls: 'text-dim', isEmerging: false };
-    }
-
-    function trendBadge(pct, prev, curr) {
-      return formatGrowth(pct, prev, curr);
-    }
+    // formatGrowth/trendBadge now live in the shared global script block (F-002 dedup)
 
     function relTime(iso) {
       var d = Date.now() - new Date(iso).getTime();
@@ -3287,7 +3319,7 @@ const chatContext = !missing && data ? JSON.stringify({
           if (!voiceAudioCtx) voiceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
           if (voiceAudioCtx.state === 'suspended') voiceAudioCtx.resume();
           if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse';
-          console.log('[Pulse voice] Stream synthesis active, gen:', sgen);
+          if (__voiceDebug) console.log('[Pulse voice] Stream synthesis active, gen:', sgen);
         }
 
         // Check for complete sentences in unspoken text and queue them for synthesis
@@ -3318,7 +3350,7 @@ const chatContext = !missing && data ? JSON.stringify({
           if (speakGeneration !== sgen) return; // cancelled
           streamSynthBusy = true;
           var chunk = streamSynthQueue.shift();
-          console.log('[Pulse voice] Stream synth:', chunk.length, 'chars');
+          if (__voiceDebug) console.log('[Pulse voice] Stream synth:', chunk.length, 'chars');
           synthesizeChunk(chunk, streamPreset).then(function (buffer) {
             streamSynthBusy = false;
             if (speakGeneration !== sgen) return;
@@ -3339,7 +3371,7 @@ const chatContext = !missing && data ? JSON.stringify({
             var cleaned = cleanForSpeech(remaining);
             if (cleaned.length > 0) {
               streamSynthQueue.push(cleaned);
-              console.log('[Pulse voice] Flushing remaining:', cleaned.length, 'chars');
+              if (__voiceDebug) console.log('[Pulse voice] Flushing remaining:', cleaned.length, 'chars');
               pumpSynth();
             }
           }
@@ -3427,6 +3459,8 @@ const chatContext = !missing && data ? JSON.stringify({
     });
 
     // ── Voice integration ──
+    // Debug flag (F-007): set localStorage 'pulse-debug' to 'true' to enable verbose voice logging
+    var __voiceDebug = (function () { try { return localStorage.getItem('pulse-debug') === 'true'; } catch (e) { return false; } })();
     var VOICE_BASE = 'http://localhost:11435';
     var voiceReady = false;
     var voiceSessionId = null;
@@ -3507,8 +3541,18 @@ const chatContext = !missing && data ? JSON.stringify({
         });
     }
     if (voiceCheckBtn) voiceCheckBtn.addEventListener('click', checkVoiceServer);
-    // Retry every 15s so voice appears automatically when server starts
-    setInterval(checkVoiceServer, 15000);
+    // Retry every 15s so voice appears automatically when server starts (F-008)
+    // Pause polling when tab is hidden to avoid wasted requests in long-lived desktop app
+    var voicePollId = setInterval(checkVoiceServer, 15000);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        clearInterval(voicePollId);
+        voicePollId = null;
+      } else if (!voicePollId) {
+        checkVoiceServer();
+        voicePollId = setInterval(checkVoiceServer, 15000);
+      }
+    });
 
     var MCP_HEADERS = { 'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream' };
 
@@ -3540,7 +3584,7 @@ const chatContext = !missing && data ? JSON.stringify({
         }})
       }).then(function (r) {
         voiceSessionId = r.headers.get('mcp-session-id');
-        console.log('[Pulse voice] Session initialized:', voiceSessionId);
+        if (__voiceDebug) console.log('[Pulse voice] Session initialized:', voiceSessionId);
         return parseMcpResponse(r);
       }).then(function () {
         var h = Object.assign({}, MCP_HEADERS, { 'mcp-session-id': voiceSessionId });
@@ -3625,7 +3669,7 @@ const chatContext = !missing && data ? JSON.stringify({
         chunks.push(sentences.slice(ci, ci + 3).join(' ').trim());
       }
       chunks = chunks.filter(function(c) { return c.length > 0; });
-      console.log('[Pulse voice] Sentence chunks:', chunks.length);
+      if (__voiceDebug) console.log('[Pulse voice] Sentence chunks:', chunks.length);
       return chunks;
     }
 
@@ -3664,7 +3708,7 @@ const chatContext = !missing && data ? JSON.stringify({
 
     function speakText(text) {
       if (!voiceReady || !voiceSessionId) {
-        console.warn('[Pulse voice] Not ready:', { voiceReady: voiceReady, voiceSessionId: voiceSessionId });
+        if (__voiceDebug) console.warn('[Pulse voice] Not ready:', { voiceReady: voiceReady, voiceSessionId: voiceSessionId });
         return;
       }
 
@@ -3677,7 +3721,7 @@ const chatContext = !missing && data ? JSON.stringify({
       var preset = VOICE_PRESETS[voiceId] || 'narrator';
       var cleaned = cleanForSpeech(text);
       var sentences = splitChunks(cleaned);
-      console.log('[Pulse voice] Speaking', sentences.length, 'chunks, preset:', preset);
+      if (__voiceDebug) console.log('[Pulse voice] Speaking', sentences.length, 'chunks, preset:', preset);
       if (voiceDot) voiceDot.className = 'inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse';
 
       // Unlock AudioContext on user gesture (before async fetch)
@@ -3695,15 +3739,15 @@ const chatContext = !missing && data ? JSON.stringify({
           (function (idx) {
             var chunk = sentences[idx];
             inflight++;
-            console.log('[Pulse voice] Synthesizing chunk', idx + 1, '/', sentences.length, '(' + chunk.length + ' chars)');
+            if (__voiceDebug) console.log('[Pulse voice] Synthesizing chunk', idx + 1, '/', sentences.length, '(' + chunk.length + ' chars)');
             synthesizeChunk(chunk, preset).then(function (buffer) {
               inflight--;
               if (gen !== speakGeneration) return;
               if (buffer) {
-                console.log('[Pulse voice] Chunk', idx + 1, 'audio received, enqueueing');
+                if (__voiceDebug) console.log('[Pulse voice] Chunk', idx + 1, 'audio received, enqueueing');
                 enqueueAudio(buffer);
               } else {
-                console.warn('[Pulse voice] Chunk', idx + 1, 'returned null');
+                if (__voiceDebug) console.warn('[Pulse voice] Chunk', idx + 1, 'returned null');
               }
               pumpChunk();
             }).catch(function (e) {
@@ -3724,6 +3768,10 @@ const chatContext = !missing && data ? JSON.stringify({
     checkVoiceServer();
 
     // ── GitHub connector ──
+    // SECURITY (F-004): PAT stored in sessionStorage (cleared on tab close) to limit
+    // exposure window. The cached org context stays in localStorage since it contains
+    // only public repo metadata, not the token itself. Users should create tokens with
+    // minimal read-only scope (public_repo or read:org).
     var GH_PAT_KEY = 'rp-gh-pat';
     var GH_CTX_KEY = 'rp-gh-context';
     var ghContext = '';
@@ -3772,14 +3820,14 @@ const chatContext = !missing && data ? JSON.stringify({
     if (ghPatSave) ghPatSave.addEventListener('click', function () {
       var pat = ghPatInput.value.trim();
       if (!pat) return;
-      try { localStorage.setItem(GH_PAT_KEY, pat); } catch (e) {}
+      try { sessionStorage.setItem(GH_PAT_KEY, pat); } catch (e) {}
       fetchGitHubOrg(pat);
     });
 
     // Load saved PAT + cached context on init
     (function () {
       var savedPat = '';
-      try { savedPat = localStorage.getItem(GH_PAT_KEY) || ''; } catch (e) {}
+      try { savedPat = sessionStorage.getItem(GH_PAT_KEY) || ''; } catch (e) {}
       if (savedPat && ghPatInput) ghPatInput.value = savedPat;
       try { ghContext = localStorage.getItem(GH_CTX_KEY) || ''; } catch (e) {}
       if (savedPat) fetchGitHubOrg(savedPat);
@@ -4272,6 +4320,8 @@ const chatContext = !missing && data ? JSON.stringify({
       if (jsPDFLoaded && window.jspdf) { cb(); return; }
       var s = document.createElement('script');
       s.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js';
+      s.integrity = 'sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/';
+      s.crossOrigin = 'anonymous';
       s.onload = function () { jsPDFLoaded = true; cb(); };
       s.onerror = function () { alert('Failed to load PDF library. Check your connection.'); };
       document.head.appendChild(s);

@@ -31,7 +31,7 @@ export const npm: RegistryProvider = {
     start.setDate(start.getDate() - 30);
 
     const data = await fetchWithRetry<RangeResponse>(
-      `${API}/range/${fmt(start)}:${fmt(end)}/${pkg}`, 'npm',
+      `${API}/range/${fmt(start)}:${fmt(end)}/${encodeNpmPackage(pkg)}`, 'npm',
     );
 
     if (!data || !data.downloads || data.downloads.length === 0) return null;
@@ -63,7 +63,7 @@ export const npm: RegistryProvider = {
 
       const s = fmt(cursor);
       const e = fmt(actualEnd);
-      const data = await fetchWithRetry<RangeResponse>(`${API}/range/${s}:${e}/${pkg}`, 'npm');
+      const data = await fetchWithRetry<RangeResponse>(`${API}/range/${s}:${e}/${encodeNpmPackage(pkg)}`, 'npm');
 
       if (data) {
         for (const d of data.downloads) {
@@ -115,4 +115,13 @@ export async function npmBulkPoint(
 
 function fmt(d: Date): string {
   return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Encode an npm package name for use in URL paths.
+ * Scoped packages like @scope/name become %40scope%2Fname.
+ * Unscoped packages are encoded as-is to prevent path manipulation.
+ */
+function encodeNpmPackage(pkg: string): string {
+  return encodeURIComponent(pkg);
 }

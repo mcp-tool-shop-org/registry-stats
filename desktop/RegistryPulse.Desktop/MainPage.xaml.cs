@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using RegistryPulse.Desktop.Services;
 #if WINDOWS
@@ -6,10 +7,11 @@ using Microsoft.Web.WebView2.Core;
 
 namespace RegistryPulse.Desktop;
 
-public partial class MainPage : ContentPage
+public partial class MainPage : ContentPage, IDisposable
 {
     private readonly StatsService _stats;
     private LocalFileServer? _server;
+    private bool _disposed;
 
     private static readonly string ConfigDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -94,6 +96,20 @@ public partial class MainPage : ContentPage
         _server = new LocalFileServer(wwwroot, () => _stats.GetCachedStatsBytes());
         _server.Start();
 
+        // Security: block navigation to external URLs
+        core.NavigationStarting += (s, navArgs) =>
+        {
+            var uri = navArgs.Uri;
+            if (uri is not null
+                && !uri.StartsWith(_server!.BaseUrl, StringComparison.OrdinalIgnoreCase)
+                && !uri.StartsWith("about:blank", StringComparison.OrdinalIgnoreCase))
+            {
+                navArgs.Cancel = true;
+                // Open external links in the default browser instead
+                _ = Launcher.OpenAsync(new Uri(uri));
+            }
+        };
+
         // Bridge: handle messages from the setup page
         core.WebMessageReceived += OnWebMessage;
 
@@ -138,6 +154,13 @@ public partial class MainPage : ContentPage
                     try
                     {
                         var content = msg.GetProperty("text").GetString()!;
+
+                        // Validate: must be valid JSON and within 1 MB
+                        const int maxContentLength = 1_048_576;
+                        if (content.Length > maxContentLength)
+                            throw new InvalidOperationException($"Content exceeds maximum allowed size ({maxContentLength} bytes).");
+                        using (JsonDocument.Parse(content)) { } // Throws if not valid JSON
+
                         Directory.CreateDirectory(ConfigDir);
                         await File.WriteAllTextAsync(PackagesPath, content);
                         sender.PostWebMessageAsJson(JsonSerializer.Serialize(new { action = "saveResult", ok = true }));
@@ -166,9 +189,9 @@ public partial class MainPage : ContentPage
                     break;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore malformed messages
+            Debug.WriteLine($"[MainPage] WebMessage error: {ex.Message}");
         }
     }
 
@@ -184,7 +207,7 @@ public partial class MainPage : ContentPage
                 if (doc.RootElement.TryGetProperty("fetchedAt", out var f))
                     lastFetch = f.GetString();
             }
-            catch { }
+            catch (Exception ex) { Debug.WriteLine($"[MainPage] Status parse error: {ex.Message}"); }
         }
 
         sender.PostWebMessageAsJson(JsonSerializer.Serialize(new
@@ -297,8 +320,16 @@ public partial class MainPage : ContentPage
 
     private async void OnAboutClicked(object? sender, EventArgs e)
     {
+        var version = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "2.3.0";
         await DisplayAlertAsync("Registry Pulse Desktop",
-            "Version 1.0.0\n\nOne dashboard. Five registries.\nAll your download stats.\n\nBuilt by MCP Tool Shop",
+            $"Version {version}\n\nOne dashboard. Five registries.\nAll your download stats.\n\nBuilt by MCP Tool Shop",
             "OK");
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _server?.Dispose();
     }
 }

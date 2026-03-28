@@ -171,6 +171,12 @@ registry-stats express --compare
 registry-stats express -r npm --range 2025-01-01:2025-06-30 --format csv
 registry-stats express -r npm --range 2025-01-01:2025-06-30 --format chart
 
+# Discover all your npm packages by maintainer name
+registry-stats --mine mikefrilot
+
+# JSON output for maintainer discovery
+registry-stats --mine mikefrilot --format json
+
 # Start a REST API server
 registry-stats serve --port 3000
 ```
@@ -246,6 +252,10 @@ calc.toChartData(daily, 'express');        // { labels: [...], datasets: [{ labe
 // Comparison — same package across registries
 const comparison = await stats.compare('express');
 await stats.compare('express', ['npm', 'pypi']);  // specific registries only
+
+// Maintainer discovery — find all npm packages by username
+const mine = await stats.mine('mikefrilot');
+// Returns PackageStats[] sorted by monthly downloads
 
 // Caching (5 min TTL, in-memory)
 const cache = createCache();
