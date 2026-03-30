@@ -1,9 +1,9 @@
 {
-  "fetchedAt": "2026-03-30T07:18:02.644Z",
+  "fetchedAt": "2026-03-30T07:54:08.222Z",
   "totals": {
     "packages": 168,
-    "week": 7300,
-    "month": 93842,
+    "week": 7295,
+    "month": 93797,
     "activeRegistries": 4
   },
   "registryTotals": {
@@ -15,8 +15,8 @@
     },
     "pypi": {
       "packages": 42,
-      "week": 1216,
-      "month": 7964,
+      "week": 1211,
+      "month": 7919,
       "total": 22141
     },
     "vscode": {
@@ -39,19 +39,19 @@
     "nuget": 27
   },
   "fetchedCounts": {
-    "npm": 74,
+    "npm": 73,
     "pypi": 42,
     "vscode": 6,
     "nuget": 27
   },
   "staleCounts": {
-    "npm": 2,
+    "npm": 1,
     "pypi": 1,
     "vscode": 0,
     "nuget": 0
   },
   "errorsByRegistry": {
-    "npm": 3,
+    "npm": 2,
     "pypi": 2
   },
   "confidence": {
@@ -60,12 +60,12 @@
     "vscode": "ok",
     "nuget": "ok"
   },
-  "narrative": "npm led with 83% of weekly downloads. Top package: @mcptoolshop/site-theme (492 this week). Top gainer: @mcptoolshop/repomesh (+9700%; Δ97). Concentration: top 5 = 21.6%. Data is partial (degraded: npm, PyPI) (3 packages used cached previous data).",
+  "narrative": "npm led with 83% of weekly downloads. Top package: @mcptoolshop/site-theme (492 this week). Top gainer: @mcptoolshop/repomesh (+9700%; Δ97). Concentration: top 5 = 21.7%. Data is partial (degraded: npm, PyPI) (2 packages used cached previous data).",
   "narrativeLines": [
     {
       "icon": "📊",
       "label": "Registry Lead",
-      "text": "npm led with 83% of 7,300 weekly downloads followed by PyPI (17%)."
+      "text": "npm led with 83% of 7,295 weekly downloads followed by PyPI (17%)."
     },
     {
       "icon": "🏆",
@@ -85,12 +85,12 @@
     {
       "icon": "📈",
       "label": "Concentration",
-      "text": "Top 5 packages account for 21.6% of weekly downloads. Downloads are well-distributed across the portfolio."
+      "text": "Top 5 packages account for 21.7% of weekly downloads. Downloads are well-distributed across the portfolio."
     },
     {
       "icon": "⚠️",
       "label": "Data Health",
-      "text": "Data is partial (degraded: npm, PyPI) (3 packages used cached previous data)."
+      "text": "Data is partial (degraded: npm, PyPI) (2 packages used cached previous data)."
     }
   ],
   "movers": {
@@ -179,7 +179,7 @@
       }
     ],
     "newlyActive": [],
-    "concentrationTop5Pct": 21.643835616438356
+    "concentrationTop5Pct": 21.658670322138452
   },
   "leaderboard": [
     {
@@ -1038,21 +1038,6 @@
       "extra": null
     },
     {
-      "registry": "pypi",
-      "name": "a11y-lint",
-      "week": 130,
-      "month": 469,
-      "day": 1,
-      "total": 1246,
-      "trendPct": null,
-      "last7": null,
-      "prev7": null,
-      "delta7": null,
-      "range30": null,
-      "extra": null,
-      "stale": true
-    },
-    {
       "registry": "npm",
       "name": "@ai-rpg-engine/campaign-memory",
       "week": 128,
@@ -1140,6 +1125,20 @@
         1,
         0
       ],
+      "extra": null
+    },
+    {
+      "registry": "pypi",
+      "name": "a11y-lint",
+      "week": 125,
+      "month": 424,
+      "day": 0,
+      "total": 1246,
+      "trendPct": null,
+      "last7": null,
+      "prev7": null,
+      "delta7": null,
+      "range30": null,
       "extra": null
     },
     {
@@ -3821,7 +3820,8 @@
       "prev7": null,
       "delta7": null,
       "range30": null,
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "pypi",
@@ -4646,8 +4646,7 @@
         0,
         0
       ],
-      "extra": null,
-      "stale": true
+      "extra": null
     },
     {
       "registry": "npm",
@@ -5547,16 +5546,12 @@
       "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-02-28:2026-03-30/%40accessibility-suite%2Fmcp-tools"
     },
     {
-      "scope": "npm:@accessibility-suite/core",
-      "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-02-28:2026-03-30/%40accessibility-suite%2Fcore"
-    },
-    {
       "scope": "pypi.bulk",
       "message": "[pypi] Too Many Requests: https://pypistats.org/api/packages/integradio/recent"
     },
     {
-      "scope": "pypi:a11y-lint",
-      "message": "[pypi] Too Many Requests: https://pypistats.org/api/packages/a11y-lint/recent"
+      "scope": "pypi:integradio",
+      "message": "[pypi] Too Many Requests: https://pypistats.org/api/packages/integradio/recent"
     }
   ],
   "history": {
@@ -5576,20 +5571,20 @@
       },
       {
         "week": "2026-W14",
-        "totalWeek": 7300,
-        "totalMonth": 93842,
+        "totalWeek": 7295,
+        "totalMonth": 93797,
         "packages": 168,
         "registries": {
           "npm": 6084,
-          "pypi": 1216,
+          "pypi": 1211,
           "vscode": 0,
           "nuget": 0
         },
-        "updatedAt": "2026-03-30T07:29:18.342Z"
+        "updatedAt": "2026-03-30T08:04:43.018Z"
       }
     ],
     "packageCount": 168,
-    "lastUpdated": "2026-03-30T07:29:18.342Z"
+    "lastUpdated": "2026-03-30T08:04:43.018Z"
   },
   "inference": {
     "forecastTotal7": [
@@ -6016,18 +6011,6 @@
         }
       },
       {
-        "name": "a11y-lint",
-        "registry": "pypi",
-        "score": 0,
-        "grade": "F",
-        "components": {
-          "activity": 0,
-          "consistency": 0,
-          "growth": 0,
-          "stability": 0
-        }
-      },
-      {
         "name": "@ai-rpg-engine/campaign-memory",
         "registry": "npm",
         "score": 50,
@@ -6049,6 +6032,18 @@
           "consistency": 0,
           "growth": 14,
           "stability": 1
+        }
+      },
+      {
+        "name": "a11y-lint",
+        "registry": "pypi",
+        "score": 0,
+        "grade": "F",
+        "components": {
+          "activity": 0,
+          "consistency": 0,
+          "growth": 0,
+          "stability": 0
         }
       },
       {
