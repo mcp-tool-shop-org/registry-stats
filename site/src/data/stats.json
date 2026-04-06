@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-04-06T07:19:38.822Z",
+  "fetchedAt": "2026-04-06T07:55:45.534Z",
   "totals": {
     "packages": 168,
     "week": 3417,
@@ -23,7 +23,7 @@
       "packages": 6,
       "week": 0,
       "month": 0,
-      "total": 231
+      "total": 234
     },
     "nuget": {
       "packages": 27,
@@ -50,14 +50,16 @@
     "vscode": 0,
     "nuget": 0
   },
-  "errorsByRegistry": {},
+  "errorsByRegistry": {
+    "npm": 1
+  },
   "confidence": {
-    "npm": "ok",
+    "npm": "partial",
     "pypi": "ok",
     "vscode": "ok",
     "nuget": "ok"
   },
-  "narrative": "npm led with 87% of weekly downloads. Top package: @world-forge/export-ai-rpg (194 this week). Top gainer: @world-forge/editor (+5750%; Δ115). Concentration: top 5 = 24.9%. All sources fetched cleanly (22 packages used cached previous data).",
+  "narrative": "npm led with 87% of weekly downloads. Top package: @world-forge/export-ai-rpg (194 this week). Top gainer: @world-forge/editor (+5750%; Δ115). Concentration: top 5 = 24.9%. Data is partial (degraded: npm) (22 packages used cached previous data).",
   "narrativeLines": [
     {
       "icon": "📊",
@@ -85,9 +87,9 @@
       "text": "Top 5 packages account for 24.9% of weekly downloads. Downloads are well-distributed across the portfolio."
     },
     {
-      "icon": "✅",
+      "icon": "⚠️",
       "label": "Data Health",
-      "text": "All sources fetched cleanly (22 packages used cached previous data)."
+      "text": "Data is partial (degraded: npm) (22 packages used cached previous data)."
     }
   ],
   "movers": {
@@ -151,14 +153,6 @@
         "delta7": -122
       },
       {
-        "name": "@mcptoolshop/repomesh",
-        "registry": "npm",
-        "week": 6,
-        "month": 123,
-        "trendPct": -94.28571428571428,
-        "delta7": -99
-      },
-      {
         "name": "@mcptoolshop/mcp-aside",
         "registry": "npm",
         "week": 7,
@@ -173,6 +167,14 @@
         "month": 644,
         "trendPct": -92.80000000000001,
         "delta7": -116
+      },
+      {
+        "name": "@mcptoolshop/claude-session-copilot",
+        "registry": "npm",
+        "week": 8,
+        "month": 202,
+        "trendPct": -92.72727272727272,
+        "delta7": -102
       }
     ],
     "newlyActive": [
@@ -3096,42 +3098,11 @@
       "month": 123,
       "day": 0,
       "total": 0,
-      "trendPct": -94.28571428571428,
-      "last7": 6,
-      "prev7": 105,
-      "delta7": -99,
-      "range30": [
-        2,
-        1,
-        3,
-        1,
-        1,
-        2,
-        0,
-        1,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        1,
-        0,
-        0,
-        0,
-        1,
-        84,
-        13,
-        7,
-        4,
-        2,
-        0,
-        0,
-        0,
-        0,
-        0
-      ],
+      "trendPct": null,
+      "last7": null,
+      "prev7": null,
+      "delta7": null,
+      "range30": null,
       "extra": null
     },
     {
@@ -4435,6 +4406,25 @@
     },
     {
       "registry": "vscode",
+      "name": "mcp-tool-shop.codecomfy-vscode",
+      "week": 0,
+      "month": 0,
+      "day": 0,
+      "total": 92,
+      "trendPct": null,
+      "last7": null,
+      "prev7": null,
+      "delta7": null,
+      "range30": null,
+      "extra": {
+        "displayName": "CodeComfy — ComfyUI Generation",
+        "trendingDaily": 0,
+        "trendingWeekly": 0,
+        "trendingMonthly": 0
+      }
+    },
+    {
+      "registry": "vscode",
       "name": "mcp-tool-shop.runforge",
       "week": 0,
       "month": 0,
@@ -4447,25 +4437,6 @@
       "range30": null,
       "extra": {
         "displayName": "RunForge — ML Training from VS Code",
-        "trendingDaily": 0,
-        "trendingWeekly": 0,
-        "trendingMonthly": 0
-      }
-    },
-    {
-      "registry": "vscode",
-      "name": "mcp-tool-shop.codecomfy-vscode",
-      "week": 0,
-      "month": 0,
-      "day": 0,
-      "total": 89,
-      "trendPct": null,
-      "last7": null,
-      "prev7": null,
-      "delta7": null,
-      "range30": null,
-      "extra": {
-        "displayName": "CodeComfy — ComfyUI Generation",
         "trendingDaily": 0,
         "trendingWeekly": 0,
         "trendingMonthly": 0
@@ -5531,14 +5502,14 @@
     }
   ],
   "sparkline30": [
-    6745,
-    12185,
-    23883,
-    5305,
-    1611,
-    1631,
+    6743,
+    12184,
+    23880,
+    5304,
+    1610,
+    1629,
     994,
-    2009,
+    2008,
     1014,
     827,
     621,
@@ -5546,23 +5517,28 @@
     1043,
     566,
     484,
-    619,
+    618,
     360,
     452,
     547,
-    794,
-    3290,
-    638,
-    811,
-    876,
-    904,
+    793,
+    3206,
+    625,
+    804,
+    872,
+    902,
     731,
     161,
     107,
     204,
     0
   ],
-  "errors": [],
+  "errors": [
+    {
+      "scope": "npm.range:@mcptoolshop/repomesh",
+      "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-03-07:2026-04-06/%40mcptoolshop%2Frepomesh"
+    }
+  ],
   "history": {
     "weeklyPortfolio": [
       {
@@ -5589,11 +5565,11 @@
           "vscode": 0,
           "nuget": 0
         },
-        "updatedAt": "2026-04-06T07:26:54.945Z"
+        "updatedAt": "2026-04-06T08:03:17.027Z"
       }
     ],
     "packageCount": 168,
-    "lastUpdated": "2026-04-06T07:26:54.945Z"
+    "lastUpdated": "2026-04-06T08:03:17.027Z"
   },
   "inference": {
     "forecastTotal7": [
@@ -5605,15 +5581,15 @@
       108,
       106
     ],
-    "riskScore": 34,
+    "riskScore": 33,
     "portfolioMomentum": -8,
     "diversityTrend": "stable",
     "recommendations": [
       {
         "type": "attention",
         "priority": "medium",
-        "title": "21 packages losing momentum",
-        "detail": "@ai-rpg-engine/modules, @ai-rpg-engine/content-schema, @ai-rpg-engine/equipment and 18 more show sustained decline. Consider: release updates, fix open issues, or update documentation.",
+        "title": "20 packages losing momentum",
+        "detail": "@ai-rpg-engine/modules, @ai-rpg-engine/content-schema, @ai-rpg-engine/equipment and 17 more show sustained decline. Consider: release updates, fix open issues, or update documentation.",
         "metric": "Worst momentum: -53"
       },
       {
@@ -5655,7 +5631,7 @@
         "type": "attention",
         "severity": "critical",
         "urgency": "immediate",
-        "title": "76 packages in critical health",
+        "title": "77 packages in critical health",
         "detail": "mcpt, file-compass, voice-soundboard, a11y-lint, ally-demo-python scored below 20/100.",
         "action": "Review these packages for broken installs, outdated dependencies, or missing documentation. Consider archiving if no longer maintained.",
         "packages": [
@@ -5684,6 +5660,7 @@
           "backpropagate",
           "@mcptoolshop/polyglot-mcp",
           "nexus-attest",
+          "@mcptoolshop/repomesh",
           "nexus-router-adapter-http",
           "scalarscope",
           "nexus-router",
@@ -5728,8 +5705,8 @@
           "CodeTeam.Core",
           "CodeTeam.Crypto",
           "CodeTeam.Packaging",
-          "mcp-tool-shop.runforge",
           "mcp-tool-shop.codecomfy-vscode",
+          "mcp-tool-shop.runforge",
           "CodeTeam",
           "mcp-tool-shop.vscode-voice-soundboard",
           "mcp-tool-shop.registry-stats-vscode",
