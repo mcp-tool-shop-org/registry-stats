@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-05-04T08:19:37.041Z",
+  "fetchedAt": "2026-05-04T08:38:52.222Z",
   "totals": {
     "packages": 168,
     "week": 5598,
@@ -23,7 +23,7 @@
       "packages": 6,
       "week": 0,
       "month": 0,
-      "total": 353
+      "total": 355
     },
     "nuget": {
       "packages": 27,
@@ -50,14 +50,16 @@
     "vscode": 2,
     "nuget": 0
   },
-  "errorsByRegistry": {},
+  "errorsByRegistry": {
+    "pypi": 1
+  },
   "confidence": {
     "npm": "ok",
-    "pypi": "ok",
+    "pypi": "partial",
     "vscode": "ok",
     "nuget": "ok"
   },
-  "narrative": "npm led with 94% of weekly downloads. Top package: @ai-rpg-engine/modules (454 this week). Top gainer: @mcptoolshop/sovereignty (+3191%; Δ351). Concentration: top 5 = 26.5%. All sources fetched cleanly (50 packages used cached previous data).",
+  "narrative": "npm led with 94% of weekly downloads. Top package: @ai-rpg-engine/modules (454 this week). Top gainer: @mcptoolshop/sovereignty (+3191%; Δ351). Concentration: top 5 = 26.5%. Data is partial (degraded: PyPI) (50 packages used cached previous data).",
   "narrativeLines": [
     {
       "icon": "📊",
@@ -85,9 +87,9 @@
       "text": "Top 5 packages account for 26.5% of weekly downloads. Downloads are well-distributed across the portfolio."
     },
     {
-      "icon": "✅",
+      "icon": "⚠️",
       "label": "Data Health",
-      "text": "All sources fetched cleanly (50 packages used cached previous data)."
+      "text": "Data is partial (degraded: PyPI) (50 packages used cached previous data)."
     }
   ],
   "movers": {
@@ -3214,7 +3216,7 @@
       "week": 0,
       "month": 0,
       "day": 0,
-      "total": 138,
+      "total": 139,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -3233,7 +3235,7 @@
       "week": 0,
       "month": 0,
       "day": 0,
-      "total": 137,
+      "total": 138,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -3242,8 +3244,8 @@
       "extra": {
         "displayName": "CodeComfy — ComfyUI Generation",
         "trendingDaily": 0,
-        "trendingWeekly": 5.839416058394161,
-        "trendingMonthly": 36.496350364963504
+        "trendingWeekly": 5.797101449275362,
+        "trendingMonthly": 36.231884057971016
       }
     },
     {
@@ -5581,7 +5583,12 @@
     923,
     0
   ],
-  "errors": [],
+  "errors": [
+    {
+      "scope": "pypi.bulk",
+      "message": "[pypi] Too Many Requests: https://pypistats.org/api/packages/tool-compass/recent"
+    }
+  ],
   "history": {
     "weeklyPortfolio": [
       {
@@ -5608,11 +5615,11 @@
           "vscode": 0,
           "nuget": 0
         },
-        "updatedAt": "2026-05-04T08:27:02.367Z"
+        "updatedAt": "2026-05-04T08:48:01.536Z"
       }
     ],
     "packageCount": 168,
-    "lastUpdated": "2026-05-04T08:27:02.367Z"
+    "lastUpdated": "2026-05-04T08:48:01.536Z"
   },
   "inference": {
     "forecastTotal7": [
