@@ -1,9 +1,9 @@
 {
-  "fetchedAt": "2026-05-11T09:26:48.890Z",
+  "fetchedAt": "2026-05-11T09:53:49.593Z",
   "totals": {
     "packages": 168,
     "week": 3525,
-    "month": 13913,
+    "month": 13911,
     "activeRegistries": 4
   },
   "registryTotals": {
@@ -16,14 +16,14 @@
     "pypi": {
       "packages": 42,
       "week": 743,
-      "month": 2201,
+      "month": 2199,
       "total": 25074
     },
     "vscode": {
       "packages": 6,
       "week": 0,
       "month": 0,
-      "total": 421
+      "total": 422
     },
     "nuget": {
       "packages": 27,
@@ -51,15 +51,16 @@
     "nuget": 0
   },
   "errorsByRegistry": {
-    "pypi": 2
+    "pypi": 2,
+    "npm": 1
   },
   "confidence": {
-    "npm": "ok",
+    "npm": "partial",
     "pypi": "partial",
     "vscode": "ok",
     "nuget": "ok"
   },
-  "narrative": "npm led with 79% of weekly downloads. Top package: sovereignty-game (212 this week). Top gainer: @mcptoolshop/repomesh (+75.0%; Δ3). Concentration: top 5 = 23.7%. Data is partial (degraded: PyPI) (51 packages used cached previous data).",
+  "narrative": "npm led with 79% of weekly downloads. Top package: sovereignty-game (212 this week). Top gainer: @mcptoolshop/ai-loadout (+68.8%; Δ11). Concentration: top 5 = 23.7%. Data is partial (degraded: npm, PyPI) (51 packages used cached previous data).",
   "narrativeLines": [
     {
       "icon": "📊",
@@ -74,7 +75,7 @@
     {
       "icon": "🚀",
       "label": "Top Mover",
-      "text": "@mcptoolshop/repomesh surged 75.0% week-over-week (3 additional downloads)."
+      "text": "@mcptoolshop/ai-loadout surged 68.8% week-over-week (11 additional downloads)."
     },
     {
       "icon": "📉",
@@ -89,19 +90,11 @@
     {
       "icon": "⚠️",
       "label": "Data Health",
-      "text": "Data is partial (degraded: PyPI) (51 packages used cached previous data)."
+      "text": "Data is partial (degraded: npm, PyPI) (51 packages used cached previous data)."
     }
   ],
   "movers": {
     "topGainers": [
-      {
-        "name": "@mcptoolshop/repomesh",
-        "registry": "npm",
-        "week": 7,
-        "month": 20,
-        "trendPct": 75,
-        "delta7": 3
-      },
       {
         "name": "@mcptoolshop/ai-loadout",
         "registry": "npm",
@@ -133,6 +126,14 @@
         "month": 113,
         "trendPct": 33.33333333333333,
         "delta7": 8
+      },
+      {
+        "name": "@ai-rpg-engine/rumor-system",
+        "registry": "npm",
+        "week": 40,
+        "month": 107,
+        "trendPct": 33.33333333333333,
+        "delta7": 10
       }
     ],
     "topDecliners": [
@@ -2188,7 +2189,8 @@
       "prev7": null,
       "delta7": null,
       "range30": null,
-      "extra": null
+      "extra": null,
+      "stale": true
     },
     {
       "registry": "npm",
@@ -2315,42 +2317,11 @@
       "month": 20,
       "day": 0,
       "total": 0,
-      "trendPct": 75,
-      "last7": 7,
-      "prev7": 4,
-      "delta7": 3,
-      "range30": [
-        2,
-        1,
-        0,
-        1,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        4,
-        0,
-        1,
-        0,
-        0,
-        3,
-        1,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        5,
-        2,
-        0
-      ],
+      "trendPct": null,
+      "last7": null,
+      "prev7": null,
+      "delta7": null,
+      "range30": null,
       "extra": null
     },
     {
@@ -2543,26 +2514,25 @@
     },
     {
       "registry": "pypi",
-      "name": "scalarscope",
-      "week": 1,
-      "month": 9,
-      "day": 0,
-      "total": 222,
-      "trendPct": null,
-      "last7": null,
-      "prev7": null,
-      "delta7": null,
-      "range30": null,
-      "extra": null,
-      "stale": true
-    },
-    {
-      "registry": "pypi",
       "name": "nexus-router-adapter-stdout",
       "week": 1,
       "month": 7,
       "day": 0,
       "total": 489,
+      "trendPct": null,
+      "last7": null,
+      "prev7": null,
+      "delta7": null,
+      "range30": null,
+      "extra": null
+    },
+    {
+      "registry": "pypi",
+      "name": "scalarscope",
+      "week": 1,
+      "month": 7,
+      "day": 0,
+      "total": 222,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -3277,7 +3247,7 @@
       "week": 0,
       "month": 0,
       "day": 0,
-      "total": 149,
+      "total": 150,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -5594,10 +5564,10 @@
     }
   ],
   "sparkline30": [
-    186,
-    618,
+    184,
+    617,
     110,
-    57,
+    56,
     78,
     35,
     59,
@@ -5605,13 +5575,13 @@
     39,
     80,
     44,
-    1646,
+    1642,
     91,
-    75,
+    74,
     468,
     101,
-    159,
-    73,
+    156,
+    72,
     121,
     771,
     2876,
@@ -5621,18 +5591,22 @@
     115,
     742,
     367,
-    354,
-    887,
+    349,
+    885,
     0
   ],
   "errors": [
     {
       "scope": "pypi.bulk",
-      "message": "[pypi] Too Many Requests: https://pypistats.org/api/packages/scalarscope/recent"
+      "message": "[pypi] Too Many Requests: https://pypistats.org/api/packages/flexiflow/recent"
     },
     {
-      "scope": "pypi:scalarscope",
-      "message": "[pypi] Too Many Requests: https://pypistats.org/api/packages/scalarscope/recent"
+      "scope": "pypi:xrpl-camp",
+      "message": "[pypi] Too Many Requests: https://pypistats.org/api/packages/xrpl-camp/recent"
+    },
+    {
+      "scope": "npm.range:@mcptoolshop/repomesh",
+      "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-04-11:2026-05-11/%40mcptoolshop%2Frepomesh"
     }
   ],
   "history": {
@@ -5653,7 +5627,7 @@
       {
         "week": "2026-W20",
         "totalWeek": 3525,
-        "totalMonth": 13913,
+        "totalMonth": 13911,
         "packages": 168,
         "registries": {
           "npm": 2782,
@@ -5661,21 +5635,21 @@
           "vscode": 0,
           "nuget": 0
         },
-        "updatedAt": "2026-05-11T09:35:23.013Z"
+        "updatedAt": "2026-05-11T10:03:17.429Z"
       }
     ],
     "packageCount": 168,
-    "lastUpdated": "2026-05-11T09:35:23.013Z"
+    "lastUpdated": "2026-05-11T10:03:17.429Z"
   },
   "inference": {
     "forecastTotal7": [
-      347,
-      320,
-      301,
-      286,
-      278,
-      271,
-      269
+      346,
+      318,
+      299,
+      284,
+      276,
+      269,
+      267
     ],
     "riskScore": 31,
     "portfolioMomentum": -13,
@@ -5705,7 +5679,7 @@
       {
         "type": "growth",
         "priority": "low",
-        "title": "13 packages predicted to grow",
+        "title": "12 packages predicted to grow",
         "detail": "Statistical models predict >20% growth in the next 7 days for @mcptoolshop/sovereignty, @ai-rpg-engine/presentation, @mcptoolshop/registry-stats."
       },
       {
@@ -5720,7 +5694,7 @@
         "type": "attention",
         "severity": "critical",
         "urgency": "immediate",
-        "title": "75 packages in critical health",
+        "title": "76 packages in critical health",
         "detail": "sovereignty-game, mcp-bouncer, backpropagate, tool-compass, mcpt scored below 20/100.",
         "action": "Review these packages for broken installs, outdated dependencies, or missing documentation. Consider archiving if no longer maintained.",
         "packages": [
@@ -5738,6 +5712,7 @@
           "xrpl-camp",
           "escape-the-valley",
           "nullout-mcp",
+          "@mcptoolshop/repomesh",
           "venvkit",
           "a11y-lint",
           "a11y-ci",
@@ -5745,8 +5720,8 @@
           "aspire-ai",
           "nexus-control",
           "nexus-router-adapter-http",
-          "scalarscope",
           "nexus-router-adapter-stdout",
+          "scalarscope",
           "voice-soundboard",
           "headless-wheel-builder",
           "flexiflow",
