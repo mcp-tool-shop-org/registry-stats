@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-06-08T07:37:30.092Z",
+  "fetchedAt": "2026-06-08T08:00:39.894Z",
   "totals": {
     "packages": 168,
     "week": 6418,
@@ -50,14 +50,16 @@
     "vscode": 3,
     "nuget": 0
   },
-  "errorsByRegistry": {},
+  "errorsByRegistry": {
+    "npm": 1
+  },
   "confidence": {
-    "npm": "ok",
+    "npm": "partial",
     "pypi": "ok",
     "vscode": "ok",
     "nuget": "ok"
   },
-  "narrative": "npm led with 86% of weekly downloads. Top package: @ai-rpg-engine/modules (442 this week). Top gainer: @ai-rpg-engine/rumor-system (+1118%; Δ190). Concentration: top 5 = 29.6%. All sources fetched cleanly (48 packages used cached previous data).",
+  "narrative": "npm led with 86% of weekly downloads. Top package: @ai-rpg-engine/modules (442 this week). Top gainer: @ai-rpg-engine/rumor-system (+1118%; Δ190). Concentration: top 5 = 29.6%. Data is partial (degraded: npm) (48 packages used cached previous data).",
   "narrativeLines": [
     {
       "icon": "📊",
@@ -85,9 +87,9 @@
       "text": "Top 5 packages account for 29.6% of weekly downloads. Downloads are well-distributed across the portfolio."
     },
     {
-      "icon": "✅",
+      "icon": "⚠️",
       "label": "Data Health",
-      "text": "All sources fetched cleanly (48 packages used cached previous data)."
+      "text": "Data is partial (degraded: npm) (48 packages used cached previous data)."
     }
   ],
   "movers": {
@@ -143,14 +145,6 @@
         "delta7": -9
       },
       {
-        "name": "@mcptoolshop/repomesh",
-        "registry": "npm",
-        "week": 6,
-        "month": 47,
-        "trendPct": -57.14285714285714,
-        "delta7": -8
-      },
-      {
         "name": "@world-forge/schema",
         "registry": "npm",
         "week": 25,
@@ -173,6 +167,14 @@
         "month": 115,
         "trendPct": -38.23529411764706,
         "delta7": -13
+      },
+      {
+        "name": "@ai-rpg-engine/pack-registry",
+        "registry": "npm",
+        "week": 28,
+        "month": 210,
+        "trendPct": -34.883720930232556,
+        "delta7": -15
       }
     ],
     "newlyActive": [],
@@ -2511,42 +2513,11 @@
       "month": 47,
       "day": 0,
       "total": 0,
-      "trendPct": -57.14285714285714,
-      "last7": 6,
-      "prev7": 14,
-      "delta7": -8,
-      "range30": [
-        2,
-        1,
-        5,
-        1,
-        0,
-        0,
-        0,
-        0,
-        0,
-        2,
-        3,
-        0,
-        5,
-        0,
-        1,
-        2,
-        3,
-        0,
-        0,
-        1,
-        7,
-        1,
-        2,
-        0,
-        0,
-        0,
-        6,
-        0,
-        0,
-        0
-      ],
+      "trendPct": null,
+      "last7": null,
+      "prev7": null,
+      "delta7": null,
+      "range30": null,
       "extra": null
     },
     {
@@ -3363,8 +3334,8 @@
       "extra": {
         "displayName": "CodeComfy — ComfyUI Generation",
         "trendingDaily": 0,
-        "trendingWeekly": 8.333333333333332,
-        "trendingMonthly": 27.941176470588236
+        "trendingWeekly": 7.462686567164178,
+        "trendingMonthly": 27.860696517412936
       }
     },
     {
@@ -5548,38 +5519,43 @@
     }
   ],
   "sparkline30": [
-    887,
-    555,
-    631,
-    442,
+    885,
+    554,
+    626,
+    441,
     179,
     375,
     454,
     86,
     138,
-    392,
-    739,
+    390,
+    736,
     123,
-    870,
+    865,
     73,
-    164,
-    703,
-    420,
+    163,
+    701,
+    417,
     60,
     95,
-    71,
-    661,
-    264,
-    321,
+    70,
+    654,
+    263,
+    319,
     288,
     3374,
     1005,
-    329,
+    323,
     326,
     214,
     0
   ],
-  "errors": [],
+  "errors": [
+    {
+      "scope": "npm.range:@mcptoolshop/repomesh",
+      "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-05-09:2026-06-08/%40mcptoolshop%2Frepomesh"
+    }
+  ],
   "history": {
     "weeklyPortfolio": [
       {
@@ -5606,11 +5582,11 @@
           "vscode": 0,
           "nuget": 0
         },
-        "updatedAt": "2026-06-08T07:44:58.680Z"
+        "updatedAt": "2026-06-08T08:08:17.805Z"
       }
     ],
     "packageCount": 168,
-    "lastUpdated": "2026-06-08T07:44:58.680Z"
+    "lastUpdated": "2026-06-08T08:08:17.805Z"
   },
   "inference": {
     "forecastTotal7": [
@@ -5649,7 +5625,7 @@
       {
         "type": "attention",
         "priority": "low",
-        "title": "15 packages with repeated spikes",
+        "title": "14 packages with repeated spikes",
         "detail": "Multiple download spikes detected for @ai-rpg-engine/modules, @ai-rpg-engine/campaign-memory, @ai-rpg-engine/starter-zombie. Could indicate bot activity, viral posts, or dependency adoption."
       }
     ],
@@ -5658,7 +5634,7 @@
         "type": "attention",
         "severity": "critical",
         "urgency": "immediate",
-        "title": "75 packages in critical health",
+        "title": "76 packages in critical health",
         "detail": "backpropagate, mcpt, tool-compass, polyglot-gpu, comfy-headless scored below 20/100.",
         "action": "Review these packages for broken installs, outdated dependencies, or missing documentation. Consider archiving if no longer maintained.",
         "packages": [
@@ -5677,6 +5653,7 @@
           "mcp-bouncer",
           "audiobooker-ai",
           "escape-the-valley",
+          "@mcptoolshop/repomesh",
           "a11y-ci",
           "a11y-lint",
           "voice-soundboard-plugin",
