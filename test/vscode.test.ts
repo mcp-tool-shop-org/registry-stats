@@ -62,6 +62,27 @@ describe('vscode provider (mocked)', () => {
     const result = await vscode.getStats('nonexistent.extension');
     expect(result).toBeNull();
   });
+
+  // engine-B02: a malformed extension shape with no `publisher` must not
+  // throw a raw TypeError (reading publisherName of undefined) — return null.
+  it('getStats returns null for an extension missing the publisher field', async () => {
+    mockFetch(async () => ({
+      status: 200,
+      body: {
+        results: [{
+          extensions: [{
+            extensionName: 'broken-ext',
+            // publisher intentionally omitted
+            displayName: 'Broken',
+            statistics: [{ statisticName: 'install', value: 5 }],
+          }],
+        }],
+      },
+    }));
+
+    const result = await vscode.getStats('someone.broken-ext');
+    expect(result).toBeNull();
+  });
 });
 
 describe('vscode provider (live)', () => {

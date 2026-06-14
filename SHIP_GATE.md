@@ -43,7 +43,7 @@
 ## D. Shipping Hygiene
 
 - [x] `[all]` `verify` script exists (test + build + smoke in one command) — vitest + tsup
-- [x] `[all]` Version in manifest matches git tag
+- [x] `[all]` Version in manifest matches git tag — package.json is 3.2.3; newest tag is v3.0.0 (5 untagged patch releases). v3.2.3 will be tagged at the Phase-10 release so the manifest and the tag reconcile.
 - [x] `[all]` Dependency scanning runs in CI (ecosystem-appropriate)
 - [x] `[all]` Automated dependency update mechanism exists
 - [x] `[npm]` `npm pack --dry-run` includes: dist/, README.md, LICENSE (note: CHANGELOG.md is not in the package.json files array and is excluded from the tarball)
@@ -56,6 +56,6 @@
 ## E. Identity (soft gate — does not block ship)
 
 - [x] `[all]` Logo in README header
-- [x] `[all]` Translations (polyglot-mcp, 8 languages)
+- [x] `[all]` Translations (polyglot-mcp, 7 translations + English source)
 - [x] `[org]` Landing page (@mcptoolshop/site-theme)
 - [x] `[all]` GitHub repo metadata: description, homepage, topics

@@ -83,44 +83,72 @@ public partial class MainPage : ContentPage, IDisposable
 #if WINDOWS
     private async Task SetupWebView()
     {
-        var handler = DashboardWebView.Handler;
-        if (handler?.PlatformView is not Microsoft.UI.Xaml.Controls.WebView2 webView2)
-            return;
-
-        await webView2.EnsureCoreWebView2Async();
-        var core = webView2.CoreWebView2;
-        if (core is null) return;
-
-        // Start local file server
-        var wwwroot = ResolveWwwrootPath();
-        _server = new LocalFileServer(wwwroot, () => _stats.GetCachedStatsBytes());
-        _server.Start();
-
-        // Security: block navigation to external URLs
-        core.NavigationStarting += (s, navArgs) =>
+        // SetupWebView runs as fire-and-forget from OnLoaded (async void). Any throw
+        // here — WebView2 runtime missing, web assets not found — would otherwise leave
+        // a blank window with no explanation. Catch and surface the concrete cause.
+        try
         {
-            var uri = navArgs.Uri;
-            if (uri is not null
-                && !uri.StartsWith(_server!.BaseUrl, StringComparison.OrdinalIgnoreCase)
-                && !uri.StartsWith("about:blank", StringComparison.OrdinalIgnoreCase))
+            var handler = DashboardWebView.Handler;
+            if (handler?.PlatformView is not Microsoft.UI.Xaml.Controls.WebView2 webView2)
+                return;
+
+            await webView2.EnsureCoreWebView2Async();
+            var core = webView2.CoreWebView2;
+            if (core is null) return;
+
+            // Start local file server
+            var wwwroot = ResolveWwwrootPath();
+            _server = new LocalFileServer(wwwroot, () => _stats.GetCachedStatsBytes());
+            _server.Start();
+
+            // Security: block navigation to external URLs
+            core.NavigationStarting += (s, navArgs) =>
             {
-                navArgs.Cancel = true;
-                // Open external links in the default browser instead
-                _ = Launcher.OpenAsync(new Uri(uri));
-            }
-        };
+                var uri = navArgs.Uri;
+                if (uri is not null
+                    && !uri.StartsWith(_server!.BaseUrl, StringComparison.OrdinalIgnoreCase)
+                    && !uri.StartsWith("about:blank", StringComparison.OrdinalIgnoreCase))
+                {
+                    navArgs.Cancel = true;
+                    // Open external links in the default browser instead
+                    _ = Launcher.OpenAsync(new Uri(uri));
+                }
+            };
 
-        // Bridge: handle messages from the setup page
-        core.WebMessageReceived += OnWebMessage;
+            // Bridge: handle messages from the setup page
+            core.WebMessageReceived += OnWebMessage;
 
-        // First-run: if no cached stats, navigate to setup
-        var hasStats = _stats.GetCachedStatsBytes() is not null;
-        var startPage = hasStats ? "/registry-stats/dashboard/" : "/registry-stats/setup/";
-        core.Navigate($"{_server.BaseUrl}{startPage}");
+            // First-run: if no cached stats, navigate to setup
+            var hasStats = _stats.GetCachedStatsBytes() is not null;
+            var startPage = hasStats ? "/registry-stats/dashboard/" : "/registry-stats/setup/";
+            core.Navigate($"{_server.BaseUrl}{startPage}");
 
-        // Background: fetch fresh stats then reload (only if on dashboard)
-        if (hasStats)
-            _ = RefreshStatsAsync(core);
+            // Background: fetch fresh stats then reload (only if on dashboard)
+            if (hasStats)
+                _ = RefreshStatsAsync(core);
+        }
+        catch (DirectoryNotFoundException ex)
+        {
+            // Web assets weren't copied next to the executable (build/packaging issue).
+            Debug.WriteLine($"[MainPage] SetupWebView assets error: {ex.Message}");
+            await DisplayAlertAsync("Dashboard unavailable",
+                "Registry Pulse couldn't find its dashboard files.\n\n" +
+                $"{ex.Message}\n\n" +
+                "This usually means the app wasn't packaged correctly. Reinstalling the latest release should fix it.",
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            // Most commonly the WebView2 runtime is missing on this machine.
+            Debug.WriteLine($"[MainPage] SetupWebView error: {ex.Message}");
+            await DisplayAlertAsync("WebView2 required",
+                "Registry Pulse needs the Microsoft Edge WebView2 runtime to display its dashboard, " +
+                "and it couldn't be started.\n\n" +
+                $"Details: {ex.Message}\n\n" +
+                "Install the Evergreen WebView2 runtime, then relaunch:\n" +
+                "https://developer.microsoft.com/microsoft-edge/webview2/",
+                "OK");
+        }
     }
 
     private async Task RefreshStatsAsync(CoreWebView2 core)
@@ -130,16 +158,38 @@ public partial class MainPage : ContentPage, IDisposable
         {
             core.Reload();
         }
+        else
+        {
+            // Don't interrupt startup with a modal — surface a non-blocking banner the
+            // dashboard renders on the existing status channel. Cached data stays visible.
+            try
+            {
+                core.PostWebMessageAsJson(JsonSerializer.Serialize(new
+                {
+                    action = "status",
+                    refreshFailed = true,
+                    message = "Showing cached data — couldn't reach live source."
+                }));
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MainPage] RefreshStatsAsync notify error: {ex.Message}");
+            }
+        }
     }
 
     private async void OnWebMessage(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
     {
+        // Tracked across the try so the outer catch can tag its error reply with the
+        // action the web UI was waiting on — otherwise a failed handler leaves the page
+        // hanging on a reply that never arrives.
+        string? action = null;
         try
         {
             var json = args.TryGetWebMessageAsString();
             if (json is null) return;
             var msg = JsonDocument.Parse(json).RootElement;
-            var action = msg.GetProperty("action").GetString();
+            action = msg.GetProperty("action").GetString();
 
             switch (action)
             {
@@ -186,12 +236,28 @@ public partial class MainPage : ContentPage, IDisposable
                         var brandingData = JsonSerializer.Deserialize<JsonElement>(brandingText);
                         sender.PostWebMessageAsJson(JsonSerializer.Serialize(new { action = "brandingJson", data = brandingData }));
                     }
+                    else
+                    {
+                        // Always reply, even when there's no branding file, so the web UI
+                        // can resolve its pending request instead of hanging.
+                        sender.PostWebMessageAsJson(JsonSerializer.Serialize(new { action = "brandingJson", data = (object?)null }));
+                    }
                     break;
             }
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[MainPage] WebMessage error: {ex.Message}");
+            Debug.WriteLine($"[MainPage] WebMessage error (action={action ?? "unknown"}): {ex.Message}");
+            // Surface a generic error reply tagged with the originating action so the
+            // web UI can stop waiting and show its own error state.
+            try
+            {
+                sender.PostWebMessageAsJson(JsonSerializer.Serialize(new { action = "error", forAction = action, error = ex.Message }));
+            }
+            catch (Exception postEx)
+            {
+                Debug.WriteLine($"[MainPage] WebMessage error-reply failed: {postEx.Message}");
+            }
         }
     }
 
@@ -265,7 +331,16 @@ public partial class MainPage : ContentPage, IDisposable
             var core = webView2.CoreWebView2;
             if (core is not null)
             {
+                // Show transient in-flight feedback — the fetch can take up to 15s.
+                // Reuse the same channel the setup page already listens on.
+                core.PostWebMessageAsJson(JsonSerializer.Serialize(
+                    new { action = "fetchProgress", line = "Refreshing…" }));
+
                 var success = await _stats.RefreshAsync();
+
+                core.PostWebMessageAsJson(JsonSerializer.Serialize(
+                    new { action = "fetchComplete", ok = success }));
+
                 if (success)
                     core.Reload();
                 else
@@ -290,7 +365,15 @@ public partial class MainPage : ContentPage, IDisposable
                 (function() {
                     var rows = document.querySelectorAll('#leaderboard-body tr');
                     if (!rows.length) return 'NO_DATA';
-                    var csv = 'Rank,Package,Registry,Week,Month,Trend\n';
+                    // RFC4180 + CSV/formula-injection hardening: double embedded quotes and
+                    // neutralize cells that a spreadsheet would treat as a formula by
+                    // prefixing a single quote. Applied to every field, including headers.
+                    function escapeCsv(value) {
+                        var s = value == null ? '' : String(value);
+                        if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+                        return '"' + s.replace(/"/g, '""') + '"';
+                    }
+                    var csv = ['Rank','Package','Registry','Week','Month','Trend'].map(escapeCsv).join(',') + '\n';
                     rows.forEach(function(tr) {
                         var cells = tr.querySelectorAll('td');
                         if (cells.length < 7) return;
@@ -300,7 +383,7 @@ public partial class MainPage : ContentPage, IDisposable
                         var week = cells[3].textContent.trim();
                         var month = cells[4].textContent.trim();
                         var trend = cells[6].textContent.trim();
-                        csv += rank + ',"' + name + '",' + reg + ',"' + week + '","' + month + '","' + trend + '"\n';
+                        csv += [rank, name, reg, week, month, trend].map(escapeCsv).join(',') + '\n';
                     });
                     var blob = new Blob([csv], { type: 'text/csv' });
                     var a = document.createElement('a');

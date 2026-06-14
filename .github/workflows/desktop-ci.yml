@@ -42,6 +42,9 @@ jobs:
       - name: Install MAUI workload
         run: dotnet workload install maui-windows
 
+      - name: Run desktop tests
+        run: dotnet test desktop/RegistryPulse.Tests/RegistryPulse.Tests.csproj -c Release
+
       - name: Build web assets
         run: |
           cd site

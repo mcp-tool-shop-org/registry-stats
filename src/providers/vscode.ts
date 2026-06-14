@@ -50,7 +50,10 @@ export const vscode: RegistryProvider = {
     if (!json) return null;
 
     const ext = json.results?.[0]?.extensions?.[0];
-    if (!ext) return null;
+    // Guard the publisher field too: a malformed/partial extension shape must
+    // yield null, not a raw TypeError (consistent with the ext.statistics
+    // || [] defense below).
+    if (!ext || !ext.publisher) return null;
 
     const stats = ext.statistics || [];
 

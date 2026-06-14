@@ -75,10 +75,14 @@ public sealed class LocalFileServer : IDisposable
 
             var filePath = Path.Combine(_rootPath, path.Replace('/', Path.DirectorySeparatorChar));
 
-            // Path traversal protection: resolved path must stay within wwwroot
-            var fullRoot = Path.GetFullPath(_rootPath) + Path.DirectorySeparatorChar;
-            var fullFile = Path.GetFullPath(filePath);
-            if (!fullFile.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase))
+            // Path traversal protection: resolved path must stay within wwwroot.
+            // Allow the root directory itself (directory-index case) as well as any
+            // descendant; reject anything that escapes the root.
+            var rootFull = Path.GetFullPath(_rootPath).TrimEnd(Path.DirectorySeparatorChar);
+            var fullRoot = rootFull + Path.DirectorySeparatorChar;
+            var fullFile = Path.GetFullPath(filePath).TrimEnd(Path.DirectorySeparatorChar);
+            if (!string.Equals(fullFile, rootFull, StringComparison.OrdinalIgnoreCase)
+                && !fullFile.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase))
             {
                 ctx.Response.StatusCode = 403;
                 ctx.Response.Close();

@@ -1,4 +1,5 @@
 using RegistryPulse.Desktop.Services;
+using Xunit;
 
 namespace RegistryPulse.Tests;
 

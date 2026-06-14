@@ -155,6 +155,31 @@ describe('CLI', () => {
     }, 30_000);
   });
 
+  // ─── --mine without a name (engine-cli-server-006) ─────────────────
+  describe('--mine validation', () => {
+    it('errors and exits non-zero when --mine has no maintainer name', async () => {
+      const r = await run(['--mine']);
+      expect(r.code).not.toBe(0);
+      expect(r.stderr).toContain('--mine requires a maintainer name');
+    });
+
+    it('errors on a bare trailing --mine (no name) rather than "unknown option"', async () => {
+      const r = await run(['--mine']);
+      expect(r.stderr).not.toContain('unknown option');
+      expect(r.stderr).toContain('--mine requires a maintainer name');
+    });
+  });
+
+  // ─── serve --host / --cors documented (engine-B03) ─────────────────
+  describe('serve flags in help', () => {
+    it('documents --host and --cors with their defaults', async () => {
+      const r = await run(['--help']);
+      expect(r.stdout).toContain('--host');
+      expect(r.stdout).toContain('127.0.0.1');
+      expect(r.stdout).toContain('--cors');
+    });
+  });
+
   // ─── Range validation ──────────────────────────────────────────────
   describe('--range validation', () => {
     it('rejects malformed range (no colon)', async () => {

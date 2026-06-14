@@ -98,9 +98,56 @@ const providers = new Map<string, RegistryProvider>([
   ['docker', docker],
 ]);
 
+/** Built-in registry names — overwriting one warns (it's almost always a mistake). */
+const BUILTIN_REGISTRIES = new Set(providers.keys());
+
 /** Register a custom registry provider. The provider's name becomes the registry key for stats(). */
 function registerProvider(provider: RegistryProvider): void {
+  if (!provider || typeof provider.name !== 'string' || provider.name.trim() === '') {
+    throw new Error('registerProvider: provider.name must be a non-empty string');
+  }
+  if (typeof provider.getStats !== 'function') {
+    throw new Error(`registerProvider: provider "${provider.name}" must have a getStats function`);
+  }
+  if (BUILTIN_REGISTRIES.has(provider.name)) {
+    console.warn(`registerProvider: overwriting built-in registry "${provider.name}"`);
+  }
   providers.set(provider.name, provider);
+}
+
+/**
+ * A single registry that failed during an all-registries / compare fan-out.
+ * Surfaced on the additive `.errors` channel so a transient outage is
+ * distinguishable from "package absent" without changing the primary shape.
+ */
+export interface RegistryFailure {
+  registry: string;
+  /** HTTP-ish status from RegistryError when available (0 if unknown). */
+  statusCode?: number;
+  message: string;
+}
+
+/** Result of stats.all(): a plain array of successes plus an additive errors channel. */
+export interface AllStatsResult extends Array<PackageStats> {
+  /** Registries that errored (vs. legitimately returning null/not-found). */
+  errors?: RegistryFailure[];
+}
+
+/** Result of stats.compare(): ComparisonResult plus an additive errors channel. */
+export interface ComparisonWithErrors extends ComparisonResult {
+  /** Registries that errored (vs. legitimately returning null/not-found). */
+  errors?: RegistryFailure[];
+}
+
+/** Convert an arbitrary rejection reason into a structured RegistryFailure. */
+function toRegistryFailure(registry: string, reason: unknown): RegistryFailure {
+  if (reason instanceof RegistryError) {
+    return { registry: reason.registry ? String(reason.registry) : registry, statusCode: reason.statusCode, message: reason.message };
+  }
+  if (reason instanceof Error) {
+    return { registry, message: reason.message };
+  }
+  return { registry, message: String(reason) };
 }
 
 const DEFAULT_TTL = 300_000; // 5 minutes
@@ -134,26 +181,39 @@ async function stats(
   return provider.getStats(pkg, options);
 }
 
-/** Fetch stats from all registered providers. Errors are swallowed; only successful results returned. */
+/**
+ * Fetch stats from all registered providers. Successful results are returned as
+ * a plain array; registries that *errored* (vs. legitimately 404'd to null) are
+ * surfaced on an additive `.errors` channel so a transient outage is not
+ * mistaken for "package absent". The return type is array-compatible — existing
+ * callers that treat it as PackageStats[] are unaffected.
+ */
 stats.all = async function all(
   pkg: string,
   options?: StatsOptions,
-): Promise<PackageStats[]> {
+): Promise<AllStatsResult> {
   // Enforce the same package-name contract as stats() for every provider.
   for (const p of providers.values()) {
     validatePackageName(pkg, p.name);
   }
 
-  const results = await Promise.allSettled(
-    [...providers.values()].map((p) => p.getStats(pkg, options)),
+  const providerList = [...providers.values()];
+  const settled = await Promise.allSettled(
+    providerList.map((p) => p.getStats(pkg, options)),
   );
 
-  return results
-    .filter(
-      (r): r is PromiseFulfilledResult<PackageStats | null> =>
-        r.status === 'fulfilled' && r.value !== null,
-    )
-    .map((r) => r.value!);
+  const out: AllStatsResult = [];
+  const errors: RegistryFailure[] = [];
+  settled.forEach((r, i) => {
+    if (r.status === 'fulfilled') {
+      if (r.value !== null) out.push(r.value);
+    } else {
+      errors.push(toRegistryFailure(providerList[i].name, r.reason));
+    }
+  });
+
+  out.errors = errors;
+  return out;
 };
 
 /** Fetch stats for multiple packages from one registry with concurrency control. */
@@ -275,12 +335,17 @@ stats.range = async function range(
   return provider.getRange(pkg, start, end);
 };
 
-/** Compare a package's stats across multiple registries. Errors are swallowed per-registry. */
+/**
+ * Compare a package's stats across multiple registries. Registries that errored
+ * (vs. legitimately returning null) are surfaced on an additive `errors` channel
+ * so a transient outage is distinguishable from "package absent". The base shape
+ * (package/registries/fetchedAt) is unchanged and backward-compatible.
+ */
 stats.compare = async function compare(
   pkg: string,
   registries?: string[],
   options?: StatsOptions,
-): Promise<ComparisonResult> {
+): Promise<ComparisonWithErrors> {
   const regs = registries ?? [...providers.keys()];
   const results = await Promise.allSettled(
     regs.map(async (reg) => {
@@ -290,16 +355,20 @@ stats.compare = async function compare(
   );
 
   const registryMap: Record<string, PackageStats> = {};
-  for (const r of results) {
-    if (r.status === 'fulfilled' && r.value) {
-      registryMap[r.value.reg] = r.value.result;
+  const errors: RegistryFailure[] = [];
+  results.forEach((r, i) => {
+    if (r.status === 'fulfilled') {
+      if (r.value) registryMap[r.value.reg] = r.value.result;
+    } else {
+      errors.push(toRegistryFailure(regs[i], r.reason));
     }
-  }
+  });
 
   return {
     package: pkg,
     registries: registryMap,
     fetchedAt: new Date().toISOString(),
+    errors,
   };
 };
 
@@ -321,9 +390,15 @@ stats.mine = async function mine(
   // Discover all packages by this maintainer
   const packages: string[] = [];
   const PAGE_SIZE = 250;
+  // Defensive cap: at 250/page this is 10k packages — far beyond any real
+  // maintainer — and stops a malformed `total` or paging loop from running
+  // unbounded HTTP requests.
+  const MAX_PAGES = 40;
   let offset = 0;
+  let page = 0;
 
-  while (true) {
+  while (page < MAX_PAGES) {
+    page++;
     const url = `https://registry.npmjs.org/-/v1/search?text=maintainer:${encodeURIComponent(maintainer)}&size=${PAGE_SIZE}&from=${offset}`;
     const data = await fetchDirect<NpmSearchResult>(url, 'npm');
     if (!data || data.objects.length === 0) break;

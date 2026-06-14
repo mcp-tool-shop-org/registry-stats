@@ -1,5 +1,6 @@
 using System.Net;
 using RegistryPulse.Desktop.Services;
+using Xunit;
 
 namespace RegistryPulse.Tests;
 
@@ -26,10 +27,13 @@ public class LocalFileServerTests : IDisposable
     }
 
     [Fact]
-    public async Task PathTraversal_DotDotSlash_Returns403()
+    public async Task PathTraversal_DotDotSlash_DeniesAccess()
     {
         var response = await _http.GetAsync($"{_server.BaseUrl}/../../../etc/passwd");
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        // HttpClient normalizes leading ".." segments before sending, so the server
+        // sees a path that resolves outside-or-missing → either 403 (traversal caught)
+        // or 404 (file not found). The contract is simply: never 200.
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
@@ -99,6 +103,32 @@ public class LocalFileServerTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
         Assert.Contains("fetchedAt", body);
+    }
+
+    [Fact]
+    public async Task PathTraversal_EncodedBackslash_DeniesAccess()
+    {
+        // %5C is an encoded backslash — on Windows, '\' is a directory separator,
+        // so "..%5C..%5C..%5Cwindows%5Cwin.ini" would escape wwwroot if unguarded.
+        // Must never return 200 (403 traversal-caught or 404 not-found are both fine).
+        var response = await _http.GetAsync(
+            $"{_server.BaseUrl}/sub/..%5C..%5C..%5Cwindows%5Cwin.ini");
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public void Dispose_CalledTwice_DoesNotThrow()
+    {
+        using var server2 = new LocalFileServer(_wwwroot, () => null);
+        server2.Start();
+
+        // Disposing twice must be a no-op the second time, not a throw.
+        var ex = Record.Exception(() =>
+        {
+            server2.Dispose();
+            server2.Dispose();
+        });
+        Assert.Null(ex);
     }
 
     public void Dispose()
