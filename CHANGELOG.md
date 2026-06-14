@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.3.1] - 2026-06-14
+
+Dev-dependency security upgrade (esbuild/tsup/vitest/Astro). **No consumer-facing change:** the published package keeps **zero runtime dependencies** and the same build output (ESM + CJS + `.d.ts`). All changes are dev/build-time only.
+
+### Security
+- Eliminated the high/critical **esbuild** advisories ([GHSA-gv7w-rqvm-qjhr](https://github.com/advisories/GHSA-gv7w-rqvm-qjhr), [GHSA-g7r4-m6w7-qqqr](https://github.com/advisories/GHSA-g7r4-m6w7-qqqr) — both patched in esbuild `0.28.1`) from **both** npm dependency trees by pinning `esbuild` to `^0.28.1` via `overrides` and upgrading the toolchain.
+  - Engine: `tsup` `^8.0`→`^8.5`, `vitest` `^3`→`^4` (no test changes required). Restored the full-tree `npm audit --audit-level=high` gate in `ci.yml`, removing the temporary `--omit=dev` scope introduced in v3.3.0.
+  - Dashboard (`site/`, not published): `astro` `5`→`6` + `@astrojs/starlight` `0.37`→`0.40` + `vite` pinned to `^7`, clearing all site high advisories — including three Astro-own CVEs (XSS in `define:vars`, allowlist bypass, server-island replay) that required the framework major. Added a `npm audit` gate to `pages.yml`.
+
 ## [3.3.0] - 2026-06-14
 
 ### Added
