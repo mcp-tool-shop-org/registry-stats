@@ -5,6 +5,12 @@ import { RegistryError } from './types.js';
 
 export interface ServerOptions {
   port?: number;
+  /**
+   * Interface to bind to (default: '127.0.0.1' — loopback only).
+   * Set to '0.0.0.0' (or '::') to listen on all interfaces; do this only
+   * when the server sits behind a trusted proxy or you intend public exposure.
+   */
+  host?: string;
   cache?: boolean;
   corsOrigin?: string;
   /** Max requests per IP per window (default: 60) */
@@ -13,6 +19,18 @@ export interface ServerOptions {
   rateLimitWindowSeconds?: number;
   /** Upstream fetch timeout in ms (default: 30000) */
   requestTimeoutMs?: number;
+  /**
+   * Trust the X-Forwarded-For header for client IP (default: false).
+   * When false, the rate limiter keys on the real socket address so a
+   * spoofed X-Forwarded-For cannot bypass it. Enable only behind a proxy
+   * that sets X-Forwarded-For reliably.
+   */
+  trustProxy?: boolean;
+}
+
+/** Resolve the bind host for serve(), defaulting to loopback. */
+export function resolveServeHost(opts?: Pick<ServerOptions, 'host'>): string {
+  return opts?.host ?? '127.0.0.1';
 }
 
 type Handler = (req: IncomingMessage, res: ServerResponse) => void | Promise<void>;
@@ -98,15 +116,21 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   });
 }
 
-/** Get client IP from request (supports X-Forwarded-For). */
-function getClientIp(req: IncomingMessage): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string') return forwarded.split(',')[0].trim();
+/**
+ * Get client IP from request.
+ * Only honors X-Forwarded-For when `trustProxy` is true — otherwise an
+ * attacker could spoof the header to evade the per-IP rate limiter.
+ */
+function getClientIp(req: IncomingMessage, trustProxy: boolean): string {
+  if (trustProxy) {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (typeof forwarded === 'string') return forwarded.split(',')[0].trim();
+  }
   return req.socket.remoteAddress ?? '0.0.0.0';
 }
 
 /** Creates a request handler suitable for Node http.createServer or serverless adapters. */
-export function createHandler(opts?: StatsOptions & Pick<ServerOptions, 'corsOrigin' | 'rateLimitMax' | 'rateLimitWindowSeconds' | 'requestTimeoutMs'>): Handler {
+export function createHandler(opts?: StatsOptions & Pick<ServerOptions, 'corsOrigin' | 'rateLimitMax' | 'rateLimitWindowSeconds' | 'requestTimeoutMs' | 'trustProxy'>): Handler {
   const options = { ...opts };
   if (!options.cache) {
     options.cache = createCache();
@@ -114,12 +138,13 @@ export function createHandler(opts?: StatsOptions & Pick<ServerOptions, 'corsOri
 
   const corsOrigin = opts?.corsOrigin ?? '*';
   const timeoutMs = opts?.requestTimeoutMs ?? 30_000;
+  const trustProxy = opts?.trustProxy ?? false;
   const limiter = createRateLimiter(
     opts?.rateLimitMax ?? 60,
     opts?.rateLimitWindowSeconds ?? 60,
   );
 
-  return async (req, res) => {
+  const handle = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
     // Security headers on every response
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
@@ -138,7 +163,7 @@ export function createHandler(opts?: StatsOptions & Pick<ServerOptions, 'corsOri
     }
 
     // Rate limiting
-    const clientIp = getClientIp(req);
+    const clientIp = getClientIp(req, trustProxy);
     if (!limiter.allow(clientIp)) {
       error(res, 'Too many requests', 429);
       return;
@@ -149,9 +174,22 @@ export function createHandler(opts?: StatsOptions & Pick<ServerOptions, 'corsOri
       return;
     }
 
-    const { path, query } = parseUrl(req.url ?? '/');
-
     try {
+      // parseUrl runs decodeURIComponent on the path/query; a malformed
+      // percent-sequence throws URIError. Keep it inside the try so a bad
+      // request maps to 400 instead of crashing the handler.
+      let path: string[];
+      let query: Record<string, string>;
+      try {
+        ({ path, query } = parseUrl(req.url ?? '/'));
+      } catch (e) {
+        if (e instanceof URIError) {
+          error(res, 'Malformed URL', 400);
+          return;
+        }
+        throw e;
+      }
+
       // GET /stats/:package — all registries
       // GET /stats/:registry/:package — single registry
       if (path[0] === 'stats') {
@@ -247,22 +285,45 @@ export function createHandler(opts?: StatsOptions & Pick<ServerOptions, 'corsOri
       }
     }
   };
+
+  // Outer wrapper: a single bad request must never crash or stall the process.
+  // Any throw/rejection that escapes `handle` is mapped to a 500 (or the
+  // connection is closed if headers were already sent), so the returned
+  // handler can never reject.
+  return async (req, res) => {
+    try {
+      await handle(req, res);
+    } catch {
+      try {
+        if (res.headersSent) {
+          res.end();
+        } else {
+          error(res, 'Internal server error', 500);
+        }
+      } catch {
+        // Last resort: ensure the socket is not left hanging.
+        try { res.destroy(); } catch { /* noop */ }
+      }
+    }
+  };
 }
 
 /** Starts an HTTP server. Returns the server instance. */
 export function serve(opts?: ServerOptions) {
   const port = opts?.port ?? 3000;
+  const host = resolveServeHost(opts);
   const handler = createHandler({
     cache: opts?.cache !== false ? createCache() : undefined,
     corsOrigin: opts?.corsOrigin,
     rateLimitMax: opts?.rateLimitMax,
     rateLimitWindowSeconds: opts?.rateLimitWindowSeconds,
     requestTimeoutMs: opts?.requestTimeoutMs,
+    trustProxy: opts?.trustProxy,
   });
 
   const server = httpCreateServer(handler);
-  server.listen(port, () => {
-    console.log(`registry-stats server listening on http://localhost:${port}`);
+  server.listen(port, host, () => {
+    console.log(`registry-stats server listening on http://${host}:${port}`);
     console.log(`\nEndpoints:`);
     console.log(`  GET /stats/:package`);
     console.log(`  GET /stats/:registry/:package`);

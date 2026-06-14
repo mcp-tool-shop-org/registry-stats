@@ -2,6 +2,7 @@ import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { stats, createCache, calc } from './index.js';
+import type { RegistryFailure } from './index.js';
 import { serve } from './server.js';
 import { loadConfig, starterConfig } from './config.js';
 import type { PackageStats, StatsOptions, Config, ComparisonResult } from './types.js';
@@ -34,6 +35,10 @@ Options:
 Subcommands:
   serve           Start a REST API server
     --port        Port to listen on (default: 3000)
+    --host        Interface to bind (default: 127.0.0.1 — loopback only).
+                  Use 0.0.0.0 to expose on all interfaces (only behind a
+                  trusted proxy or when you intend public access).
+    --cors        Access-Control-Allow-Origin value (default: * — any origin)
 
 Examples:
   registry-stats express
@@ -43,6 +48,7 @@ Examples:
   registry-stats --mine mikefrilot --format json
   registry-stats express -r npm --range 2025-01-01:2025-06-30 --format csv
   registry-stats serve --port 8080
+  registry-stats serve --host 0.0.0.0 --cors https://example.com
   registry-stats --init
   registry-stats                   # fetches all packages from config
 `);
@@ -51,6 +57,19 @@ Examples:
 function formatNumber(n: number | undefined): string {
   if (n === undefined) return '-';
   return n.toLocaleString('en-US');
+}
+
+/**
+ * Print a stderr warning per registry that errored during an all-registries /
+ * compare fan-out, so a transient outage is not silently indistinguishable from
+ * "package absent". No-op when there are no failures.
+ */
+function warnRegistryFailures(errors?: RegistryFailure[]): void {
+  if (!errors || errors.length === 0) return;
+  for (const e of errors) {
+    const status = e.statusCode ? ` (HTTP ${e.statusCode})` : '';
+    console.error(`Warning: failed to fetch ${e.registry}${status}: ${e.message}`);
+  }
 }
 
 function printStats(s: PackageStats) {
@@ -270,6 +289,8 @@ async function main() {
   // serve subcommand
   if (args[0] === 'serve') {
     let port = 3000;
+    let host: string | undefined;
+    let cors: string | undefined;
     for (let i = 1; i < args.length; i++) {
       if (args[i] === '--port' && args[i + 1]) {
         port = parseInt(args[++i], 10);
@@ -277,9 +298,13 @@ async function main() {
           console.error('Error: --port must be a number between 1 and 65535');
           process.exit(1);
         }
+      } else if (args[i] === '--host' && args[i + 1]) {
+        host = args[++i];
+      } else if (args[i] === '--cors' && args[i + 1]) {
+        cors = args[++i];
       }
     }
-    serve({ port });
+    serve({ port, host, corsOrigin: cors });
     return;
   }
 
@@ -305,6 +330,10 @@ async function main() {
       compare = true;
     } else if (args[i] === '--mine' && args[i + 1]) {
       mineUser = args[++i];
+    } else if (args[i] === '--mine') {
+      // Bare --mine with no maintainer name is a usage error, not an unknown flag.
+      console.error('Error: --mine requires a maintainer name (e.g. registry-stats --mine yourname)');
+      process.exit(1);
     } else if (!args[i].startsWith('-') && !pkg) {
       pkg = args[i];
     } else if (args[i].startsWith('-')) {
@@ -348,6 +377,10 @@ async function main() {
     if (compare) {
       const registries = registry ? [registry] : undefined;
       const result = await stats.compare(pkg, registries, opts);
+
+      // Surface transient registry failures so an outage isn't mistaken for
+      // "package absent" (mirrors the per-registry warning in runConfigPackages).
+      warnRegistryFailures(result.errors);
 
       if (format === 'json') {
         console.log(JSON.stringify(result, null, 2));
@@ -398,6 +431,11 @@ async function main() {
       }
     } else {
       const results = await stats.all(pkg, opts);
+
+      // Surface transient registry failures so an outage isn't mistaken for
+      // "package absent" (mirrors the per-registry warning in runConfigPackages).
+      warnRegistryFailures(results.errors);
+
       if (results.length === 0) {
         console.error(`Package "${pkg}" not found on any registry`);
         process.exit(1);

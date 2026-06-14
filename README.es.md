@@ -11,7 +11,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/mcp-tool-shop-org/registry-stats/actions/workflows/pages.yml"><img src="https://github.com/mcp-tool-shop-org/registry-stats/actions/workflows/pages.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/mcp-tool-shop-org/registry-stats/actions/workflows/ci.yml"><img src="https://github.com/mcp-tool-shop-org/registry-stats/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/mcp-tool-shop-org/registry-stats/actions/workflows/pages.yml"><img src="https://github.com/mcp-tool-shop-org/registry-stats/actions/workflows/pages.yml/badge.svg" alt="Pages"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"></a>
   <a href="https://www.npmjs.com/package/@mcptoolshop/registry-stats"><img src="https://img.shields.io/npm/v/@mcptoolshop/registry-stats" alt="npm version"></a>
   <a href="https://mcp-tool-shop-org.github.io/registry-stats/dashboard/"><img src="https://img.shields.io/badge/Dashboard-live-green" alt="Dashboard"></a>
@@ -31,48 +32,103 @@
 
 ---
 
-Publica en npm, PyPI, NuGet, el Marketplace de VS Code y Docker Hub. Actualmente, responder a la pregunta "¿cómo le están yendo a mis paquetes?" implica consultar cinco sitios diferentes. **registry-stats** es la plataforma completa: un motor de TypeScript (CLI + API + servidor REST), un panel web interactivo y una aplicación de escritorio nativa para Windows, todo desde un único repositorio.
+Publicas en npm, PyPI, NuGet, el VS Code Marketplace y Docker Hub. Ahora mismo, responder a la pregunta "¿cómo están mis paquetes?" implica consultar cinco sitios diferentes. **registry-stats** es la plataforma completa: un motor TypeScript (CLI + API + servidor REST), un panel web interactivo y una aplicación de escritorio nativa para Windows, todo desde un único repositorio.
 
-No tiene dependencias de tiempo de ejecución. Utiliza `fetch()` nativo. Node 18+.
+Cero dependencias en tiempo de ejecución. Utiliza `fetch()` nativo. Node 18+.
 
-## ¿Qué hay dentro?
+## Qué hay dentro
 
-| Capa | ¿Qué hace? |
+| Capa | Qué hace |
 |-------|-------------|
-| **Engine** | Biblioteca de TypeScript + CLI + servidor REST. Consulta cinco registros con una sola interfaz. Publicado en npm como `@mcptoolshop/registry-stats`. |
-| **Dashboard** | Una aplicación web impulsada por Astro, con el copiloto de IA Pulse (transmisión de voz, búsqueda web, pantalla completa, conectores de datos de GitHub), seis gráficos interactivos, actualización en tiempo real, exportación de informes (PDF / JSONL / Markdown) y una guía de ayuda con pestañas. Reconstruida semanalmente mediante CI; se puede actualizar bajo demanda. |
-| **Desktop** | Aplicación nativa para Windows con WinUI 3 + WebView2. Incluye el panel de control sin conexión y descarga las estadísticas en tiempo real bajo demanda. |
+| **Engine** | Biblioteca TypeScript + CLI + servidor REST + inferencia de IA. Consulta cinco registros con una única interfaz. Publicado en npm como `@mcptoolshop/registry-stats`. |
+| **Dashboard** | Aplicación web impulsada por Astro con panel de inferencia de IA (puntuaciones de salud, previsiones, consejos prácticos), copiloto Pulse AI (voz en streaming, búsqueda web, pantalla completa, conectores de datos de GitHub), siete gráficos interactivos con zoom/pan, actualización en vivo, informes de exportación (PDF / JSONL / Markdown) y guía de ayuda con pestañas. Reconstruido diariamente por CI; se puede actualizar a petición. |
+| **Desktop** | Aplicación nativa de Windows WinUI 3 + WebView2. Incluye el panel de control sin conexión, recupera estadísticas en vivo a petición. |
 
 ## Panel de control
 
-Un panel de control de estadísticas que se actualiza automáticamente se encuentra en [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
+Un panel de control de estadísticas que se actualiza automáticamente está disponible en [`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/).
 
-- **Interfaz con pestañas** — Pestañas de Inicio, Analítica, Clasificación y Ayuda.
-- **Copiloto de IA Pulse** — Asistente conversacional impulsado por Ollama con síntesis de voz en streaming (habla mientras el modelo de lenguaje genera texto, 4 voces a través de [mcp-voice-soundboard](https://github.com/mcp-tool-shop-org/mcp-voice-soundboard)), búsqueda web (Wikipedia + SearXNG opcional), reproducción automática de voz, modo de pantalla completa, conector de datos de organizaciones de GitHub, selector de modelos y memoria de conversación.
-- **Resumen ejecutivo** — Puntuación de salud (0–100), índice de diversidad, cambio semanal, número total de descargas en todos los registros.
-- **Seis gráficos interactivos** — Tendencia de 30 días (agregada / por registro / conmutación entre los 5 principales), cuota de registro (área polar), riesgo de la cartera (histograma + Gini y P90), los 10 principales por impulso, rastreador de velocidad con gráficos de líneas, y mapa de calor de 30 días con detección de picos (>2σ).
-- **Motor de crecimiento inteligente** — Maneja la distorsión de denominadores pequeños con un umbral base, un límite porcentual y una fórmula de velocidad amortiguada.
-- **Información útil** — Recomendaciones generadas automáticamente y alertas para paquetes en declive.
-- **Panel Pulse** — Vista dividida de "Established Movers" (≥ 50 descargas/semana) y paquetes emergentes y nuevos, con gráficos de líneas de 7 días integrados, deltas absolutos + porcentuales, contexto base y un resumen ejecutivo de una línea.
-- **Actualización en tiempo real** — Recuperación bajo demanda desde las API de npm y PyPI con indicador de progreso; los resultados se almacenan en caché en sessionStorage (TTL de 5 minutos) para que los cambios de pestaña sean instantáneos.
-- **Exportación de informes** — Menú desplegable junto al botón de Actualizar que ofrece tres formatos: **PDF Ejecutivo** (a través de jsPDF), **JSONL del modelo de lenguaje** (registros tipados para la ingesta de IA) y **Markdown para desarrolladores** (tablas GFM).
-- **Clasificación** — 132 paquetes clasificados por descargas semanales con gráficos de líneas de 30 días integrados y distintivos de tendencia inteligentes.
-- **Página de configuración** — Editor de cartera con validación, sección complementaria de sincronización de registros y descripción general del flujo de trabajo.
-- **Pestaña de ayuda** — Guía fácil de entender que cubre cada pestaña, conceptos clave, consejos para el asistente de IA, flujo de datos y enlaces útiles.
-- **Tema oscuro / claro** — Sigue la preferencia del sistema.
+- **Interfaz con pestañas**: pestañas Inicio, Análisis, Clasificación y Ayuda
+- **Copiloto Pulse AI**: asistente conversacional impulsado por Ollama con síntesis de voz en streaming (habla mientras el LLM transmite, 4 voces a través de [mcp-voice-soundboard](https://github.com/mcp-tool-shop-org/mcp-voice-soundboard)), búsqueda web (Wikipedia + SearXNG opcional), activación automática del habla, modo de pantalla completa, conector de datos de la organización de GitHub, selector de modelo y memoria de conversación
+- **Resumen ejecutivo**: puntuación de salud (0–100), índice de diversidad, cambio semanal, descargas totales en todos los registros
+- **Siete gráficos interactivos**: tendencia de 30 días (agregado / por registro / alternancia de los 5 principales + clic para profundizar + desplazamiento con zoom/pan), cuota del registro (área polar), riesgo de la cartera (histograma + Gini y P90), impulso de los 10 primeros, rastreador de velocidad con gráficos sparkline, mapa de calor de 30 días con detección de picos (>2σ) y tendencia de la cartera (área apilada, anual)
+- **Motor de crecimiento inteligente**: gestiona la distorsión del pequeño denominador con un umbral base, un límite porcentual y una fórmula de velocidad amortiguada
+- **Panel de inferencia de IA**: impulso de la cartera (-100 a +100), puntuación de riesgo, previsión de 7 días con intervalos de confianza, recomendaciones automatizadas, consejos prácticos con niveles de gravedad/urgencia y tabla de resultados de salud del paquete (calificaciones de A a F)
+- **Consejos prácticos**: tarjetas de consejos etiquetadas por gravedad (crítico/advertencia/información/éxito) con niveles de urgencia, pasos de acción específicos y listas de paquetes afectados
+- **Puntuaciones de salud del paquete**: puntuación compuesta de 0 a 100 (actividad + consistencia + crecimiento + estabilidad) con calificaciones por letra para cada paquete
+- **Seguimiento del progreso anual**: una capa de historial persistente acumula agregados mensuales por paquete y semanales de la cartera; gráfico de tendencia de la cartera con apilamiento por registro
+- **Panel Pulse**: vista dividida de paquetes establecidos en crecimiento (≥ 50 descargas/semana) y paquetes nuevos y emergentes, con gráficos sparkline en línea de 7 días, deltas absolutos y porcentuales, contexto base y un resumen ejecutivo de una línea
+- **Actualización en vivo**: recuperación a petición desde las API de npm y PyPI con indicador de progreso; los resultados se almacenan en caché en sessionStorage (TTL de 5 minutos) para que el cambio de pestaña sea instantáneo
+- **Informes de exportación**: menú desplegable junto al botón Actualizar que ofrece tres formatos: **PDF ejecutivo** (a través de jsPDF), **JSONL LLM** (registros tipados para la ingestión por IA) y **Markdown para desarrolladores** (tablas GFM)
+- **Clasificación**: 132 paquetes clasificados por descargas semanales con gráficos sparkline de 30 días en línea e insignias de tendencia inteligentes
+- **Página de configuración**: editor de cartera con validación, sección complementaria de sincronización del registro y descripción general de la canalización
+- **Búsqueda en la clasificación**: filtro de texto instantáneo para encontrar paquetes por nombre o registro
+- **Navegación con el teclado**: teclas de flecha para desplazarse entre las pestañas
+- **Pestaña Ayuda**: guía fácil de usar que cubre cada pestaña, conceptos clave, motor de inferencia de IA, canalización de datos y enlaces útiles
+- **Tema oscuro/claro**: sigue la preferencia del sistema
+- **Diseño adaptable**: menú hamburguesa para pantallas pequeñas
 
-Los datos se obtienen en el momento de la compilación y se reconstruyen semanalmente mediante CI (los lunes a las 06:00 UTC). La actualización en tiempo real descarga los últimos números directamente desde las API de los registros. Configure los paquetes rastreados en `site/src/data/packages.json` (132 paquetes en 5 registros).
+Los datos se actualizan diariamente mediante CI (06:00 UTC) y todo el sitio se reconstruye semanalmente (lunes a las 06:00 UTC). La actualización en vivo recupera los últimos números directamente de las API del registro a petición. Configura los paquetes rastreados en `site/src/data/packages.json`.
+
+## Motor de inferencia de IA
+
+Inferencia pura y matemática sin dependencias que se ejecuta en tiempo de compilación: no hay entorno de ejecución de ML, ni API externas.
+
+```typescript
+import {
+  forecast, detectAnomalies, segmentTrends,
+  detectSeasonality, computeMomentum,
+  generateRecommendations, computeHealthScore,
+  generateActionableAdvice, computeYearlyProgress,
+  inferPortfolio,
+} from '@mcptoolshop/registry-stats';
+
+// 7-day forecast with 80% confidence intervals
+const predictions = forecast(dailySeries, 7);
+// → [{ day: 1, predicted: 142, lower: 98, upper: 186 }, ...]
+
+// Anomaly detection (adaptive rolling z-score, 14-day window)
+const anomalies = detectAnomalies(dailySeries);
+// → [{ day: 20, value: 1500, expected: 120, zscore: 4.2, type: 'spike' }]
+
+// Composite momentum score (-100 to +100)
+const momentum = computeMomentum(dailySeries);
+
+// Package health score (0-100 with A-F grade)
+const health = computeHealthScore('my-pkg', 'npm', dailySeries, momentum);
+// → { score: 72, grade: 'B', components: { activity: 20, consistency: 18, growth: 16, stability: 18 } }
+
+// Yearly progress from monthly history
+const progress = computeYearlyProgress('my-pkg', 'npm', monthlyHistory);
+// → { currentYearTotal, yoyGrowthPct, projectedYearEnd, milestones, ... }
+
+// Full portfolio analysis (now includes health scores + actionable advice)
+const result = inferPortfolio(leaderboard, { gini: 0.6, npmPct: 85 });
+// → { packages, forecastTotal7, riskScore, portfolioMomentum, recommendations, healthScores, actionableAdvice }
+```
+
+| Capacidad | Método | Qué hace |
+|-----------|--------|-------------|
+| **Forecast** | Regresión lineal ponderada | Sesgo de recencia exponencial, IC del 80% que se amplía con el tiempo |
+| **Anomaly detection** | Puntuación z adaptativa y móvil | Ventana base de 14 días, detecta picos y caídas |
+| **Trend segmentation** | Lineal por partes | Identifica segmentos ascendentes/descendentes/planos en las series temporales |
+| **Seasonality** | Descomposición del día de la semana | Detecta patrones semanales, informa sobre el día pico |
+| **Momentum** | Puntuación compuesta | Dirección + aceleración + consistencia + volumen |
+| **Health score** | Compuesto multifactorial | Actividad + consistencia + crecimiento + estabilidad (0–100, calificación de A a F) |
+| **Yearly progress** | Acumulación mensual | Crecimiento interanual, proyección del final del año, seguimiento de hitos |
+| **Actionable advice** | Motor de reglas de gravedad | Crítico/advertencia/información/éxito con urgencia y acciones específicas |
+| **Recommendations** | Motor de reglas | Categorías de crecimiento, riesgo, oportunidad y atención |
 
 ## Aplicación de escritorio
 
-Una aplicación nativa para Windows que integra el panel de control en un entorno WebView2 local:
+Una aplicación nativa de Windows que incluye el panel de control en una shell WebView2 local:
 
-- **Funciona sin conexión** — Incluye HTML/CSS/JS empaquetados; funciona sin conexión a Internet.
-- **Actualización en tiempo real** — Descarga `stats.json` de GitHub Pages bajo demanda.
-- **Exportación a CSV** — Exporta los datos de la clasificación con un solo clic.
-- **Empaquetado MSIX** — Se construye y firma en CI mediante `desktop-ci.yml`.
+- **Funciona sin conexión:** incluye archivos HTML/CSS/JS; funciona sin internet.
+- **Actualización en vivo:** obtiene `stats.json` de GitHub Pages según demanda.
+- **Exportación a CSV:** exporta los datos del marcador de récords con un solo clic.
+- **Empaquetado MSIX:** se crea y firma en CI mediante `desktop-ci.yml`.
 
-El código fuente de la aplicación de escritorio se encuentra en `desktop/`. Se construyó con .NET 10 MAUI y apunta a WinUI 3.
+El código fuente para escritorio se encuentra en `desktop/`. Creado con .NET 10 MAUI, dirigido a WinUI 3.
 
 ## Instalación
 
@@ -116,13 +172,19 @@ registry-stats express --compare
 registry-stats express -r npm --range 2025-01-01:2025-06-30 --format csv
 registry-stats express -r npm --range 2025-01-01:2025-06-30 --format chart
 
+# Discover all your npm packages by maintainer name
+registry-stats --mine mikefrilot
+
+# JSON output for maintainer discovery
+registry-stats --mine mikefrilot --format json
+
 # Start a REST API server
 registry-stats serve --port 3000
 ```
 
 ## Archivo de configuración
 
-Crea un archivo `registry-stats.config.json` en la raíz de tu proyecto (o ejecuta `registry-stats --init`):
+Cree un archivo `registry-stats.config.json` en el directorio raíz de su proyecto (o ejecute `registry-stats --init`):
 
 ```json
 {
@@ -143,9 +205,9 @@ Crea un archivo `registry-stats.config.json` en la raíz de tu proyecto (o ejecu
 }
 ```
 
-Ejecuta `registry-stats` sin argumentos para obtener las estadísticas de todos los paquetes configurados. La CLI busca el archivo de configuración desde el directorio actual.
+Ejecute `registry-stats` sin argumentos para obtener estadísticas de todos los paquetes configurados. La CLI recorre el árbol de directorios desde el directorio actual para encontrar el archivo de configuración más cercano.
 
-La configuración también está disponible de forma programática:
+La configuración también está disponible mediante programación:
 
 ```typescript
 import { loadConfig, defaultConfig, starterConfig } from '@mcptoolshop/registry-stats';
@@ -192,36 +254,44 @@ calc.toChartData(daily, 'express');        // { labels: [...], datasets: [{ labe
 const comparison = await stats.compare('express');
 await stats.compare('express', ['npm', 'pypi']);  // specific registries only
 
+// Maintainer discovery — find all npm packages by username
+const mine = await stats.mine('mikefrilot');
+// Returns PackageStats[] sorted by monthly downloads
+
 // Caching (5 min TTL, in-memory)
 const cache = createCache();
 await stats('npm', 'express', { cache });  // fetches
 await stats('npm', 'express', { cache });  // cache hit
 ```
 
-## Soporte para registros
+## Compatibilidad con registros
 
-| Registro | Formato del paquete | Series de tiempo | Datos disponibles |
+| Registro | Formato de paquete | Serie temporal | Datos disponibles |
 |----------|---------------|-------------|----------------|
-| `npm` | `express`, `@scope/pkg` | Sí (549 días) | último día, última semana, último mes |
-| `pypi` | `requests` | Sí (180 días) | último día, última semana, último mes, total |
+| `npm` | `express`, `@scope/pkg` | Sí (549 días) | lastDay, lastWeek, lastMonth |
+| `pypi` | `requests` | Sí (180 días) | lastDay, lastWeek, lastMonth, total |
 | `nuget` | `Newtonsoft.Json` | No | total |
 | `vscode` | `publisher.extension` | No | total (instalaciones), calificación, tendencias |
 | `docker` | `namespace/repo` | No | total (descargas), estrellas |
 
 ## Fiabilidad integrada
 
-- Reintentos automáticos con retroceso exponencial en caso de errores 429/5xx.
-- Respeta los encabezados `Retry-After`.
-- Limitación de concurrencia para solicitudes masivas.
-- Caché TTL opcional (plug-in: proporciona tu propio backend de Redis/archivo a través de la interfaz `StatsCache`).
+- Reintento automático con retroceso exponencial en caso de errores 429/5xx.
+- Respeta las cabeceras `Retry-After`.
+- Tiempo de espera de solicitud de 30 segundos mediante `AbortSignal.timeout`.
+- Limitación de la concurrencia para solicitudes masivas.
+- Caché TTL opcional (se puede personalizar: utilice su propio backend Redis/archivo a través de la interfaz `StatsCache`).
+- Acciones de GitHub con SHA fijado para la seguridad de la cadena de suministro.
 
-## Servidor de API REST
+## Servidor API REST
 
-Ejecútalo como un microservicio o intégralo en tu propio servidor:
+Ejecute como un microservicio o incorpórelo en su propio servidor:
 
 ```bash
 registry-stats serve --port 3000
 ```
+
+De forma predeterminada, `serve` se vincula a `127.0.0.1` (solo localhost) y establece CORS en `*`. Utilice `--host 0.0.0.0` para exponerlo en la red y `--cors <origin>` para restringir el acceso entre dominios cuando lo haga.
 
 ```
 GET /stats/:package              # all registries
@@ -294,22 +364,22 @@ npm run site:build
 
 | Aspecto | Detalle |
 |--------|--------|
-| **Data touched** | Estadísticas de descargas públicas de npm, PyPI, NuGet, Marketplace de VS Code, Docker Hub. Caché en memoria (opcional). |
-| **Data NOT touched** | Sin telemetría. Sin análisis. Sin almacenamiento de credenciales. Sin datos de usuario. Sin escrituras de archivos. |
-| **Permissions** | Lectura: APIs de registros públicos a través de HTTPS. Escritura: solo a stdout/stderr. |
-| **Network** | Conexiones HTTPS salientes a APIs de registros públicos. Servidor REST local opcional. |
-| **Telemetry** | Ninguna información es recopilada o enviada. |
+| **Data touched** | Estadísticas públicas de descargas de npm, PyPI, NuGet, VS Code Marketplace, Docker Hub. Caché en memoria (opcional). |
+| **Data NOT touched** | Sin telemetría. Sin análisis. Sin almacenamiento de credenciales. Sin datos de usuario. Sin escritura de archivos. |
+| **Permissions** | Lectura: API públicas de registro a través de HTTPS. Escritura: solo stdout/stderr. |
+| **Network** | HTTPS saliente hacia las API públicas de registro. Servidor REST opcional en localhost. |
+| **Telemetry** | Ninguno recopilado ni enviado. |
 
 Consulte [SECURITY.md](SECURITY.md) para informar sobre vulnerabilidades.
 
-## Evaluación
+## Puntuación
 
 | Categoría | Puntuación |
 |----------|-------|
 | A. Seguridad | 10 |
 | B. Manejo de errores | 10 |
-| C. Documentación para el operador | 10 |
-| D. Higiene en la entrega | 10 |
+| C. Documentación para operadores | 10 |
+| D. Buenas prácticas de envío | 10 |
 | E. Identidad (suave) | 10 |
 | **Overall** | **50/50** |
 

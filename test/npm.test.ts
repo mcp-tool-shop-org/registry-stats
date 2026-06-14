@@ -95,6 +95,23 @@ describe('npm provider (mocked)', () => {
     expect(result.size).toBe(0);
   });
 
+  it('npmBulkPoint URL-encodes each name so traversal cannot escape the path', async () => {
+    let capturedUrl = '';
+    mockFetch(async (url) => {
+      capturedUrl = url;
+      return { status: 200, body: {} };
+    });
+
+    // A malicious "name" that, if joined raw, would break out of the
+    // /point/last-month/ path. After encoding, the slashes/.. are escaped.
+    await npmBulkPoint(['x/../../-/v1/search?text=foo', 'y']);
+
+    // Raw traversal must NOT survive into the URL.
+    expect(capturedUrl).not.toContain('x/../../-/v1/search');
+    // The dangerous characters must appear in their encoded form.
+    expect(capturedUrl).toContain(encodeURIComponent('x/../../-/v1/search?text=foo'));
+  });
+
   it('npmBulkPoint batches requests when exceeding 128 packages', async () => {
     const packages = Array.from({ length: 200 }, (_, i) => `pkg-${i}`);
     const bulkBody: Record<string, unknown> = {};

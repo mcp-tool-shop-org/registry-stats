@@ -13,6 +13,7 @@ public sealed class LocalFileServer : IDisposable
     private readonly string _rootPath;
     private readonly CancellationTokenSource _cts = new();
     private readonly Func<byte[]?> _statsProvider;
+    private bool _disposed;
 
     public int Port { get; }
     public string BaseUrl => $"http://127.0.0.1:{Port}";
@@ -74,10 +75,14 @@ public sealed class LocalFileServer : IDisposable
 
             var filePath = Path.Combine(_rootPath, path.Replace('/', Path.DirectorySeparatorChar));
 
-            // Path traversal protection: resolved path must stay within wwwroot
-            var fullRoot = Path.GetFullPath(_rootPath) + Path.DirectorySeparatorChar;
-            var fullFile = Path.GetFullPath(filePath);
-            if (!fullFile.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase))
+            // Path traversal protection: resolved path must stay within wwwroot.
+            // Allow the root directory itself (directory-index case) as well as any
+            // descendant; reject anything that escapes the root.
+            var rootFull = Path.GetFullPath(_rootPath).TrimEnd(Path.DirectorySeparatorChar);
+            var fullRoot = rootFull + Path.DirectorySeparatorChar;
+            var fullFile = Path.GetFullPath(filePath).TrimEnd(Path.DirectorySeparatorChar);
+            if (!string.Equals(fullFile, rootFull, StringComparison.OrdinalIgnoreCase)
+                && !fullFile.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase))
             {
                 ctx.Response.StatusCode = 403;
                 ctx.Response.Close();
@@ -115,11 +120,38 @@ public sealed class LocalFileServer : IDisposable
         // Only add CSP to HTML responses
         if (filePath.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
         {
+            // connect-src enumerates exactly the origins the bundled dashboard's
+            // Pulse co-pilot (site/src/pages/dashboard.astro) actually fetches.
+            // Only connect-src is widened here — script-src/default-src/img-src/etc.
+            // stay locked down. Each source maps to one co-pilot capability:
+            //   'self'                              — same-origin assets + cached stats.json
+            //   https://mcp-tool-shop-org.github.io — live stats snapshot fallback (existing)
+            //   http://localhost:*  http://127.0.0.1:* — local Ollama (chat, model list;
+            //                                         OLLAMA_BASE localhost:11434) and the
+            //                                         voice synthesis server (VOICE_BASE
+            //                                         localhost:11435). Both run on a
+            //                                         user-chosen loopback port, so the
+            //                                         whole loopback range is allowed.
+            //                                         The default SearXNG base (localhost:8888)
+            //                                         is also covered here. No ws:/wss: —
+            //                                         every co-pilot call is plain fetch.
+            //   https://en.wikipedia.org           — Wikipedia web-search (always-on knowledge)
+            //   https://api.github.com             — GitHub data connector (org repo listing)
+            //   https:                             — the user-configurable SearXNG base can be
+            //                                         ANY https URL the user types into Settings;
+            //                                         we cannot know it ahead of time. Allowing
+            //                                         https: in connect-src ONLY is acceptable for
+            //                                         a local-first desktop app the user controls,
+            //                                         and is required for an arbitrary user-supplied
+            //                                         search host. script-src/default-src are NOT
+            //                                         broadened, so this cannot load remote code.
             response.Headers.Set("Content-Security-Policy",
                 "default-src 'self'; " +
                 "script-src 'self' 'unsafe-inline'; " +
                 "style-src 'self' 'unsafe-inline'; " +
-                "connect-src 'self' https://mcp-tool-shop-org.github.io; " +
+                "connect-src 'self' https://mcp-tool-shop-org.github.io " +
+                "http://localhost:* http://127.0.0.1:* " +
+                "https://en.wikipedia.org https://api.github.com https:; " +
                 "img-src 'self' data:; " +
                 "font-src 'self';");
         }
@@ -143,6 +175,9 @@ public sealed class LocalFileServer : IDisposable
 
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
+
         _cts.Cancel();
         _listener.Stop();
         _listener.Close();

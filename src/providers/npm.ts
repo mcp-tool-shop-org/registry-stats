@@ -95,7 +95,9 @@ export async function npmBulkPoint(
   const BATCH_SIZE = 128;
   for (let i = 0; i < packages.length; i += BATCH_SIZE) {
     const batch = packages.slice(i, i + BATCH_SIZE);
-    const joined = batch.join(',');
+    // Defense-in-depth: encode each name so '/' or '..' segments can never
+    // collapse the URL path even if validation upstream is bypassed.
+    const joined = batch.map(encodeURIComponent).join(',');
 
     const data = await fetchDirect<BulkPointResponse>(
       `${API}/point/${period}/${joined}`, 'npm',

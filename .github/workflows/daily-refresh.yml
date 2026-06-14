@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: daily-refresh
@@ -36,10 +37,54 @@ jobs:
         run: npm ci
 
       # ── Data Pipeline ─────────────────────────────────────────
+      # No continue-on-error: a hard fetch failure must fail the run so stale
+      # data is never masked by a green check. The data files are untouched by a
+      # crash, so a failed run commits nothing.
       - name: Fetch live stats
+        id: fetch
         working-directory: site
         run: npm run fetch-stats
-        continue-on-error: true
+
+      # Guard: catch a soft failure (script exited 0 but wrote stale data) by
+      # checking stats.json freshness. Fails the job if fetchedAt is older than 26h.
+      - name: Verify stats freshness
+        run: |
+          node -e '
+            const fs = require("fs");
+            const p = "site/src/data/stats.json";
+            if (!fs.existsSync(p)) { console.error("::error::stats.json missing"); process.exit(1); }
+            const fetchedAt = new Date(JSON.parse(fs.readFileSync(p, "utf8")).fetchedAt);
+            const ageH = (Date.now() - fetchedAt.getTime()) / 3.6e6;
+            console.log(`stats.json fetchedAt=${fetchedAt.toISOString()} age=${ageH.toFixed(1)}h`);
+            if (!(ageH < 26)) { console.error(`::error::stats.json is stale (${ageH.toFixed(1)}h old)`); process.exit(1); }
+          '
+
+      # Surface any failure (fetch crash or stale data) as a single tracked issue
+      # so a silently-failing daily run is visible without spamming new issues.
+      - name: Open/update tracking issue on failure
+        if: failure()
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const title = 'Daily refresh failing';
+            const body = `The Daily Refresh workflow failed on ${new Date().toISOString()}.\n\n` +
+              `Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\n` +
+              `Likely cause: live stats fetch failed or wrote stale data. Investigate the registry APIs and re-run.`;
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'daily-refresh',
+            });
+            if (existing.data.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: existing.data[0].number, body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title, body, labels: ['daily-refresh'],
+              });
+            }
 
       # ── Quality Gate ──────────────────────────────────────────
       - name: Run tests
@@ -51,9 +96,10 @@ jobs:
           if [ -n "$(git status --porcelain)" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add site/src/data/stats.json site/src/data/snapshots.json
+            git add site/src/data/stats.json site/src/data/snapshots.json site/src/data/history.json
             if ! git diff --cached --quiet; then
               git commit -m "chore: daily stats refresh [skip ci]"
+              git pull --rebase --autostash origin main
               git push
             else
               echo "No stats changes to commit."

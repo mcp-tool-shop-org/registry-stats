@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { stats, registerProvider, createCache, RegistryError } from './index.js';
 import type { RegistryProvider, PackageStats, StatsOptions } from './types.js';
+import { npm } from './providers/npm.js';
 
 const originalFetch = globalThis.fetch;
 
@@ -62,6 +63,77 @@ describe('stats.compare', () => {
     // All built-in registries attempted, but all 404 -> empty
     expect(Object.keys(result.registries)).toHaveLength(0);
   }, 30000);
+});
+
+// engine-B01: partial-failure surfacing. A rejected registry must no longer be
+// silently indistinguishable from "package absent" — it surfaces on an
+// additive .errors channel while the primary return shape stays unchanged.
+describe('stats.all / stats.compare partial-failure channel', () => {
+  it('stats.all surfaces a rejected provider on .errors without breaking the array shape', async () => {
+    // Built-in providers hit the network; make them resolve fast as 404 → null.
+    mockFetch(() => ({ status: 404 }));
+    const good = makeMockProvider('b01-all-good', {
+      registry: 'b01-all-good' as any,
+      package: 'pkg',
+      downloads: { total: 5 },
+      fetchedAt: new Date().toISOString(),
+    });
+    const bad: RegistryProvider = {
+      name: 'b01-all-bad',
+      getStats: async () => { throw new RegistryError('b01-all-bad', 503, 'Service unavailable'); },
+    };
+    registerProvider(good);
+    registerProvider(bad);
+
+    const results = await stats.all('pkg');
+    // Still a plain array of successful results.
+    expect(Array.isArray(results)).toBe(true);
+    expect(results.some((r) => r.package === 'pkg' && String(r.registry) === 'b01-all-good')).toBe(true);
+    // Additive errors channel carries the failed registry.
+    const errors = (results as any).errors as Array<{ registry: string; statusCode?: number; message: string }>;
+    expect(Array.isArray(errors)).toBe(true);
+    const failure = errors.find((e) => e.registry === 'b01-all-bad');
+    expect(failure).toBeDefined();
+    expect(failure!.statusCode).toBe(503);
+    expect(failure!.message).toContain('Service unavailable');
+  });
+
+  it('stats.compare surfaces a rejected provider on result.errors', async () => {
+    const good = makeMockProvider('b01-cmp-good', {
+      registry: 'b01-cmp-good' as any,
+      package: 'pkg',
+      downloads: { total: 9 },
+      fetchedAt: new Date().toISOString(),
+    });
+    const bad: RegistryProvider = {
+      name: 'b01-cmp-bad',
+      getStats: async () => { throw new RegistryError('b01-cmp-bad', 429, 'Rate limited'); },
+    };
+    registerProvider(good);
+    registerProvider(bad);
+
+    const result = await stats.compare('pkg', ['b01-cmp-good', 'b01-cmp-bad']);
+    expect(result.registries['b01-cmp-good']).toBeDefined();
+    expect(result.registries['b01-cmp-bad']).toBeUndefined();
+    expect(Array.isArray(result.errors)).toBe(true);
+    const failure = result.errors!.find((e) => e.registry === 'b01-cmp-bad');
+    expect(failure).toBeDefined();
+    expect(failure!.statusCode).toBe(429);
+    expect(failure!.message).toContain('Rate limited');
+  });
+
+  it('stats.all leaves .errors empty (or absent-as-empty) when nothing fails', async () => {
+    const good = makeMockProvider('b01-clean-' + Date.now(), {
+      registry: 'clean' as any,
+      package: 'pkg',
+      downloads: { total: 1 },
+      fetchedAt: new Date().toISOString(),
+    });
+    registerProvider(good);
+    // Use compare scoped to only the clean provider to avoid built-in network calls.
+    const result = await stats.compare('pkg', [good.name]);
+    expect(result.errors ?? []).toHaveLength(0);
+  });
 });
 
 describe('stats.range', () => {
@@ -135,6 +207,67 @@ describe('registerProvider', () => {
 
     await expect(stats('fail-reg', 'test-pkg')).rejects.toThrow('boom');
   });
+
+  // engine-B04: registerProvider must validate the shape before trusting it.
+  it('rejects a provider with a missing or empty name', () => {
+    expect(() => registerProvider({ getStats: async () => null } as any)).toThrow(/name/i);
+    expect(() => registerProvider({ name: '', getStats: async () => null } as any)).toThrow(/name/i);
+    expect(() => registerProvider({ name: '   ', getStats: async () => null } as any)).toThrow(/name/i);
+  });
+
+  it('rejects a provider whose getStats is not a function', () => {
+    expect(() => registerProvider({ name: 'no-getstats' } as any)).toThrow(/getStats/);
+    expect(() => registerProvider({ name: 'bad-getstats', getStats: 42 } as any)).toThrow(/getStats/);
+  });
+
+  it('warns (without throwing) when overwriting a built-in registry name', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const replacement = makeMockProvider('npm', {
+        registry: 'npm' as any,
+        package: 'overwritten',
+        downloads: { total: 1 },
+        fetchedAt: new Date().toISOString(),
+      });
+      expect(() => registerProvider(replacement)).not.toThrow();
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringMatching(/overwrit/i));
+    } finally {
+      // Restore the real built-in npm provider — the registry Map is a shared
+      // module singleton and later tests in this file depend on it.
+      registerProvider(npm);
+      warnSpy.mockRestore();
+    }
+  });
+
+  it('does NOT warn when registering a fresh custom registry name', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      registerProvider(makeMockProvider('fresh-custom-reg-' + Date.now()));
+      expect(warnSpy).not.toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it('registering a provider named "constructor" does not corrupt the registry lookup', async () => {
+    const provider = makeMockProvider('constructor', {
+      registry: 'constructor' as any,
+      package: 'x',
+      downloads: { total: 7 },
+      fetchedAt: new Date().toISOString(),
+    });
+    registerProvider(provider);
+
+    // Looking up the registered provider must work...
+    const result = await stats('constructor', 'x');
+    expect(result?.downloads.total).toBe(7);
+
+    // ...and looking up an UNregistered registry must yield a structured
+    // RegistryError ("Unknown registry"), never a raw TypeError from the
+    // prototype chain.
+    await expect(stats('nope-not-registered', 'x')).rejects.toThrow(RegistryError);
+    await expect(stats('nope-not-registered', 'x')).rejects.toThrow(/Unknown registry/);
+  });
 });
 
 describe('package name validation', () => {
@@ -144,6 +277,28 @@ describe('package name validation', () => {
 
   it('rejects path traversal', async () => {
     await expect(stats('npm', '../etc/passwd')).rejects.toThrow(/path traversal/);
+  });
+
+  it('stats.all enforces validation (path traversal rejected)', async () => {
+    await expect(stats.all('../../etc/passwd')).rejects.toThrow(/path traversal/);
+  });
+
+  it('stats.bulk enforces validation on every name', async () => {
+    await expect(
+      stats.bulk('npm', ['x/../../-/v1/search?text=foo', 'y']),
+    ).rejects.toThrow(RegistryError);
+  });
+
+  it('stats.range enforces validation (path traversal rejected)', async () => {
+    await expect(
+      stats.range('docker', '..%2F..', '2025-01-01', '2025-01-31'),
+    ).rejects.toThrow(/path traversal/);
+  });
+
+  it('stats.range rejects literal traversal segments', async () => {
+    await expect(
+      stats.range('npm', 'a/../../b', '2025-01-01', '2025-01-31'),
+    ).rejects.toThrow(/path traversal/);
   });
 
   it('rejects backslash', async () => {

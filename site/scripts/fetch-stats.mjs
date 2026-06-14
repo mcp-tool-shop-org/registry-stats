@@ -108,7 +108,17 @@ async function updateHistory(leaderboard, registryTotals, totals) {
     if (!history.monthly[pkgKey]) history.monthly[pkgKey] = {};
 
     const existing = history.monthly[pkgKey][monthKey];
-    // Accumulate: keep the highest weekly value seen this month (build runs daily)
+    // Stale (cached previous data) or errored rows must NOT feed the high-water
+    // mark — a transiently-inflated reading would otherwise poison the period
+    // permanently. Carry the existing value forward unchanged for those rows.
+    if (row.stale || row.error) {
+      if (existing) {
+        existing.lastUpdated = now.toISOString();
+      }
+      continue;
+    }
+
+    // Accumulate good rows: keep the highest weekly value seen this month (build runs daily)
     history.monthly[pkgKey][monthKey] = {
       week: Math.max(safeNumber(row.week), safeNumber(existing?.week)),
       month: Math.max(safeNumber(row.month), safeNumber(existing?.month)),
@@ -128,9 +138,12 @@ async function updateHistory(leaderboard, registryTotals, totals) {
   }
 
   if (weekEntry) {
-    // Update in place — keep highest values
-    weekEntry.totalWeek = Math.max(weekEntry.totalWeek, portfolioWeek);
-    weekEntry.totalMonth = Math.max(weekEntry.totalMonth, portfolioMonth);
+    // Update in place using last-write-wins so the period self-heals downward.
+    // A previously-poisoned high-water mark (from a transiently-inflated upstream
+    // reading) would otherwise stick forever; last-write-wins lets a corrected
+    // reading revise the value down on the next clean run.
+    weekEntry.totalWeek = portfolioWeek;
+    weekEntry.totalMonth = portfolioMonth;
     weekEntry.packages = totals.packages;
     weekEntry.registries = regBreakdown;
     weekEntry.updatedAt = now.toISOString();
@@ -741,14 +754,31 @@ async function main() {
   await fs.mkdir(publicDataDir, { recursive: true });
   await atomicWrite(path.join(publicDataDir, "stats.json"), jsonStr);
 
-  // Also copy the package manifest so the live refresh engine can discover all packages
-  const manifestStr = await fs.readFile(MANIFEST_PATH, "utf8");
+  // Also copy the package manifest so the live refresh engine can discover all packages.
+  // Serialize the already-validated in-memory manifest (read + validated at startup)
+  // rather than re-reading raw bytes from disk — this provably matches the stats just built.
+  const manifestStr = JSON.stringify(manifest, null, 2) + "\n";
   await atomicWrite(path.join(publicDataDir, "packages.json"), manifestStr);
 
   const errCount = errors.length;
   console.log(`\n  Wrote ${path.relative(ROOT, OUT_PATH)} (${leaderboard.length} packages, ${errCount} errors)`);
   if (errCount) {
     console.warn("  Some fetches failed; see stats.json.errors");
+    // Per-registry breakdown + data quality so a degraded-but-succeeded run is
+    // visible in the CI log, not just a bare total error count.
+    console.warn("  Degraded: " + JSON.stringify(errorsByRegistry));
+    if (payload.dataQuality) {
+      console.warn("  Data quality: " + payload.dataQuality);
+    }
+  }
+
+  // Andon: an "unusable" run (all registries missing, zero weekly downloads) is a
+  // hard failure. We still wrote the files above to preserve the last-good static
+  // artifact for the site, but the process must exit non-zero so the workflow's
+  // andon step can detect the failure instead of treating it as a healthy build.
+  if (payload.dataQuality === "unusable") {
+    console.error("  *** Andon: data quality is unusable — exiting non-zero so CI halts the pipeline. ***");
+    process.exitCode = 1;
   }
 }
 

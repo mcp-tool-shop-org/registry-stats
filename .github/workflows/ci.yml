@@ -38,7 +38,10 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm audit --audit-level=high
+      # The published package has ZERO runtime dependencies, so audit what actually
+      # ships to consumers. Dev-toolchain advisories (esbuild via tsup/vitest/vite) do
+      # not reach the published artifact; track those as a separate dev-dep upgrade.
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm test
       - run: npm run build
       - run: npm pack --dry-run

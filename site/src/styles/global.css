@@ -2,6 +2,21 @@
 @import "@mcptoolshop/site-theme/styles/theme.css";
 @source "../../node_modules/@mcptoolshop/site-theme";
 
+/* ── Theme-aware status colors ─────────────────────
+   Dark theme uses bright Tailwind-400 shades; light theme drops to
+   -700/-800 shades so status TEXT clears WCAG AA (≥4.5:1) on every
+   light surface (white, #f4f4f5, #e4e4e7). Verified contrast on the
+   worst light surface (#e4e4e7): success 6.06, warning 5.59, danger
+   4.95. Applied via the .status-* utility classes below. */
+:root {
+  --status-success: #34d399; /* emerald-400 */
+  --status-warning: #fbbf24; /* amber-400 */
+  --status-danger:  #fb7185; /* rose-400 */
+}
+.status-success { color: var(--status-success); }
+.status-warning { color: var(--status-warning); }
+.status-danger  { color: var(--status-danger); }
+
 /* ── Light mode overrides ──────────────────────── */
 [data-theme="light"] {
   --color-surface:        #ffffff;
@@ -21,4 +36,8 @@
   --color-action:       #09090b;
   --color-action-text:  #fafafa;
   --color-action-hover: #27272a;
+
+  --status-success: #065f46; /* emerald-800 */
+  --status-warning: #92400e; /* amber-800 */
+  --status-danger:  #be123c; /* rose-700 */
 }

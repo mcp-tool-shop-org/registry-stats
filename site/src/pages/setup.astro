@@ -35,7 +35,7 @@ const notice = Astro.url.searchParams.get('notice');
       {/* ── Title ── */}
       <div class="mt-5 mb-5 pb-4 border-b border-edge">
         <h1 class="text-lg font-semibold tracking-tight text-heading">Portfolio Configuration</h1>
-        <p class="mt-1 text-xs text-dim/60 max-w-md">
+        <p class="mt-1 text-xs text-muted max-w-md">
           Select the registries and packages included in reporting.
           All data remains local to this installation.
         </p>
@@ -54,7 +54,7 @@ const notice = Astro.url.searchParams.get('notice');
           </div>
 
           <div class="p-3">
-            <p class="text-[10px] text-dim/50 mb-2">Add packages by registry. One entry per line within each array.</p>
+            <p class="text-[10px] text-muted mb-2">Add packages by registry. One entry per line within each array.</p>
             <textarea
               id="editor"
               class="w-full h-64 rounded border border-edge p-3 font-mono text-[13px] text-heading resize-y focus:outline-none focus:ring-1 focus:ring-setup-accent/30"
@@ -131,14 +131,14 @@ const notice = Astro.url.searchParams.get('notice');
             </div>
 
             <div class="border-t border-edge p-3">
-              <p class="text-[10px] text-dim/40 mb-2.5" id="fetch-instructions">Retrieve current metrics from selected registries.</p>
+              <p class="text-[10px] text-muted mb-2.5" id="fetch-instructions">Retrieve current metrics from selected registries.</p>
               <button id="btn-fetch" class="w-full rounded border border-edge px-2.5 py-1.5 text-[11px] font-medium text-muted transition-colors" disabled>Refresh Portfolio Data</button>
               <div id="fetch-status" class="mt-1.5 text-[10px] font-mono text-dim/40"></div>
               <div id="fetch-output" class="mt-1.5 hidden rounded border border-edge p-2 font-mono text-[10px] text-dim/60 max-h-24 overflow-y-auto whitespace-pre-wrap" style="background: color-mix(in srgb, var(--color-surface) 92%, black 8%);"></div>
             </div>
 
             <div id="step-dashboard" class="border-t border-edge p-3 opacity-35 transition-opacity">
-              <p class="text-[10px] text-dim/40 mb-2.5" id="dashboard-status-text">Available after data refresh completes.</p>
+              <p class="text-[10px] text-muted mb-2.5" id="dashboard-status-text">Available after data refresh completes.</p>
               <a id="btn-dashboard" href={`${baseUrl}/dashboard/`}
                 class="block w-full text-center rounded border border-edge px-2.5 py-1.5 text-[11px] font-medium text-muted pointer-events-none transition-colors"
                 aria-disabled="true">Open Dashboard</a>
@@ -240,13 +240,13 @@ const notice = Astro.url.searchParams.get('notice');
             <summary class="cursor-pointer select-none text-[10px] font-medium text-dim/40 hover:text-dim uppercase tracking-widest">What it detects</summary>
             <div class="mt-2 grid gap-1.5 sm:grid-cols-2 text-[11px]">
               <div class="flex items-center gap-2 text-dim">
-                <span class="text-emerald-400">✓</span> <span><strong class="text-heading">Current</strong> — published version matches repo</span>
+                <span class="status-success">✓</span> <span><strong class="text-heading">Current</strong> — published version matches repo</span>
               </div>
               <div class="flex items-center gap-2 text-dim">
-                <span class="text-amber-400">⚠</span> <span><strong class="text-heading">Behind</strong> — repo version ahead of published</span>
+                <span class="status-warning">⚠</span> <span><strong class="text-heading">Behind</strong> — repo version ahead of published</span>
               </div>
               <div class="flex items-center gap-2 text-dim">
-                <span class="text-rose-400">✗</span> <span><strong class="text-heading">Missing</strong> — not yet published to registry</span>
+                <span class="status-danger">✗</span> <span><strong class="text-heading">Missing</strong> — not yet published to registry</span>
               </div>
               <div class="flex items-center gap-2 text-dim">
                 <span class="text-blue-400">○</span> <span><strong class="text-heading">Orphan</strong> — published but no matching repo</span>
@@ -280,7 +280,7 @@ const notice = Astro.url.searchParams.get('notice');
 
 <script define:vars={{ currentPackages, baseUrl }}>
   // ── Shell config ──
-  const basePath = baseUrl || '/registry-stats/';
+  const basePath = (baseUrl || '/registry-stats').replace(/\/$/, '') + '/';
   const isDesktop = typeof window !== 'undefined' && !!window.chrome?.webview;
 
   function postBridge(action, payload) {
@@ -361,8 +361,8 @@ const notice = Astro.url.searchParams.get('notice');
     switch (state) {
       case 'pending': dot.classList.add('bg-surface-strong'); stateEl.classList.add('text-dim/40'); break;
       case 'active':  dot.classList.add('bg-blue-400'); stateEl.classList.add('text-blue-400'); break;
-      case 'complete':dot.classList.add('bg-emerald-400'); stateEl.classList.add('text-emerald-400'); break;
-      case 'error':   dot.classList.add('bg-rose-400'); stateEl.classList.add('text-rose-400'); break;
+      case 'complete':dot.classList.add('bg-emerald-400'); stateEl.classList.add('status-success'); break;
+      case 'error':   dot.classList.add('bg-rose-400'); stateEl.classList.add('status-danger'); break;
     }
     stateEl.textContent = text;
   }
@@ -420,7 +420,7 @@ const notice = Astro.url.searchParams.get('notice');
       return false;
     }
 
-    if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
       if (!silent) showValidation('error', 'Root must be a JSON object.');
       setDot(cfgDot, cfgState, 'error', 'Invalid');
       editorStatus.textContent = '';
@@ -472,11 +472,11 @@ const notice = Astro.url.searchParams.get('notice');
   }
 
   function showValidation(level, msg) {
-    validationMsg.classList.remove('hidden', 'border-emerald-500/30', 'text-emerald-400', 'border-rose-500/30', 'text-rose-400', 'border-amber-500/30', 'text-amber-400');
+    validationMsg.classList.remove('hidden', 'border-emerald-500/30', 'status-success', 'border-rose-500/30', 'status-danger', 'border-amber-500/30', 'status-warning');
     validationMsg.classList.add(...({
-      ok: ['border-emerald-500/30', 'text-emerald-400'],
-      error: ['border-rose-500/30', 'text-rose-400'],
-      warn: ['border-amber-500/30', 'text-amber-400'],
+      ok: ['border-emerald-500/30', 'status-success'],
+      error: ['border-rose-500/30', 'status-danger'],
+      warn: ['border-amber-500/30', 'status-warning'],
     })[level]);
     validationMsg.textContent = msg;
     return level === 'ok';
@@ -494,11 +494,13 @@ const notice = Astro.url.searchParams.get('notice');
 
   // ── Actions ──
   async function resetToSample() {
+    const fallback = '{\n  "npm": [],\n  "pypi": [],\n  "vscode": [],\n  "nuget": [],\n  "docker": []\n}';
     try {
       const res = await fetch(basePath + 'sample-packages.json');
+      if (!res.ok) { editor.value = fallback; return; }
       editor.value = await res.text();
     } catch {
-      editor.value = '{\n  "npm": [],\n  "pypi": [],\n  "vscode": [],\n  "nuget": [],\n  "docker": []\n}';
+      editor.value = fallback;
     }
   }
 
