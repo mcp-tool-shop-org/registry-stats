@@ -1,8 +1,8 @@
 # Scorecard
 
 **Repo:** registry-stats
-**Date:** 2026-03-28
-**Version:** 3.2.3
+**Date:** 2026-06-14
+**Version:** 3.3.0
 **Type tags:** `[npm]` `[cli]` `[dashboard]` `[desktop]`
 
 ## Current Assessment
@@ -24,3 +24,4 @@
 | 2026-02-27 | 1.0.0 | 50/50 | Post-remediation — all gates passed |
 | 2026-03-28 | 3.2.2 | 50/50 | Re-audit — expanded to dashboard + desktop, all gates pass |
 | 2026-03-28 | 3.2.3 | 50/50 | Security-hardening re-audit — path traversal, WebView2 nav guard, CSP/SRI, server rate limiting; all gates pass |
+| 2026-06-14 | 3.3.0 | 50/50 | Dogfood swarm — full health pass (A/B/C/D) + honesty/parity feature fixes; engine 236→271 tests, desktop tests revived (0→13 run in CI), OIDC Trusted Publishing; all gates pass |

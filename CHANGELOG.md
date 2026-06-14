@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.3.0] - 2026-06-14
+
+### Added
+- Portfolio `diversityTrend` is now **computed** (half-window Gini comparison) instead of a hardcoded placeholder — reports whether download concentration is improving, stable, or declining.
+- `stats.all()` / `stats.compare()` surface per-registry failures on an additive `errors` channel, and the CLI now warns on stderr when a registry query fails instead of silently dropping it.
+- `serve` accepts `--host` (loopback by default) and `--cors <origin>` flags; `registerProvider()` validates provider `name`/`getStats`.
+- Dashboard: WCAG-AA contrast in the light theme, reduced-motion support, ARIA live region + labels for the AI co-pilot and charts, and a stale-snapshot warning chip.
+
+### Fixed
+- Engine: centralized package-name validation across **all** public entry points (`stats.all`/`bulk`/`range`), closing a request-path-manipulation gap on the npm bulk path; the docker provider now rejects `..` traversal segments.
+- REST server: binds to `127.0.0.1` by default; malformed percent-encoding returns 400 instead of hanging the connection; `X-Forwarded-For` is only trusted when `trustProxy` is set.
+- Inference: corrected an off-by-one in day-of-week seasonality (the reported peak day was shifted by one).
+- Dashboard/setup: base-path 404s fixed (Reset button, custom branding, in-content links); the portfolio validator no longer crashes on a literal `null`.
+- Desktop: idempotent shutdown (no crash on File→Exit); the bundled dashboard's Pulse AI co-pilot now works in the native app (CSP `connect-src`); the root page serves correctly; About box reports the real version. The desktop test suite now builds and runs in CI (was unbuildable).
+- Data pipeline: the 2-year history file is now committed by the daily refresh (it had been silently dropped since March); the nightly job fails loudly on a stale/failed fetch; concentration history is no longer poisoned by stale rows.
+
+### Changed
+- npm publishing moved to **Trusted Publishing (OIDC via `release.yml`)** — no long-lived tokens.
+
 ## [3.2.3] - 2026-03-28
 
 ### Fixed

@@ -1,4 +1,4 @@
-name: Publish to npm
+name: Release
 
 on:
   release:
@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
+      id-token: write # required for npm Trusted Publishing (OIDC) + Sigstore provenance
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -35,13 +35,13 @@ jobs:
 
       - run: npm test --if-present
 
-      - name: Publish to npm
-        run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "::error::NPM_TOKEN secret not set — cannot publish"
-            exit 1
-          fi
-          npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Trusted Publishing (OIDC) requires npm >= 11.5.1; Node 22 bundles npm 10.9.x,
+      # so upgrade the global npm before publishing.
+      - name: Upgrade npm for Trusted Publishing (>= 11.5.1)
+        run: npm install -g npm@latest
 
+      - name: Publish to npm (Trusted Publishing / OIDC)
+        # Auth is via npm Trusted Publishing bound to this workflow (release.yml) —
+        # intentionally NO NODE_AUTH_TOKEN. npm detects the GitHub OIDC environment,
+        # mints a short-lived token, and attaches Sigstore build provenance.
+        run: npm publish --provenance --access public

@@ -403,7 +403,7 @@ public partial class MainPage : ContentPage, IDisposable
 
     private async void OnAboutClicked(object? sender, EventArgs e)
     {
-        var version = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "2.3.0";
+        var version = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "3.3.0";
         await DisplayAlertAsync("Registry Pulse Desktop",
             $"Version {version}\n\nOne dashboard. Five registries.\nAll your download stats.\n\nBuilt by MCP Tool Shop",
             "OK");
