@@ -1,5 +1,5 @@
 {
-  "fetchedAt": "2026-06-14T07:48:29.411Z",
+  "fetchedAt": "2026-06-14T14:20:53.307Z",
   "totals": {
     "packages": 168,
     "week": 2008,
@@ -50,14 +50,16 @@
     "vscode": 3,
     "nuget": 0
   },
-  "errorsByRegistry": {},
+  "errorsByRegistry": {
+    "pypi": 1
+  },
   "confidence": {
     "npm": "ok",
-    "pypi": "ok",
+    "pypi": "partial",
     "vscode": "ok",
     "nuget": "ok"
   },
-  "narrative": "npm led with 95% of weekly downloads. Top package: @mcptoolshop/site-theme (220 this week). Top gainer: @world-forge/schema (+111%; Δ31). Concentration: top 5 = 27.0%. All sources fetched cleanly (48 packages used cached previous data).",
+  "narrative": "npm led with 95% of weekly downloads. Top package: @mcptoolshop/site-theme (220 this week). Top gainer: @world-forge/schema (+111%; Δ31). Concentration: top 5 = 27.0%. Data is partial (degraded: PyPI) (48 packages used cached previous data).",
   "narrativeLines": [
     {
       "icon": "📊",
@@ -85,9 +87,9 @@
       "text": "Top 5 packages account for 27.0% of weekly downloads. Downloads are well-distributed across the portfolio."
     },
     {
-      "icon": "✅",
+      "icon": "⚠️",
       "label": "Data Health",
-      "text": "All sources fetched cleanly (48 packages used cached previous data)."
+      "text": "Data is partial (degraded: PyPI) (48 packages used cached previous data)."
     }
   ],
   "movers": {
@@ -5579,7 +5581,12 @@
     303,
     0
   ],
-  "errors": [],
+  "errors": [
+    {
+      "scope": "pypi.bulk",
+      "message": "[pypi] Too Many Requests: https://pypistats.org/api/packages/xrpl-witness/overall?mirrors=false"
+    }
+  ],
   "history": {
     "weeklyPortfolio": [
       {
@@ -5606,11 +5613,11 @@
           "vscode": 0,
           "nuget": 0
         },
-        "updatedAt": "2026-06-14T07:55:53.508Z"
+        "updatedAt": "2026-06-14T14:30:31.212Z"
       }
     ],
     "packageCount": 168,
-    "lastUpdated": "2026-06-14T07:55:53.508Z"
+    "lastUpdated": "2026-06-14T14:30:31.212Z"
   },
   "inference": {
     "forecastTotal7": [
@@ -5624,7 +5631,7 @@
     ],
     "riskScore": 30,
     "portfolioMomentum": 1,
-    "diversityTrend": "stable",
+    "diversityTrend": "declining",
     "recommendations": [
       {
         "type": "risk",
@@ -6454,15 +6461,15 @@
         "momentum": 52,
         "seasonality": {
           "dayOfWeek": [
+            7,
             24,
             31,
             18,
             17,
             18,
-            42,
-            7
+            42
           ],
-          "peakDay": "Fri"
+          "peakDay": "Sat"
         }
       },
       {
@@ -6524,15 +6531,15 @@
         "momentum": 26,
         "seasonality": {
           "dayOfWeek": [
+            5,
             11,
             6,
             26,
             24,
             22,
-            9,
-            5
+            9
           ],
-          "peakDay": "Tue"
+          "peakDay": "Wed"
         }
       },
       {
@@ -6594,15 +6601,15 @@
         "momentum": -21,
         "seasonality": {
           "dayOfWeek": [
+            5,
             18,
             6,
             53,
             1,
             17,
-            12,
-            5
+            12
           ],
-          "peakDay": "Tue"
+          "peakDay": "Wed"
         }
       },
       {
@@ -6664,15 +6671,15 @@
         "momentum": -25,
         "seasonality": {
           "dayOfWeek": [
+            4,
             17,
             6,
             51,
             11,
             18,
-            9,
-            4
+            9
           ],
-          "peakDay": "Tue"
+          "peakDay": "Wed"
         }
       },
       {
@@ -6734,15 +6741,15 @@
         "momentum": -26,
         "seasonality": {
           "dayOfWeek": [
+            5,
             17,
             6,
             47,
             12,
             15,
-            11,
-            5
+            11
           ],
-          "peakDay": "Tue"
+          "peakDay": "Wed"
         }
       },
       {
@@ -6811,15 +6818,15 @@
         "momentum": -15,
         "seasonality": {
           "dayOfWeek": [
+            12,
             15,
             5,
             47,
             14,
             15,
-            12,
             12
           ],
-          "peakDay": "Tue"
+          "peakDay": "Wed"
         }
       },
       {
@@ -6881,15 +6888,15 @@
         "momentum": 0,
         "seasonality": {
           "dayOfWeek": [
+            4,
             9,
             5,
             20,
             12,
             13,
-            5,
-            4
+            5
           ],
-          "peakDay": "Tue"
+          "peakDay": "Wed"
         }
       },
       {
@@ -6958,15 +6965,15 @@
         "momentum": -2,
         "seasonality": {
           "dayOfWeek": [
+            2,
             18,
             8,
             7,
             13,
             13,
-            12,
-            2
+            12
           ],
-          "peakDay": "Sun"
+          "peakDay": "Mon"
         }
       },
       {
@@ -7035,15 +7042,15 @@
         "momentum": -19,
         "seasonality": {
           "dayOfWeek": [
+            4,
             15,
             11,
             7,
             16,
             16,
-            12,
-            4
+            12
           ],
-          "peakDay": "Wed"
+          "peakDay": "Thu"
         }
       },
       {
@@ -7105,15 +7112,15 @@
         "momentum": 27,
         "seasonality": {
           "dayOfWeek": [
+            9,
             12,
             4,
             11,
             8,
             5,
-            8,
-            9
+            8
           ],
-          "peakDay": "Sun"
+          "peakDay": "Mon"
         }
       },
       {
@@ -7175,15 +7182,15 @@
         "momentum": -26,
         "seasonality": {
           "dayOfWeek": [
+            3,
             17,
             8,
             52,
             15,
             10,
-            22,
-            3
+            22
           ],
-          "peakDay": "Tue"
+          "peakDay": "Wed"
         }
       },
       {
@@ -7252,15 +7259,15 @@
         "momentum": 8,
         "seasonality": {
           "dayOfWeek": [
+            1,
             8,
             42,
             13,
             7,
             13,
-            4,
-            1
+            4
           ],
-          "peakDay": "Mon"
+          "peakDay": "Tue"
         }
       },
       {
@@ -7322,15 +7329,15 @@
         "momentum": -20,
         "seasonality": {
           "dayOfWeek": [
+            5,
             12,
             7,
             51,
             12,
             19,
-            10,
-            5
+            10
           ],
-          "peakDay": "Tue"
+          "peakDay": "Wed"
         }
       },
       {
@@ -7384,15 +7391,15 @@
         "momentum": -10,
         "seasonality": {
           "dayOfWeek": [
+            7,
             12,
             2,
             22,
             15,
             21,
-            5,
-            7
+            5
           ],
-          "peakDay": "Tue"
+          "peakDay": "Wed"
         }
       },
       {
@@ -7454,15 +7461,15 @@
         "momentum": 15,
         "seasonality": {
           "dayOfWeek": [
+            4,
             14,
             7,
             5,
             1,
             7,
-            5,
-            4
+            5
           ],
-          "peakDay": "Sun"
+          "peakDay": "Mon"
         }
       },
       {
@@ -7524,15 +7531,15 @@
         "momentum": -17,
         "seasonality": {
           "dayOfWeek": [
+            5,
             8,
             6,
             80,
             14,
             15,
-            6,
-            5
+            6
           ],
-          "peakDay": "Tue"
+          "peakDay": "Wed"
         }
       },
       {
@@ -7594,15 +7601,15 @@
         "momentum": -13,
         "seasonality": {
           "dayOfWeek": [
+            5,
             10,
             9,
             80,
             12,
             14,
-            5,
             5
           ],
-          "peakDay": "Tue"
+          "peakDay": "Wed"
         }
       },
       {
@@ -7664,15 +7671,15 @@
         "momentum": -26,
         "seasonality": {
           "dayOfWeek": [
+            2,
             9,
             17,
             2,
             16,
             7,
-            13,
-            2
+            13
           ],
-          "peakDay": "Mon"
+          "peakDay": "Tue"
         }
       },
       {
@@ -7726,15 +7733,15 @@
         "momentum": 10,
         "seasonality": {
           "dayOfWeek": [
+            3,
             9,
             7,
             3,
             5,
             10,
-            8,
-            3
+            8
           ],
-          "peakDay": "Thu"
+          "peakDay": "Fri"
         }
       },
       {
@@ -7803,15 +7810,15 @@
         "momentum": -16,
         "seasonality": {
           "dayOfWeek": [
+            6,
             18,
             9,
             91,
             19,
             20,
-            17,
-            6
+            17
           ],
-          "peakDay": "Tue"
+          "peakDay": "Wed"
         }
       },
       {
@@ -7873,15 +7880,15 @@
         "momentum": -4,
         "seasonality": {
           "dayOfWeek": [
+            3,
             9,
             11,
             87,
             16,
             6,
-            9,
-            3
+            9
           ],
-          "peakDay": "Tue"
+          "peakDay": "Wed"
         }
       },
       {
@@ -7943,15 +7950,15 @@
         "momentum": -17,
         "seasonality": {
           "dayOfWeek": [
+            3,
             8,
             7,
             4,
             13,
             10,
-            5,
-            3
+            5
           ],
-          "peakDay": "Wed"
+          "peakDay": "Thu"
         }
       },
       {
@@ -8020,15 +8027,15 @@
         "momentum": -23,
         "seasonality": {
           "dayOfWeek": [
+            3,
             9,
             4,
             45,
             10,
             9,
-            5,
-            3
+            5
           ],
-          "peakDay": "Tue"
+          "peakDay": "Wed"
         }
       },
       {
@@ -8090,15 +8097,15 @@
         "momentum": -25,
         "seasonality": {
           "dayOfWeek": [
+            3,
             9,
             5,
             43,
             9,
             6,
-            4,
-            3
+            4
           ],
-          "peakDay": "Tue"
+          "peakDay": "Wed"
         }
       },
       {
@@ -8167,15 +8174,15 @@
         "momentum": -4,
         "seasonality": {
           "dayOfWeek": [
+            3,
             9,
             2,
             3,
             7,
             8,
-            5,
-            3
+            5
           ],
-          "peakDay": "Sun"
+          "peakDay": "Mon"
         }
       },
       {
@@ -8244,15 +8251,15 @@
         "momentum": 0,
         "seasonality": {
           "dayOfWeek": [
+            1,
             9,
             1,
             7,
             7,
             5,
-            2,
-            1
+            2
           ],
-          "peakDay": "Sun"
+          "peakDay": "Mon"
         }
       },
       {
@@ -8314,15 +8321,15 @@
         "momentum": 14,
         "seasonality": {
           "dayOfWeek": [
+            2,
             7,
             3,
             3,
             3,
             8,
-            2,
             2
           ],
-          "peakDay": "Thu"
+          "peakDay": "Fri"
         }
       },
       {
@@ -8384,15 +8391,15 @@
         "momentum": 5,
         "seasonality": {
           "dayOfWeek": [
+            2,
             6,
             5,
             3,
             1,
             9,
-            7,
-            2
+            7
           ],
-          "peakDay": "Thu"
+          "peakDay": "Fri"
         }
       },
       {
@@ -8446,15 +8453,15 @@
         "momentum": 0,
         "seasonality": {
           "dayOfWeek": [
+            2,
             11,
             6,
             8,
             2,
             8,
-            3,
-            2
+            3
           ],
-          "peakDay": "Sun"
+          "peakDay": "Mon"
         }
       },
       {
@@ -8516,15 +8523,15 @@
         "momentum": 16,
         "seasonality": {
           "dayOfWeek": [
+            0,
             4,
             3,
             4,
             1,
             5,
-            2,
-            0
+            2
           ],
-          "peakDay": "Thu"
+          "peakDay": "Fri"
         }
       }
     ]
