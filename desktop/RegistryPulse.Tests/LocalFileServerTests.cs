@@ -84,6 +84,25 @@ public class LocalFileServerTests : IDisposable
     }
 
     [Fact]
+    public async Task CspHeader_AllowsCoPilotConnectSources()
+    {
+        // DP01: the bundled dashboard's Pulse co-pilot must be reachable from the
+        // desktop build. The CSP connect-src has to allow the local Ollama/voice
+        // loopback endpoints while preserving the existing 'self' + github.io allowances.
+        var response = await _http.GetAsync($"{_server.BaseUrl}/index.html");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var csp = string.Join("; ", response.Headers.GetValues("Content-Security-Policy"));
+
+        // New: local Ollama / voice loopback allowance (user-chosen localhost port).
+        Assert.Contains("http://localhost", csp);
+
+        // Regression guard: existing allowances must remain.
+        Assert.Contains("'self'", csp);
+        Assert.Contains("https://mcp-tool-shop-org.github.io", csp);
+    }
+
+    [Fact]
     public async Task CspHeader_AbsentOnJsonResponses()
     {
         var response = await _http.GetAsync($"{_server.BaseUrl}/sub/data.json");

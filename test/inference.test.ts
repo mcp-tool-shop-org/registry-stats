@@ -322,6 +322,101 @@ describe('inferPortfolio', () => {
   });
 });
 
+// ── diversityTrend (inf-FT02): half-window Gini comparison ─────────
+//
+// Each fixture is a 30-day range30. The diversity trend splits the series
+// into a first half (days 0-14) and a last half (days 15-29), sums each
+// half per package, then compares the Gini of the first-half totals against
+// the Gini of the last-half totals across all packages.
+//
+//   giniLast - giniFirst < -0.03  → 'improving'  (less concentrated)
+//   giniLast - giniFirst >  0.03  → 'declining'  (more concentrated)
+//   otherwise                     → 'stable'
+//
+// Helper: build a 30-day series with a constant value in the first half and
+// a (possibly different) constant value in the last half.
+function halves(firstVal: number, lastVal: number): number[] {
+  return [...new Array(15).fill(firstVal), ...new Array(15).fill(lastVal)];
+}
+
+describe('inferPortfolio diversityTrend', () => {
+  it("returns 'improving' when concentration clearly drops over the window", () => {
+    // First half: one package dominates (high Gini). Last half: all roughly
+    // equal (low Gini). Concentration falls → more diverse → 'improving'.
+    const leaderboard = [
+      { name: 'whale', registry: 'npm', week: 1000, range30: halves(1000, 100), trendPct: 0 },
+      { name: 'minnow-1', registry: 'npm', week: 100, range30: halves(1, 100), trendPct: 0 },
+      { name: 'minnow-2', registry: 'npm', week: 100, range30: halves(1, 100), trendPct: 0 },
+      { name: 'minnow-3', registry: 'npm', week: 100, range30: halves(1, 100), trendPct: 0 },
+    ];
+
+    const result = inferPortfolio(leaderboard);
+    expect(result.diversityTrend).toBe('improving');
+  });
+
+  it("returns 'declining' when concentration clearly rises over the window", () => {
+    // First half: all roughly equal (low Gini). Last half: one package
+    // dominates (high Gini). Concentration rises → less diverse → 'declining'.
+    const leaderboard = [
+      { name: 'whale', registry: 'npm', week: 1000, range30: halves(100, 1000), trendPct: 0 },
+      { name: 'minnow-1', registry: 'npm', week: 100, range30: halves(100, 1), trendPct: 0 },
+      { name: 'minnow-2', registry: 'npm', week: 100, range30: halves(100, 1), trendPct: 0 },
+      { name: 'minnow-3', registry: 'npm', week: 100, range30: halves(100, 1), trendPct: 0 },
+    ];
+
+    const result = inferPortfolio(leaderboard);
+    expect(result.diversityTrend).toBe('declining');
+  });
+
+  it("returns 'stable' when concentration is flat across the window", () => {
+    // Each package has identical halves; Gini is unchanged → 'stable'.
+    const leaderboard = [
+      { name: 'pkg-a', registry: 'npm', week: 500, range30: halves(300, 300), trendPct: 0 },
+      { name: 'pkg-b', registry: 'npm', week: 500, range30: halves(200, 200), trendPct: 0 },
+      { name: 'pkg-c', registry: 'npm', week: 500, range30: halves(100, 100), trendPct: 0 },
+    ];
+
+    const result = inferPortfolio(leaderboard);
+    expect(result.diversityTrend).toBe('stable');
+  });
+
+  it("returns 'stable' for a single package (degenerate, no throw)", () => {
+    const leaderboard = [
+      { name: 'solo', registry: 'npm', week: 1000, range30: halves(100, 1000), trendPct: 0 },
+    ];
+
+    let result;
+    expect(() => { result = inferPortfolio(leaderboard); }).not.toThrow();
+    expect(result!.diversityTrend).toBe('stable');
+  });
+
+  it("returns 'stable' for an empty leaderboard (degenerate, no throw)", () => {
+    let result;
+    expect(() => { result = inferPortfolio([]); }).not.toThrow();
+    expect(result!.diversityTrend).toBe('stable');
+  });
+
+  it("returns 'stable' when no package has a usable range30", () => {
+    const leaderboard = [
+      { name: 'a', registry: 'npm', week: 100, range30: null, trendPct: null },
+      { name: 'b', registry: 'pypi', week: 100, range30: shortSeries, trendPct: null },
+    ];
+
+    const result = inferPortfolio(leaderboard);
+    expect(result.diversityTrend).toBe('stable');
+  });
+
+  it("returns 'stable' when every package has all-zero downloads (no NaN)", () => {
+    const leaderboard = [
+      { name: 'a', registry: 'npm', week: 0, range30: zeroSeries, trendPct: 0 },
+      { name: 'b', registry: 'npm', week: 0, range30: zeroSeries, trendPct: 0 },
+    ];
+
+    const result = inferPortfolio(leaderboard);
+    expect(result.diversityTrend).toBe('stable');
+  });
+});
+
 describe('computeYearlyProgress', () => {
   const currentYear = new Date().getFullYear();
   const prevYear = currentYear - 1;

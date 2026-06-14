@@ -133,6 +133,24 @@ function median(arr: number[]): number {
   return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }
 
+/**
+ * Gini coefficient of a non-negative distribution (concentration measure;
+ * 0 = perfectly equal, →1 = fully concentrated). Uses the sorted-rank form
+ * `Σ (2(i+1) - n - 1)·x_i / (n · Σx)`, matching the reference computation in
+ * site/scripts/fetch-stats.mjs so the point-in-time number stays consistent in
+ * spirit. Guards: fewer than 2 values or a zero sum → 0 (never NaN).
+ */
+function gini(values: number[]): number {
+  const n = values.length;
+  if (n < 2) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const total = sorted.reduce((a, b) => a + b, 0);
+  if (total <= 0) return 0;
+  let numerator = 0;
+  sorted.forEach((x, i) => { numerator += (2 * (i + 1) - n - 1) * x; });
+  return numerator / (n * total);
+}
+
 /** Simple linear regression: returns { slope, intercept, r2 } */
 function linearRegression(ys: number[]): { slope: number; intercept: number; r2: number } {
   const n = ys.length;
@@ -838,10 +856,31 @@ export function inferPortfolio(
   const anomalyRisk = Math.min(30, anomalyDensity * 10);
   const riskScore = Math.round(Math.max(0, Math.min(100, giniRisk + declineRisk + anomalyRisk)));
 
-  // Diversity trend — NOT YET IMPLEMENTED.
-  // TODO: compute half-window Gini comparison to derive an actual trend.
-  // Currently hardcoded to 'stable'; consumers should not treat this as computed.
-  const diversityTrend: 'improving' | 'stable' | 'declining' = 'stable';
+  // Diversity trend — half-window Gini comparison.
+  // For each package with a usable range30, split the series into a first half
+  // and a last half, sum downloads within each half, then compare the Gini of
+  // the per-package first-half totals against the Gini of the last-half totals.
+  // A drop in concentration means the portfolio became MORE diverse.
+  const firstHalfTotals: number[] = [];
+  const lastHalfTotals: number[] = [];
+  for (const row of leaderboard) {
+    const series = row.range30;
+    // Need at least 2 days to split into two non-empty halves.
+    if (!series || series.length < 2) continue;
+    const split = Math.floor(series.length / 2);
+    const firstSum = series.slice(0, split).reduce((a, b) => a + b, 0);
+    const lastSum = series.slice(split).reduce((a, b) => a + b, 0);
+    firstHalfTotals.push(firstSum);
+    lastHalfTotals.push(lastSum);
+  }
+
+  let diversityTrend: 'improving' | 'stable' | 'declining' = 'stable';
+  // Need at least 2 packages with usable series for concentration to be meaningful.
+  if (firstHalfTotals.length >= 2) {
+    const giniDelta = gini(lastHalfTotals) - gini(firstHalfTotals);
+    if (giniDelta < -0.03) diversityTrend = 'improving'; // less concentrated → more diverse
+    else if (giniDelta > 0.03) diversityTrend = 'declining'; // more concentrated
+  }
 
   const recommendations = generateRecommendations(packages, opts);
 
