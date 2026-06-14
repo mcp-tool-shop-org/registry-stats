@@ -6,6 +6,10 @@ on:
     paths:
       - 'site/**'
       - '.github/workflows/pages.yml'
+  pull_request:
+    paths:
+      - 'site/**'
+      - '.github/workflows/pages.yml'
   schedule:
     - cron: '0 7 * * 1'  # Monday 07:00 UTC (staggered after daily-refresh 06:00)
   workflow_dispatch:
@@ -39,11 +43,23 @@ jobs:
         working-directory: site
         run: npm ci
 
+      # The site tree (Astro/Starlight/vite/esbuild) carries its own transitive CVE
+      # surface, separate from the root engine. Gate it here so it can't silently
+      # re-accumulate advisories (esbuild pinned via overrides to ^0.28.1).
+      - name: Audit site dependencies
+        working-directory: site
+        run: npm audit --audit-level=high
+
+      # On pull_request we only verify (audit + build) — skip the live fetch, the
+      # stats commit/push, the Pages artifact upload, and the deploy job. Those run
+      # only on push to main / schedule / manual dispatch.
       - name: Fetch live stats
+        if: github.event_name != 'pull_request'
         working-directory: site
         run: npm run fetch-stats
 
       - name: Commit fresh stats back to repo
+        if: github.event_name != 'pull_request'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -59,11 +75,13 @@ jobs:
         run: npm run build
 
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        if: github.event_name != 'pull_request'
         with:
           path: site/dist
 
   deploy:
     needs: build
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
