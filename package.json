@@ -1,6 +1,6 @@
 {
   "name": "@mcptoolshop/registry-stats",
-  "version": "3.3.0",
+  "version": "3.3.1",
   "description": "Multi-registry download stats — engine, AI-powered dashboard, and desktop app for npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -59,8 +59,11 @@
   },
   "devDependencies": {
     "@types/node": "^25.3.0",
-    "tsup": "^8.0.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.4.0",
-    "vitest": "^3.0.0"
+    "vitest": "^4.1.8"
+  },
+  "overrides": {
+    "esbuild": "^0.28.1"
   }
 }
