@@ -2,7 +2,7 @@
 
 **Repo:** registry-stats
 **Date:** 2026-06-14
-**Version:** 3.3.0
+**Version:** 3.3.1
 **Type tags:** `[npm]` `[cli]` `[dashboard]` `[desktop]`
 
 ## Current Assessment
@@ -25,3 +25,4 @@
 | 2026-03-28 | 3.2.2 | 50/50 | Re-audit — expanded to dashboard + desktop, all gates pass |
 | 2026-03-28 | 3.2.3 | 50/50 | Security-hardening re-audit — path traversal, WebView2 nav guard, CSP/SRI, server rate limiting; all gates pass |
 | 2026-06-14 | 3.3.0 | 50/50 | Dogfood swarm — full health pass (A/B/C/D) + honesty/parity feature fixes; engine 236→271 tests, desktop tests revived (0→13 run in CI), OIDC Trusted Publishing; all gates pass |
+| 2026-06-14 | 3.3.1 | 50/50 | Dev-dependency security upgrade — esbuild pinned to `0.28.1` via `overrides` + tsup 8.5 + vitest 4 (engine), Astro 5→6 + Starlight 0.40 + vite 7 (dashboard); cleared all high/critical advisories in both trees, restored full-tree `npm audit` gate in CI + added a site audit gate; all gates pass |
