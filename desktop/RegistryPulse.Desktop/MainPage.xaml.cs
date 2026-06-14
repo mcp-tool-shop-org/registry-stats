@@ -51,7 +51,7 @@ public partial class MainPage : ContentPage, IDisposable
         var exitItem = new MenuFlyoutItem { Text = "Exit" };
         exitItem.Clicked += (_, _) =>
         {
-            _server?.Dispose();
+            Dispose();
             Application.Current?.Quit();
         };
         fileMenu.Add(exitItem);

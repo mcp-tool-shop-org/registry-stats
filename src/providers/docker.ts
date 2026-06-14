@@ -1,4 +1,5 @@
 import type { RegistryProvider, PackageStats, StatsOptions } from '../types.js';
+import { RegistryError } from '../types.js';
 import { fetchWithRetry } from '../fetch.js';
 
 const API = 'https://hub.docker.com/v2/repositories';
@@ -13,8 +14,17 @@ export const docker: RegistryProvider = {
       headers['Authorization'] = `Bearer ${options.dockerToken}`;
     }
 
-    // URL-encode each path segment to prevent path traversal / injection
-    const safePkg = pkg.split('/').map(s => encodeURIComponent(s)).join('/');
+    // Encoding alone does NOT stop traversal: encodeURIComponent('..') === '..',
+    // so '..' / '.' segments would survive and collapse the path to a different
+    // hub.docker.com resource. Reject those segments outright, then encode the
+    // rest to neutralize spaces / injection characters.
+    const segments = pkg.split('/');
+    for (const seg of segments) {
+      if (seg === '..' || seg === '.') {
+        throw new RegistryError('docker', 0, `Invalid image name "${pkg}": path traversal not allowed`);
+      }
+    }
+    const safePkg = segments.map(s => encodeURIComponent(s)).join('/');
 
     const json = await fetchWithRetry<{
       name: string;

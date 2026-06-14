@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { stats } from '../src/index.js';
 import { docker } from '../src/providers/docker.js';
+import { RegistryError } from '../src/types.js';
 
 const LIVE = process.env.LIVE_API === '1';
 const liveIt = LIVE ? it : it.skip;
@@ -52,18 +53,22 @@ describe('docker provider (mocked)', () => {
     expect(result).toBeNull();
   }, 30000);
 
-  it('URL-encodes package name segments individually', async () => {
-    mockFetch(async (url) => {
-      // Each segment is individually encoded by docker provider
-      // '../../etc/passwd' splits into ['..', '..', 'etc', 'passwd']
-      // encodeURIComponent('..') is '..' (no special chars), so URL still contains '../'
-      // But a name like 'my ns/my img' would be properly encoded
-      expect(url).toContain('hub.docker.com');
+  it('rejects path-traversal segments instead of letting them collapse the URL', async () => {
+    let fetched = false;
+    mockFetch(async () => {
+      fetched = true;
       return { status: 404 };
     });
 
-    const result = await docker.getStats('../../etc/passwd');
-    expect(result).toBeNull();
+    // '../../etc/passwd' splits into ['..', '..', 'etc', 'passwd'].
+    // encodeURIComponent('..') === '..', so the old code passed it through and
+    // the path collapsed to a different hub.docker.com resource. The provider
+    // must now reject traversal segments before any request is made.
+    await expect(docker.getStats('../../etc/passwd')).rejects.toThrow(RegistryError);
+    await expect(docker.getStats('../../etc/passwd')).rejects.toThrow(/path traversal/);
+    await expect(docker.getStats('a/../../b')).rejects.toThrow(/path traversal/);
+    await expect(docker.getStats('a/./b')).rejects.toThrow(/path traversal/);
+    expect(fetched).toBe(false);
   }, 30000);
 
   it('URL-encodes special characters in image path segments', async () => {

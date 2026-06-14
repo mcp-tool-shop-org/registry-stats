@@ -87,17 +87,20 @@ function pLimit(concurrency: number) {
     });
 }
 
-const providers: Record<string, RegistryProvider> = {
-  npm,
-  pypi,
-  nuget,
-  vscode,
-  docker,
-};
+// Backed by a Map so provider names like 'constructor', 'prototype', or
+// '__proto__' can never interact with the prototype chain and yield an
+// unstructured TypeError on lookup.
+const providers = new Map<string, RegistryProvider>([
+  ['npm', npm],
+  ['pypi', pypi],
+  ['nuget', nuget],
+  ['vscode', vscode],
+  ['docker', docker],
+]);
 
 /** Register a custom registry provider. The provider's name becomes the registry key for stats(). */
 function registerProvider(provider: RegistryProvider): void {
-  providers[provider.name] = provider;
+  providers.set(provider.name, provider);
 }
 
 const DEFAULT_TTL = 300_000; // 5 minutes
@@ -113,7 +116,7 @@ async function stats(
   options?: StatsOptions,
 ): Promise<PackageStats | null> {
   validatePackageName(pkg, registry);
-  const provider = providers[registry];
+  const provider = providers.get(registry);
   if (!provider) {
     throw new RegistryError(registry, 0, `Unknown registry "${registry}". Use registerProvider() to add custom registries.`);
   }
@@ -136,8 +139,13 @@ stats.all = async function all(
   pkg: string,
   options?: StatsOptions,
 ): Promise<PackageStats[]> {
+  // Enforce the same package-name contract as stats() for every provider.
+  for (const p of providers.values()) {
+    validatePackageName(pkg, p.name);
+  }
+
   const results = await Promise.allSettled(
-    Object.values(providers).map((p) => p.getStats(pkg, options)),
+    [...providers.values()].map((p) => p.getStats(pkg, options)),
   );
 
   return results
@@ -154,9 +162,15 @@ stats.bulk = async function bulk(
   packages: string[],
   options?: StatsOptions,
 ): Promise<(PackageStats | null)[]> {
-  const provider = providers[registry];
+  const provider = providers.get(registry);
   if (!provider) {
     throw new RegistryError(registry, 0, `Unknown registry "${registry}".`);
+  }
+
+  // Enforce the package-name contract on every name up front, so the bulk
+  // smart-path (which bypasses stats()) cannot smuggle traversal into a URL.
+  for (const pkg of packages) {
+    validatePackageName(pkg, registry);
   }
 
   // Smart path for npm: use bulk API for unscoped, throttled for scoped
@@ -235,7 +249,8 @@ stats.range = async function range(
   end: string,
   options?: StatsOptions,
 ): Promise<DailyDownloads[]> {
-  const provider = providers[registry];
+  validatePackageName(pkg, registry);
+  const provider = providers.get(registry);
   if (!provider) {
     throw new RegistryError(registry, 0, `Unknown registry "${registry}".`);
   }
@@ -266,7 +281,7 @@ stats.compare = async function compare(
   registries?: string[],
   options?: StatsOptions,
 ): Promise<ComparisonResult> {
-  const regs = registries ?? Object.keys(providers);
+  const regs = registries ?? [...providers.keys()];
   const results = await Promise.allSettled(
     regs.map(async (reg) => {
       const result = await stats(reg, pkg, options);

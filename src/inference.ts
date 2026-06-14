@@ -342,22 +342,27 @@ export function segmentTrends(series: number[], minSegmentLength = 5): TrendSegm
  * Detect day-of-week seasonality patterns.
  * Requires at least 14 days of data to identify weekly cycles.
  *
+ * @param startDaysAgo - Deprecated/ignored for date alignment. The series is
+ *   always anchored so that its NEWEST element (last index) maps to
+ *   `referenceDate` (offset 0 = today), matching how callers build `range30`
+ *   via `slice(-30)` ending today. Retained for backward-compatible call sites.
  * @param referenceDate - Optional fixed date for day-of-week calculation.
  *   Defaults to `new Date()`. Inject a fixed date for deterministic testing.
  * @remarks
  * - NaN/Infinity values are filtered before processing.
  */
-export function detectSeasonality(series: number[], startDaysAgo: number, referenceDate?: Date): { dayOfWeek: number[]; peakDay: string } | null {
+export function detectSeasonality(series: number[], _startDaysAgo?: number, referenceDate?: Date): { dayOfWeek: number[]; peakDay: string } | null {
   series = sanitize(series);
   if (series.length < 14) return null;
 
-  // Group by day of week
+  // Group by day of week. Anchor the NEWEST element (last index) to
+  // `today` (offset 0), so labels align with a slice(-30) ending today.
   const buckets: number[][] = [[], [], [], [], [], [], []];
   const today = referenceDate ?? new Date();
 
   for (let i = 0; i < series.length; i++) {
     const date = new Date(today);
-    date.setDate(date.getDate() - (startDaysAgo - i));
+    date.setDate(date.getDate() - (series.length - 1 - i));
     const dow = date.getDay();
     buckets[dow].push(series[i]);
   }

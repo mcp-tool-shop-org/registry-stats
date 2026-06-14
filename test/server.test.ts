@@ -345,3 +345,93 @@ describe('request timeout', () => {
     }
   });
 });
+
+// --- engine-cli-server-003: malformed query percent-sequence ---
+describe('malformed query string handling', () => {
+  it('returns 400 (not a hang / unhandled rejection) for a bad %-sequence in the query', async () => {
+    // A lone '%' is an invalid percent-escape; decodeURIComponent throws URIError.
+    // The request must resolve to a 400 — never hang or surface an unhandled rejection.
+    let unhandled: unknown;
+    const onUnhandled = (e: unknown) => { unhandled = e; };
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      const res = await fetch(`http://localhost:${testServer.port}/compare/x?registries=%`);
+      expect(res.status).toBe(400);
+      // Allow any pending microtasks to flush so a stray rejection would surface.
+      await new Promise((r) => setTimeout(r, 20));
+      expect(unhandled).toBeUndefined();
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+  });
+});
+
+// --- engine-cli-server-004: X-Forwarded-For trust ---
+describe('X-Forwarded-For trust (trustProxy)', () => {
+  it('ignores X-Forwarded-For when trustProxy is unset (shared bucket per socket)', async () => {
+    // rateLimitMax: 1 — the second request from the SAME socket must be limited
+    // even though it presents a different XFF, because XFF is not trusted.
+    const srv = await startTestServer({ rateLimitMax: 1, rateLimitWindowSeconds: 60 });
+    try {
+      const res1 = await fetch(`http://localhost:${srv.port}/`, {
+        headers: { 'X-Forwarded-For': '1.1.1.1' },
+      });
+      expect(res1.status).toBe(200);
+      const res2 = await fetch(`http://localhost:${srv.port}/`, {
+        headers: { 'X-Forwarded-For': '2.2.2.2' },
+      });
+      // XFF spoofed to a new IP, but the limiter keys on the real socket → 429.
+      expect(res2.status).toBe(429);
+    } finally {
+      srv.server.close();
+    }
+  });
+
+  it('honors X-Forwarded-For when trustProxy is set (independent buckets)', async () => {
+    const srv = await startTestServer({ rateLimitMax: 1, rateLimitWindowSeconds: 60, trustProxy: true });
+    try {
+      const res1 = await fetch(`http://localhost:${srv.port}/`, {
+        headers: { 'X-Forwarded-For': '1.1.1.1' },
+      });
+      expect(res1.status).toBe(200);
+      const res2 = await fetch(`http://localhost:${srv.port}/`, {
+        headers: { 'X-Forwarded-For': '2.2.2.2' },
+      });
+      // Distinct trusted client IPs → distinct buckets → still allowed.
+      expect(res2.status).toBe(200);
+    } finally {
+      srv.server.close();
+    }
+  });
+});
+
+// --- engine-cli-server-002: loopback default bind ---
+import { resolveServeHost } from '../src/server.js';
+
+describe('default bind host', () => {
+  it('resolves to loopback (127.0.0.1) when no host is given', () => {
+    expect(resolveServeHost(undefined)).toBe('127.0.0.1');
+    expect(resolveServeHost({})).toBe('127.0.0.1');
+    expect(resolveServeHost({ port: 3000 })).toBe('127.0.0.1');
+  });
+
+  it('honors an explicit host opt-in (e.g. 0.0.0.0)', () => {
+    expect(resolveServeHost({ host: '0.0.0.0' })).toBe('0.0.0.0');
+    expect(resolveServeHost({ host: '::' })).toBe('::');
+  });
+
+  it('serve() binds the resolved host (smoke: actually listens on loopback)', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      const { serve } = await import('../src/server.js');
+      const server = serve({ port: 0 });
+      await new Promise<void>((resolve) => server.once('listening', resolve));
+      const addr = server.address() as { address: string; port: number };
+      // Loopback bind reports 127.0.0.1 (not 0.0.0.0 / ::).
+      expect(addr.address).toBe('127.0.0.1');
+      server.close();
+    } finally {
+      logSpy.mockRestore();
+    }
+  });
+});

@@ -135,6 +135,26 @@ describe('registerProvider', () => {
 
     await expect(stats('fail-reg', 'test-pkg')).rejects.toThrow('boom');
   });
+
+  it('registering a provider named "constructor" does not corrupt the registry lookup', async () => {
+    const provider = makeMockProvider('constructor', {
+      registry: 'constructor' as any,
+      package: 'x',
+      downloads: { total: 7 },
+      fetchedAt: new Date().toISOString(),
+    });
+    registerProvider(provider);
+
+    // Looking up the registered provider must work...
+    const result = await stats('constructor', 'x');
+    expect(result?.downloads.total).toBe(7);
+
+    // ...and looking up an UNregistered registry must yield a structured
+    // RegistryError ("Unknown registry"), never a raw TypeError from the
+    // prototype chain.
+    await expect(stats('nope-not-registered', 'x')).rejects.toThrow(RegistryError);
+    await expect(stats('nope-not-registered', 'x')).rejects.toThrow(/Unknown registry/);
+  });
 });
 
 describe('package name validation', () => {
@@ -144,6 +164,28 @@ describe('package name validation', () => {
 
   it('rejects path traversal', async () => {
     await expect(stats('npm', '../etc/passwd')).rejects.toThrow(/path traversal/);
+  });
+
+  it('stats.all enforces validation (path traversal rejected)', async () => {
+    await expect(stats.all('../../etc/passwd')).rejects.toThrow(/path traversal/);
+  });
+
+  it('stats.bulk enforces validation on every name', async () => {
+    await expect(
+      stats.bulk('npm', ['x/../../-/v1/search?text=foo', 'y']),
+    ).rejects.toThrow(RegistryError);
+  });
+
+  it('stats.range enforces validation (path traversal rejected)', async () => {
+    await expect(
+      stats.range('docker', '..%2F..', '2025-01-01', '2025-01-31'),
+    ).rejects.toThrow(/path traversal/);
+  });
+
+  it('stats.range rejects literal traversal segments', async () => {
+    await expect(
+      stats.range('npm', 'a/../../b', '2025-01-01', '2025-01-31'),
+    ).rejects.toThrow(/path traversal/);
   });
 
   it('rejects backslash', async () => {

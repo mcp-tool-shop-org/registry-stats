@@ -36,11 +36,10 @@ jobs:
       - run: npm test --if-present
 
       - name: Publish to npm
-        continue-on-error: true
         run: |
           if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "::warning::NPM_TOKEN secret not set — skipping npm publish"
-            exit 0
+            echo "::error::NPM_TOKEN secret not set — cannot publish"
+            exit 1
           fi
           npm publish --provenance --access public
         env:

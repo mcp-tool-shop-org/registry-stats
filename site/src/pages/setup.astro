@@ -280,7 +280,7 @@ const notice = Astro.url.searchParams.get('notice');
 
 <script define:vars={{ currentPackages, baseUrl }}>
   // ── Shell config ──
-  const basePath = baseUrl || '/registry-stats/';
+  const basePath = (baseUrl || '/registry-stats').replace(/\/$/, '') + '/';
   const isDesktop = typeof window !== 'undefined' && !!window.chrome?.webview;
 
   function postBridge(action, payload) {
@@ -420,7 +420,7 @@ const notice = Astro.url.searchParams.get('notice');
       return false;
     }
 
-    if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
       if (!silent) showValidation('error', 'Root must be a JSON object.');
       setDot(cfgDot, cfgState, 'error', 'Invalid');
       editorStatus.textContent = '';
@@ -494,11 +494,13 @@ const notice = Astro.url.searchParams.get('notice');
 
   // ── Actions ──
   async function resetToSample() {
+    const fallback = '{\n  "npm": [],\n  "pypi": [],\n  "vscode": [],\n  "nuget": [],\n  "docker": []\n}';
     try {
       const res = await fetch(basePath + 'sample-packages.json');
+      if (!res.ok) { editor.value = fallback; return; }
       editor.value = await res.text();
     } catch {
-      editor.value = '{\n  "npm": [],\n  "pypi": [],\n  "vscode": [],\n  "nuget": [],\n  "docker": []\n}';
+      editor.value = fallback;
     }
   }
 

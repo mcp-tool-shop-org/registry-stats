@@ -155,6 +155,29 @@ describe('detectSeasonality', () => {
   it('returns null for zero series', () => {
     expect(detectSeasonality(zeroSeries, 30)).toBeNull();
   });
+
+  it('peakDay aligns the newest element with the referenceDate weekday (offset 0 = today)', () => {
+    // Fixed reference date; compute its actual weekday rather than hard-coding.
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const refDate = new Date('2026-06-14T12:00:00Z'); // newest element = this date (today)
+    const refDayName = dayNames[refDate.getDay()];
+
+    // 30-element series whose NEWEST element (index 29) is the peak, and every
+    // 7th element back from it is also high — so the high bucket is exactly the
+    // referenceDate's weekday. All other days are low.
+    const peakAligned = Array.from({ length: 30 }, (_, i) => {
+      // distance back from the newest element
+      const daysBack = 29 - i;
+      return daysBack % 7 === 0 ? 300 : 100;
+    });
+
+    const result = detectSeasonality(peakAligned, 30, refDate);
+    expect(result).not.toBeNull();
+    expect(result!.dayOfWeek).toHaveLength(7);
+    // The correct mapping must label the peak as the referenceDate's weekday.
+    // The buggy mapping (offset = startDaysAgo - i) shifts this one day earlier.
+    expect(result!.peakDay).toBe(refDayName);
+  });
 });
 
 describe('computeMomentum', () => {

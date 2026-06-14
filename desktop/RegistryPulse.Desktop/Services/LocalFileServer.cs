@@ -13,6 +13,7 @@ public sealed class LocalFileServer : IDisposable
     private readonly string _rootPath;
     private readonly CancellationTokenSource _cts = new();
     private readonly Func<byte[]?> _statsProvider;
+    private bool _disposed;
 
     public int Port { get; }
     public string BaseUrl => $"http://127.0.0.1:{Port}";
@@ -143,6 +144,9 @@ public sealed class LocalFileServer : IDisposable
 
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
+
         _cts.Cancel();
         _listener.Stop();
         _listener.Close();
