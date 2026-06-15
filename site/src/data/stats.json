@@ -1,35 +1,35 @@
 {
-  "fetchedAt": "2026-06-14T15:24:08.780Z",
+  "fetchedAt": "2026-06-15T08:19:09.943Z",
   "totals": {
     "packages": 168,
-    "week": 2008,
-    "month": 16425,
+    "week": 2465,
+    "month": 16942,
     "activeRegistries": 4
   },
   "registryTotals": {
     "npm": {
       "packages": 93,
-      "week": 1917,
-      "month": 13462,
+      "week": 2362,
+      "month": 14100,
       "total": 0
     },
     "pypi": {
       "packages": 42,
-      "week": 91,
-      "month": 2963,
-      "total": 29628
+      "week": 103,
+      "month": 2842,
+      "total": 29662
     },
     "vscode": {
       "packages": 6,
       "week": 0,
       "month": 0,
-      "total": 653
+      "total": 654
     },
     "nuget": {
       "packages": 27,
       "week": 0,
       "month": 0,
-      "total": 10173
+      "total": 10183
     }
   },
   "manifestCounts": {
@@ -51,7 +51,7 @@
     "nuget": 0
   },
   "errorsByRegistry": {
-    "npm": 4
+    "npm": 2
   },
   "confidence": {
     "npm": "partial",
@@ -59,32 +59,32 @@
     "vscode": "ok",
     "nuget": "ok"
   },
-  "narrative": "npm led with 95% of weekly downloads. Top package: @mcptoolshop/site-theme (220 this week). Top gainer: @world-forge/schema (+111%; Δ31). Concentration: top 5 = 27.0%. Data is partial (degraded: npm) (4 packages used cached previous data).",
+  "narrative": "npm led with 96% of weekly downloads. Top package: @mcptoolshop/registry-stats (313 this week). Top gainer: @mcptoolshop/repomesh (+2450%; Δ245). Concentration: top 5 = 44.5%. Data is partial (degraded: npm) (4 packages used cached previous data).",
   "narrativeLines": [
     {
       "icon": "📊",
       "label": "Registry Lead",
-      "text": "npm led with 95% of 2,008 weekly downloads followed by PyPI (5%)."
+      "text": "npm led with 96% of 2,465 weekly downloads followed by PyPI (4%)."
     },
     {
       "icon": "🏆",
       "label": "Top Package",
-      "text": "@mcptoolshop/site-theme with 220 downloads this week. Runner-up: @world-forge/renderer-2d (121)."
+      "text": "@mcptoolshop/registry-stats with 313 downloads this week. Runner-up: @mcptoolshop/repomesh (255)."
     },
     {
       "icon": "🚀",
       "label": "Top Mover",
-      "text": "@world-forge/schema surged 111% week-over-week (31 additional downloads)."
+      "text": "@mcptoolshop/repomesh surged 2450% week-over-week (245 additional downloads)."
     },
     {
       "icon": "📉",
       "label": "Decline",
-      "text": "@ai-rpg-engine/rumor-system dropped 93.8% week-over-week (196 fewer downloads)."
+      "text": "@ai-rpg-engine/rumor-system dropped 94.4% week-over-week (201 fewer downloads)."
     },
     {
       "icon": "📈",
       "label": "Concentration",
-      "text": "Top 5 packages account for 27.0% of weekly downloads. Downloads are well-distributed across the portfolio."
+      "text": "Top 5 packages account for 44.5% of weekly downloads. Moderate concentration in top packages."
     },
     {
       "icon": "⚠️",
@@ -95,105 +95,194 @@
   "movers": {
     "topGainers": [
       {
-        "name": "@world-forge/schema",
+        "name": "@mcptoolshop/repomesh",
         "registry": "npm",
-        "week": 59,
-        "month": 250,
-        "trendPct": 110.71428571428572,
-        "delta7": 31
+        "week": 255,
+        "month": 292,
+        "trendPct": 2450,
+        "delta7": 245
       },
       {
-        "name": "@ai-rpg-engine/image-gen",
+        "name": "@mcptoolshop/xrpl-lab",
         "registry": "npm",
-        "week": 31,
-        "month": 113,
-        "trendPct": 82.35294117647058,
-        "delta7": 14
+        "week": 177,
+        "month": 228,
+        "trendPct": 883.3333333333334,
+        "delta7": 159
+      },
+      {
+        "name": "@mcptoolshop/registry-stats",
+        "registry": "npm",
+        "week": 313,
+        "month": 508,
+        "trendPct": 347.14285714285717,
+        "delta7": 243
       },
       {
         "name": "@mcptoolshop/vocal-synth-engine",
         "registry": "npm",
-        "week": 12,
-        "month": 161,
-        "trendPct": 71.42857142857143,
-        "delta7": 5
+        "week": 17,
+        "month": 166,
+        "trendPct": 183.33333333333331,
+        "delta7": 11
       },
       {
-        "name": "@ai-rpg-engine/cli",
+        "name": "@world-forge/schema",
         "registry": "npm",
-        "week": 47,
-        "month": 188,
-        "trendPct": 67.85714285714286,
-        "delta7": 19
-      },
-      {
-        "name": "@mcptoolshop/escape-the-valley",
-        "registry": "npm",
-        "week": 24,
-        "month": 63,
-        "trendPct": 50,
-        "delta7": 8
+        "week": 60,
+        "month": 243,
+        "trendPct": 114.28571428571428,
+        "delta7": 32
       }
     ],
     "topDecliners": [
       {
         "name": "@ai-rpg-engine/rumor-system",
         "registry": "npm",
-        "week": 13,
-        "month": 278,
-        "trendPct": -93.77990430622009,
-        "delta7": -196
+        "week": 12,
+        "month": 283,
+        "trendPct": -94.36619718309859,
+        "delta7": -201
       },
       {
         "name": "@ai-rpg-engine/campaign-memory",
         "registry": "npm",
-        "week": 17,
-        "month": 318,
-        "trendPct": -92.85714285714286,
-        "delta7": -221
-      },
-      {
-        "name": "@ai-rpg-engine/content-schema",
-        "registry": "npm",
-        "week": 37,
-        "month": 584,
-        "trendPct": -90.95354523227384,
-        "delta7": -372
+        "week": 14,
+        "month": 321,
+        "trendPct": -94.23868312757202,
+        "delta7": -229
       },
       {
         "name": "@ai-rpg-engine/modules",
         "registry": "npm",
-        "week": 41,
-        "month": 755,
-        "trendPct": -90.929203539823,
-        "delta7": -411
+        "week": 28,
+        "month": 748,
+        "trendPct": -93.88646288209607,
+        "delta7": -430
+      },
+      {
+        "name": "@ai-rpg-engine/soundpack-core",
+        "registry": "npm",
+        "week": 14,
+        "month": 295,
+        "trendPct": -93.42723004694837,
+        "delta7": -199
       },
       {
         "name": "@ai-rpg-engine/character-profile",
         "registry": "npm",
-        "week": 44,
-        "month": 545,
-        "trendPct": -89.05472636815921,
-        "delta7": -358
+        "week": 32,
+        "month": 550,
+        "trendPct": -92.32613908872902,
+        "delta7": -385
       }
     ],
     "newlyActive": [],
-    "concentrationTop5Pct": 26.99203187250996
+    "concentrationTop5Pct": 44.503042596348884
   },
   "leaderboard": [
     {
       "registry": "npm",
-      "name": "@mcptoolshop/site-theme",
-      "week": 220,
-      "month": 688,
+      "name": "@mcptoolshop/registry-stats",
+      "week": 313,
+      "month": 508,
       "day": 0,
       "total": 0,
-      "trendPct": 41.935483870967744,
-      "last7": 220,
-      "prev7": 155,
-      "delta7": 65,
+      "trendPct": 347.14285714285717,
+      "last7": 313,
+      "prev7": 70,
+      "delta7": 243,
       "range30": [
-        24,
+        0,
+        1,
+        1,
+        22,
+        2,
+        30,
+        0,
+        2,
+        19,
+        4,
+        0,
+        1,
+        2,
+        6,
+        5,
+        26,
+        4,
+        40,
+        19,
+        0,
+        1,
+        0,
+        6,
+        6,
+        1,
+        1,
+        4,
+        2,
+        299,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@mcptoolshop/repomesh",
+      "week": 255,
+      "month": 292,
+      "day": 0,
+      "total": 0,
+      "trendPct": 2450,
+      "last7": 255,
+      "prev7": 10,
+      "delta7": 245,
+      "range30": [
+        0,
+        0,
+        2,
+        3,
+        0,
+        5,
+        0,
+        1,
+        2,
+        3,
+        0,
+        0,
+        1,
+        7,
+        1,
+        2,
+        0,
+        0,
+        0,
+        6,
+        0,
+        0,
+        4,
+        0,
+        0,
+        1,
+        4,
+        2,
+        248,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@mcptoolshop/site-theme",
+      "week": 228,
+      "month": 700,
+      "day": 0,
+      "total": 0,
+      "trendPct": 82.39999999999999,
+      "last7": 228,
+      "prev7": 125,
+      "delta7": 103,
+      "range30": [
         4,
         11,
         18,
@@ -222,6 +311,52 @@
         31,
         7,
         156,
+        21,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@mcptoolshop/xrpl-lab",
+      "week": 177,
+      "month": 228,
+      "day": 0,
+      "total": 0,
+      "trendPct": 883.3333333333334,
+      "last7": 177,
+      "prev7": 18,
+      "delta7": 159,
+      "range30": [
+        0,
+        0,
+        0,
+        4,
+        1,
+        7,
+        0,
+        0,
+        3,
+        3,
+        2,
+        0,
+        0,
+        7,
+        1,
+        5,
+        2,
+        7,
+        0,
+        3,
+        0,
+        0,
+        6,
+        6,
+        2,
+        1,
+        8,
+        2,
+        158,
         0
       ],
       "extra": null
@@ -229,16 +364,15 @@
     {
       "registry": "npm",
       "name": "@world-forge/renderer-2d",
-      "week": 121,
-      "month": 443,
+      "week": 124,
+      "month": 431,
       "day": 0,
       "total": 0,
-      "trendPct": 47.5609756097561,
-      "last7": 121,
-      "prev7": 82,
-      "delta7": 39,
+      "trendPct": 56.9620253164557,
+      "last7": 124,
+      "prev7": 79,
+      "delta7": 45,
       "range30": [
-        2,
         0,
         4,
         0,
@@ -267,680 +401,6 @@
         62,
         14,
         3,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@ai-rpg-engine/starter-fantasy",
-      "week": 73,
-      "month": 470,
-      "day": 0,
-      "total": 0,
-      "trendPct": -65.88785046728972,
-      "last7": 73,
-      "prev7": 214,
-      "delta7": -141,
-      "range30": [
-        7,
-        4,
-        5,
-        3,
-        27,
-        2,
-        35,
-        2,
-        5,
-        27,
-        11,
-        2,
-        0,
-        0,
-        28,
-        16,
-        7,
-        9,
-        171,
-        0,
-        12,
-        15,
-        0,
-        31,
-        0,
-        11,
-        3,
-        21,
-        7,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@ai-rpg-engine/starter-pirate",
-      "week": 64,
-      "month": 485,
-      "day": 0,
-      "total": 0,
-      "trendPct": -75,
-      "last7": 64,
-      "prev7": 256,
-      "delta7": -192,
-      "range30": [
-        2,
-        3,
-        6,
-        4,
-        31,
-        1,
-        36,
-        1,
-        6,
-        27,
-        11,
-        1,
-        0,
-        0,
-        29,
-        3,
-        5,
-        9,
-        170,
-        41,
-        13,
-        10,
-        8,
-        29,
-        0,
-        3,
-        3,
-        24,
-        5,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@ai-rpg-engine/starter-colony",
-      "week": 64,
-      "month": 471,
-      "day": 0,
-      "total": 0,
-      "trendPct": -72.0524017467249,
-      "last7": 64,
-      "prev7": 229,
-      "delta7": -165,
-      "range30": [
-        0,
-        6,
-        8,
-        3,
-        23,
-        0,
-        41,
-        2,
-        7,
-        26,
-        11,
-        5,
-        5,
-        1,
-        32,
-        1,
-        6,
-        4,
-        158,
-        39,
-        0,
-        13,
-        9,
-        28,
-        7,
-        2,
-        2,
-        18,
-        7,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@ai-rpg-engine/starter-zombie",
-      "week": 63,
-      "month": 523,
-      "day": 0,
-      "total": 0,
-      "trendPct": -74.28571428571429,
-      "last7": 63,
-      "prev7": 245,
-      "delta7": -182,
-      "range30": [
-        8,
-        3,
-        6,
-        2,
-        26,
-        2,
-        39,
-        2,
-        7,
-        27,
-        11,
-        1,
-        0,
-        1,
-        29,
-        39,
-        16,
-        8,
-        156,
-        44,
-        0,
-        8,
-        13,
-        12,
-        0,
-        6,
-        11,
-        20,
-        14,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@world-forge/editor",
-      "week": 63,
-      "month": 288,
-      "day": 0,
-      "total": 0,
-      "trendPct": -23.170731707317074,
-      "last7": 63,
-      "prev7": 82,
-      "delta7": -19,
-      "range30": [
-        3,
-        0,
-        1,
-        1,
-        33,
-        2,
-        37,
-        1,
-        0,
-        31,
-        4,
-        2,
-        0,
-        0,
-        5,
-        19,
-        0,
-        2,
-        44,
-        19,
-        0,
-        14,
-        3,
-        5,
-        14,
-        0,
-        26,
-        14,
-        4,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@ai-rpg-engine/starter-weird-west",
-      "week": 62,
-      "month": 312,
-      "day": 0,
-      "total": 0,
-      "trendPct": -13.88888888888889,
-      "last7": 62,
-      "prev7": 72,
-      "delta7": -10,
-      "range30": [
-        7,
-        3,
-        7,
-        2,
-        26,
-        5,
-        34,
-        2,
-        7,
-        25,
-        12,
-        1,
-        5,
-        1,
-        32,
-        2,
-        5,
-        7,
-        0,
-        39,
-        12,
-        9,
-        0,
-        33,
-        9,
-        0,
-        2,
-        6,
-        12,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@ai-rpg-engine/core",
-      "week": 60,
-      "month": 340,
-      "day": 0,
-      "total": 0,
-      "trendPct": -46.902654867256636,
-      "last7": 60,
-      "prev7": 113,
-      "delta7": -53,
-      "range30": [
-        3,
-        3,
-        8,
-        4,
-        17,
-        13,
-        24,
-        1,
-        5,
-        15,
-        17,
-        3,
-        3,
-        5,
-        41,
-        2,
-        11,
-        11,
-        0,
-        44,
-        27,
-        11,
-        9,
-        27,
-        13,
-        9,
-        3,
-        6,
-        2,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@world-forge/schema",
-      "week": 59,
-      "month": 250,
-      "day": 0,
-      "total": 0,
-      "trendPct": 110.71428571428572,
-      "last7": 59,
-      "prev7": 28,
-      "delta7": 31,
-      "range30": [
-        13,
-        2,
-        0,
-        0,
-        44,
-        2,
-        3,
-        4,
-        0,
-        41,
-        5,
-        0,
-        0,
-        1,
-        2,
-        35,
-        3,
-        3,
-        0,
-        0,
-        3,
-        13,
-        6,
-        3,
-        8,
-        0,
-        28,
-        13,
-        7,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@ai-rpg-engine/starter-cyberpunk",
-      "week": 54,
-      "month": 536,
-      "day": 0,
-      "total": 0,
-      "trendPct": -80.78291814946618,
-      "last7": 54,
-      "prev7": 281,
-      "delta7": -227,
-      "range30": [
-        57,
-        3,
-        5,
-        12,
-        36,
-        1,
-        4,
-        1,
-        5,
-        27,
-        11,
-        1,
-        1,
-        0,
-        30,
-        1,
-        6,
-        8,
-        168,
-        55,
-        23,
-        14,
-        7,
-        30,
-        0,
-        1,
-        2,
-        11,
-        10,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@mcptoolshop/ai-loadout",
-      "week": 53,
-      "month": 353,
-      "day": 0,
-      "total": 0,
-      "trendPct": -11.666666666666666,
-      "last7": 53,
-      "prev7": 60,
-      "delta7": -7,
-      "range30": [
-        3,
-        0,
-        1,
-        157,
-        14,
-        3,
-        19,
-        0,
-        2,
-        12,
-        5,
-        1,
-        4,
-        1,
-        14,
-        4,
-        12,
-        1,
-        26,
-        15,
-        5,
-        0,
-        1,
-        7,
-        5,
-        10,
-        4,
-        26,
-        1,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@ai-rpg-engine/starter-detective",
-      "week": 48,
-      "month": 491,
-      "day": 0,
-      "total": 0,
-      "trendPct": -81.67938931297711,
-      "last7": 48,
-      "prev7": 262,
-      "delta7": -214,
-      "range30": [
-        2,
-        3,
-        9,
-        3,
-        27,
-        1,
-        40,
-        1,
-        6,
-        25,
-        11,
-        1,
-        0,
-        0,
-        31,
-        11,
-        8,
-        10,
-        170,
-        43,
-        14,
-        11,
-        6,
-        7,
-        3,
-        4,
-        4,
-        23,
-        7,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@world-forge/export-ai-rpg",
-      "week": 47,
-      "month": 362,
-      "day": 0,
-      "total": 0,
-      "trendPct": -52.52525252525253,
-      "last7": 47,
-      "prev7": 99,
-      "delta7": -52,
-      "range30": [
-        6,
-        1,
-        1,
-        1,
-        41,
-        1,
-        67,
-        2,
-        0,
-        41,
-        4,
-        0,
-        2,
-        0,
-        2,
-        33,
-        1,
-        3,
-        45,
-        32,
-        0,
-        15,
-        3,
-        3,
-        0,
-        0,
-        26,
-        17,
-        1,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@ai-rpg-engine/cli",
-      "week": 47,
-      "month": 188,
-      "day": 0,
-      "total": 0,
-      "trendPct": 67.85714285714286,
-      "last7": 47,
-      "prev7": 28,
-      "delta7": 19,
-      "range30": [
-        6,
-        2,
-        5,
-        3,
-        16,
-        1,
-        22,
-        1,
-        5,
-        16,
-        5,
-        1,
-        0,
-        0,
-        16,
-        6,
-        8,
-        9,
-        0,
-        0,
-        3,
-        0,
-        8,
-        26,
-        12,
-        1,
-        2,
-        4,
-        2,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@ai-rpg-engine/character-profile",
-      "week": 44,
-      "month": 545,
-      "day": 0,
-      "total": 0,
-      "trendPct": -89.05472636815921,
-      "last7": 44,
-      "prev7": 402,
-      "delta7": -358,
-      "range30": [
-        1,
-        3,
-        0,
-        3,
-        11,
-        1,
-        21,
-        1,
-        5,
-        12,
-        17,
-        1,
-        3,
-        1,
-        17,
-        1,
-        3,
-        5,
-        305,
-        45,
-        23,
-        6,
-        15,
-        18,
-        0,
-        2,
-        8,
-        13,
-        3,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@ai-rpg-engine/equipment",
-      "week": 44,
-      "month": 545,
-      "day": 0,
-      "total": 0,
-      "trendPct": -88.65979381443299,
-      "last7": 44,
-      "prev7": 388,
-      "delta7": -344,
-      "range30": [
-        1,
-        2,
-        1,
-        3,
-        11,
-        3,
-        21,
-        3,
-        6,
-        12,
-        18,
-        1,
-        3,
-        1,
-        17,
-        9,
-        7,
-        8,
-        307,
-        36,
-        24,
-        0,
-        6,
-        18,
-        5,
-        2,
-        7,
-        9,
         3,
         0
       ],
@@ -949,16 +409,15 @@
     {
       "registry": "npm",
       "name": "@mcptoolshop/npm-launcher",
-      "week": 42,
-      "month": 284,
+      "week": 81,
+      "month": 336,
       "day": 0,
       "total": 0,
-      "trendPct": -69.56521739130434,
-      "last7": 42,
-      "prev7": 138,
-      "delta7": -96,
+      "trendPct": -49.375,
+      "last7": 81,
+      "prev7": 160,
+      "delta7": -79,
       "range30": [
-        1,
         0,
         4,
         2,
@@ -987,96 +446,502 @@
         1,
         6,
         4,
+        64,
         0
       ],
       "extra": null
     },
     {
       "registry": "npm",
-      "name": "@ai-rpg-engine/pack-registry",
-      "week": 42,
-      "month": 185,
+      "name": "@world-forge/editor",
+      "week": 61,
+      "month": 287,
       "day": 0,
       "total": 0,
-      "trendPct": 40,
-      "last7": 42,
-      "prev7": 30,
-      "delta7": 12,
+      "trendPct": -29.88505747126437,
+      "last7": 61,
+      "prev7": 87,
+      "delta7": -26,
       "range30": [
+        0,
+        1,
+        1,
+        33,
+        2,
+        37,
+        1,
+        0,
+        31,
+        4,
+        2,
+        0,
+        0,
+        5,
         19,
         0,
-        5,
-        3,
-        10,
-        3,
+        2,
+        44,
+        19,
+        0,
         14,
-        1,
-        4,
-        10,
-        16,
-        1,
-        6,
-        2,
-        16,
-        0,
-        2,
         3,
+        5,
+        14,
         0,
-        0,
-        16,
-        0,
-        9,
-        17,
-        6,
-        1,
-        9,
-        7,
-        2,
+        26,
+        14,
+        4,
+        3,
         0
       ],
       "extra": null
     },
     {
       "registry": "npm",
-      "name": "@ai-rpg-engine/modules",
-      "week": 41,
-      "month": 755,
+      "name": "@world-forge/schema",
+      "week": 60,
+      "month": 243,
       "day": 0,
       "total": 0,
-      "trendPct": -90.929203539823,
-      "last7": 41,
-      "prev7": 452,
-      "delta7": -411,
+      "trendPct": 114.28571428571428,
+      "last7": 60,
+      "prev7": 28,
+      "delta7": 32,
       "range30": [
         2,
-        7,
-        8,
+        0,
+        0,
+        44,
+        2,
+        3,
+        4,
+        0,
+        41,
+        5,
+        0,
+        0,
+        1,
+        2,
+        35,
+        3,
+        3,
+        0,
+        0,
+        3,
+        13,
         6,
+        3,
+        8,
+        0,
+        28,
+        13,
+        7,
+        4,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@ai-rpg-engine/starter-zombie",
+      "week": 58,
+      "month": 518,
+      "day": 0,
+      "total": 0,
+      "trendPct": -75.93360995850622,
+      "last7": 58,
+      "prev7": 241,
+      "delta7": -183,
+      "range30": [
+        3,
+        6,
+        2,
+        26,
+        2,
+        39,
+        2,
+        7,
+        27,
+        11,
+        1,
+        0,
+        1,
+        29,
+        39,
+        16,
+        8,
+        156,
+        44,
+        0,
+        8,
+        13,
+        12,
+        0,
+        6,
+        11,
+        20,
+        14,
+        7,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@mcptoolshop/ai-loadout",
+      "week": 51,
+      "month": 358,
+      "day": 0,
+      "total": 0,
+      "trendPct": -7.2727272727272725,
+      "last7": 51,
+      "prev7": 55,
+      "delta7": -4,
+      "range30": [
+        0,
+        1,
+        157,
+        14,
+        3,
+        19,
+        0,
+        2,
+        12,
+        5,
+        1,
+        4,
+        1,
+        14,
+        4,
+        12,
+        1,
+        26,
+        15,
+        5,
+        0,
+        1,
+        7,
+        5,
+        10,
+        4,
+        26,
+        1,
+        5,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@ai-rpg-engine/starter-detective",
+      "week": 47,
+      "month": 487,
+      "day": 0,
+      "total": 0,
+      "trendPct": -81.99233716475096,
+      "last7": 47,
+      "prev7": 261,
+      "delta7": -214,
+      "range30": [
+        3,
+        9,
+        3,
+        27,
+        1,
+        40,
+        1,
+        6,
+        25,
+        11,
+        1,
+        0,
+        0,
+        31,
+        11,
+        8,
+        10,
+        170,
+        43,
+        14,
+        11,
+        6,
+        7,
+        3,
+        4,
+        4,
+        23,
+        7,
+        6,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@world-forge/export-ai-rpg",
+      "week": 47,
+      "month": 351,
+      "day": 0,
+      "total": 0,
+      "trendPct": -53.46534653465347,
+      "last7": 47,
+      "prev7": 101,
+      "delta7": -54,
+      "range30": [
+        1,
+        1,
+        1,
+        41,
+        1,
+        67,
+        2,
+        0,
         41,
         4,
-        45,
+        0,
         2,
-        5,
-        39,
+        0,
+        2,
+        33,
+        1,
+        3,
+        45,
+        32,
+        0,
+        15,
+        3,
+        3,
+        0,
+        0,
+        26,
         17,
         1,
+        3,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@ai-rpg-engine/starter-fantasy",
+      "week": 46,
+      "month": 465,
+      "day": 0,
+      "total": 0,
+      "trendPct": -80.67226890756302,
+      "last7": 46,
+      "prev7": 238,
+      "delta7": -192,
+      "range30": [
+        4,
         5,
-        1,
-        60,
-        9,
-        10,
-        13,
-        312,
-        64,
-        24,
-        18,
+        3,
+        27,
+        2,
+        35,
+        2,
+        5,
+        27,
         11,
+        2,
+        0,
+        0,
+        28,
         16,
+        7,
+        9,
+        171,
+        0,
+        12,
+        15,
+        0,
+        31,
         0,
         11,
+        3,
+        21,
+        7,
         4,
-        8,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@ai-rpg-engine/starter-weird-west",
+      "week": 44,
+      "month": 320,
+      "day": 0,
+      "total": 0,
+      "trendPct": -56.00000000000001,
+      "last7": 44,
+      "prev7": 100,
+      "delta7": -56,
+      "range30": [
+        3,
+        7,
         2,
+        26,
+        5,
+        34,
+        2,
+        7,
+        25,
+        12,
+        1,
+        5,
+        1,
+        32,
+        2,
+        5,
+        7,
+        0,
+        39,
+        12,
+        9,
+        0,
+        33,
+        9,
+        0,
+        2,
+        6,
+        12,
+        15,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@ai-rpg-engine/starter-pirate",
+      "week": 43,
+      "month": 489,
+      "day": 0,
+      "total": 0,
+      "trendPct": -84.64285714285714,
+      "last7": 43,
+      "prev7": 280,
+      "delta7": -237,
+      "range30": [
+        3,
+        6,
+        4,
+        31,
+        1,
+        36,
+        1,
+        6,
+        27,
+        11,
+        1,
+        0,
+        0,
+        29,
+        3,
+        5,
+        9,
+        170,
+        41,
+        13,
+        10,
+        8,
+        29,
+        0,
+        3,
+        3,
+        24,
+        5,
+        8,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@ai-rpg-engine/starter-colony",
+      "week": 41,
+      "month": 469,
+      "day": 0,
+      "total": 0,
+      "trendPct": -83.66533864541833,
+      "last7": 41,
+      "prev7": 251,
+      "delta7": -210,
+      "range30": [
+        6,
+        8,
+        3,
+        23,
+        0,
+        41,
+        2,
+        7,
+        26,
+        11,
+        5,
+        5,
+        1,
+        32,
+        1,
+        6,
+        4,
+        158,
+        39,
+        0,
+        13,
+        9,
+        28,
+        7,
+        2,
+        2,
+        18,
+        7,
+        5,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@ai-rpg-engine/core",
+      "week": 41,
+      "month": 345,
+      "day": 0,
+      "total": 0,
+      "trendPct": -68.21705426356588,
+      "last7": 41,
+      "prev7": 129,
+      "delta7": -88,
+      "range30": [
+        3,
+        8,
+        4,
+        17,
+        13,
+        24,
+        1,
+        5,
+        15,
+        17,
+        3,
+        3,
+        5,
+        41,
+        2,
+        11,
+        11,
+        0,
+        44,
+        27,
+        11,
+        9,
+        27,
+        13,
+        9,
+        3,
+        6,
+        2,
+        8,
         0
       ],
       "extra": null
@@ -1084,16 +949,15 @@
     {
       "registry": "npm",
       "name": "@ai-rpg-engine/content-schema",
-      "week": 37,
-      "month": 584,
+      "week": 34,
+      "month": 570,
       "day": 0,
       "total": 0,
-      "trendPct": -90.95354523227384,
-      "last7": 37,
-      "prev7": 409,
-      "delta7": -372,
+      "trendPct": -91.74757281553399,
+      "last7": 34,
+      "prev7": 412,
+      "delta7": -378,
       "range30": [
-        9,
         2,
         7,
         7,
@@ -1122,6 +986,232 @@
         9,
         5,
         3,
+        5,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@ai-rpg-engine/equipment",
+      "week": 33,
+      "month": 551,
+      "day": 0,
+      "total": 0,
+      "trendPct": -91.72932330827066,
+      "last7": 33,
+      "prev7": 399,
+      "delta7": -366,
+      "range30": [
+        2,
+        1,
+        3,
+        11,
+        3,
+        21,
+        3,
+        6,
+        12,
+        18,
+        1,
+        3,
+        1,
+        17,
+        9,
+        7,
+        8,
+        307,
+        36,
+        24,
+        0,
+        6,
+        18,
+        5,
+        2,
+        7,
+        9,
+        3,
+        7,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@ai-rpg-engine/character-profile",
+      "week": 32,
+      "month": 550,
+      "day": 0,
+      "total": 0,
+      "trendPct": -92.32613908872902,
+      "last7": 32,
+      "prev7": 417,
+      "delta7": -385,
+      "range30": [
+        3,
+        0,
+        3,
+        11,
+        1,
+        21,
+        1,
+        5,
+        12,
+        17,
+        1,
+        3,
+        1,
+        17,
+        1,
+        3,
+        5,
+        305,
+        45,
+        23,
+        6,
+        15,
+        18,
+        0,
+        2,
+        8,
+        13,
+        3,
+        6,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@ai-rpg-engine/starter-cyberpunk",
+      "week": 31,
+      "month": 537,
+      "day": 0,
+      "total": 0,
+      "trendPct": -89.8360655737705,
+      "last7": 31,
+      "prev7": 305,
+      "delta7": -274,
+      "range30": [
+        3,
+        5,
+        12,
+        36,
+        1,
+        4,
+        1,
+        5,
+        27,
+        11,
+        1,
+        1,
+        0,
+        30,
+        1,
+        6,
+        8,
+        168,
+        55,
+        23,
+        14,
+        7,
+        30,
+        0,
+        1,
+        2,
+        11,
+        10,
+        7,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@ai-rpg-engine/pack-registry",
+      "week": 30,
+      "month": 187,
+      "day": 0,
+      "total": 0,
+      "trendPct": -33.33333333333333,
+      "last7": 30,
+      "prev7": 45,
+      "delta7": -15,
+      "range30": [
+        0,
+        5,
+        3,
+        10,
+        3,
+        14,
+        1,
+        4,
+        10,
+        16,
+        1,
+        6,
+        2,
+        16,
+        0,
+        2,
+        3,
+        0,
+        0,
+        16,
+        0,
+        9,
+        17,
+        6,
+        1,
+        9,
+        7,
+        2,
+        5,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@ai-rpg-engine/modules",
+      "week": 28,
+      "month": 748,
+      "day": 0,
+      "total": 0,
+      "trendPct": -93.88646288209607,
+      "last7": 28,
+      "prev7": 458,
+      "delta7": -430,
+      "range30": [
+        7,
+        8,
+        6,
+        41,
+        4,
+        45,
+        2,
+        5,
+        39,
+        17,
+        1,
+        5,
+        1,
+        60,
+        9,
+        10,
+        13,
+        312,
+        64,
+        24,
+        18,
+        11,
+        16,
+        0,
+        11,
+        4,
+        8,
+        2,
+        3,
         0
       ],
       "extra": null
@@ -1129,16 +1219,15 @@
     {
       "registry": "npm",
       "name": "@ai-rpg-engine/character-creation",
-      "week": 37,
-      "month": 206,
+      "week": 28,
+      "month": 213,
       "day": 0,
       "total": 0,
-      "trendPct": -55.42168674698795,
-      "last7": 37,
-      "prev7": 83,
-      "delta7": -46,
+      "trendPct": -71.1340206185567,
+      "last7": 28,
+      "prev7": 97,
+      "delta7": -69,
       "range30": [
-        0,
         3,
         0,
         2,
@@ -1167,96 +1256,111 @@
         11,
         4,
         2,
+        8,
         0
       ],
       "extra": null
     },
     {
+      "registry": "pypi",
+      "name": "backpropagate",
+      "week": 27,
+      "month": 1123,
+      "day": 12,
+      "total": 2606,
+      "trendPct": null,
+      "last7": null,
+      "prev7": null,
+      "delta7": null,
+      "range30": null,
+      "extra": null
+    },
+    {
       "registry": "npm",
-      "name": "@ai-rpg-engine/terminal-ui",
-      "week": 36,
-      "month": 351,
+      "name": "@ai-rpg-engine/cli",
+      "week": 26,
+      "month": 185,
       "day": 0,
       "total": 0,
-      "trendPct": -84.27947598253274,
-      "last7": 36,
-      "prev7": 229,
-      "delta7": -193,
+      "trendPct": -43.47826086956522,
+      "last7": 26,
+      "prev7": 46,
+      "delta7": -20,
       "range30": [
         2,
-        0,
-        0,
+        5,
         3,
-        11,
-        1,
         16,
         1,
+        22,
+        1,
         5,
-        13,
+        16,
         5,
-        4,
         1,
         0,
-        15,
-        4,
-        6,
-        7,
-        163,
-        35,
-        8,
-        6,
-        4,
-        17,
         0,
+        16,
+        6,
+        8,
+        9,
+        0,
+        0,
+        3,
+        0,
+        8,
+        26,
+        12,
         1,
         2,
-        13,
-        3,
+        4,
+        2,
+        5,
         0
       ],
       "extra": null
     },
     {
       "registry": "npm",
-      "name": "@ai-rpg-engine/audio-director",
-      "week": 33,
-      "month": 325,
+      "name": "@mcptoolshop/escape-the-valley",
+      "week": 26,
+      "month": 69,
       "day": 0,
       "total": 0,
-      "trendPct": -83.90243902439025,
-      "last7": 33,
-      "prev7": 205,
-      "delta7": -172,
+      "trendPct": 52.94117647058824,
+      "last7": 26,
+      "prev7": 17,
+      "delta7": 9,
       "range30": [
+        0,
         3,
+        0,
         2,
         0,
         1,
-        12,
-        1,
-        19,
+        0,
+        2,
+        3,
+        3,
+        0,
+        2,
         1,
         5,
-        10,
-        10,
+        1,
+        3,
         1,
         0,
-        2,
-        13,
         0,
-        6,
-        6,
-        154,
-        33,
+        5,
+        7,
         0,
-        0,
-        6,
-        18,
         4,
-        3,
-        3,
-        4,
+        7,
         1,
+        5,
+        6,
+        1,
+        6,
         0
       ],
       "extra": null
@@ -1264,16 +1368,15 @@
     {
       "registry": "npm",
       "name": "@ai-rpg-engine/ollama",
-      "week": 33,
-      "month": 164,
+      "week": 25,
+      "month": 169,
       "day": 0,
       "total": 0,
-      "trendPct": -31.25,
-      "last7": 33,
-      "prev7": 48,
-      "delta7": -15,
+      "trendPct": -59.67741935483871,
+      "last7": 25,
+      "prev7": 62,
+      "delta7": -37,
       "range30": [
-        0,
         3,
         5,
         0,
@@ -1302,6 +1405,97 @@
         2,
         12,
         1,
+        9,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@ai-rpg-engine/terminal-ui",
+      "week": 24,
+      "month": 351,
+      "day": 0,
+      "total": 0,
+      "trendPct": -90,
+      "last7": 24,
+      "prev7": 240,
+      "delta7": -216,
+      "range30": [
+        0,
+        0,
+        3,
+        11,
+        1,
+        16,
+        1,
+        5,
+        13,
+        5,
+        4,
+        1,
+        0,
+        15,
+        4,
+        6,
+        7,
+        163,
+        35,
+        8,
+        6,
+        4,
+        17,
+        0,
+        1,
+        2,
+        13,
+        3,
+        5,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@mcptoolshop/polyglot-mcp",
+      "week": 24,
+      "month": 165,
+      "day": 0,
+      "total": 0,
+      "trendPct": -35.13513513513514,
+      "last7": 24,
+      "prev7": 37,
+      "delta7": -13,
+      "range30": [
+        2,
+        3,
+        4,
+        12,
+        1,
+        14,
+        2,
+        2,
+        18,
+        7,
+        2,
+        3,
+        1,
+        7,
+        3,
+        16,
+        3,
+        15,
+        0,
+        10,
+        0,
+        2,
+        7,
+        9,
+        2,
+        2,
+        5,
+        1,
+        5,
         0
       ],
       "extra": null
@@ -1309,16 +1503,15 @@
     {
       "registry": "npm",
       "name": "@mcptoolshop/sovereignty",
-      "week": 31,
+      "week": 23,
       "month": 133,
       "day": 0,
       "total": 0,
-      "trendPct": -40.38461538461539,
-      "last7": 31,
+      "trendPct": -55.769230769230774,
+      "last7": 23,
       "prev7": 52,
-      "delta7": -21,
+      "delta7": -29,
       "range30": [
-        0,
         0,
         0,
         0,
@@ -1347,51 +1540,7 @@
         3,
         9,
         7,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@ai-rpg-engine/image-gen",
-      "week": 31,
-      "month": 113,
-      "day": 0,
-      "total": 0,
-      "trendPct": 82.35294117647058,
-      "last7": 31,
-      "prev7": 17,
-      "delta7": 14,
-      "range30": [
-        0,
-        0,
-        1,
-        1,
-        10,
-        4,
-        16,
-        1,
-        4,
-        10,
         3,
-        1,
-        0,
-        4,
-        10,
-        0,
-        2,
-        3,
-        0,
-        0,
-        6,
-        0,
-        6,
-        16,
-        3,
-        0,
-        7,
-        4,
-        1,
         0
       ],
       "extra": null
@@ -1399,16 +1548,15 @@
     {
       "registry": "npm",
       "name": "@ai-rpg-engine/presentation",
-      "week": 30,
-      "month": 140,
+      "week": 22,
+      "month": 145,
       "day": 0,
       "total": 0,
-      "trendPct": 15.384615384615385,
-      "last7": 30,
-      "prev7": 26,
-      "delta7": 4,
+      "trendPct": -40.54054054054054,
+      "last7": 22,
+      "prev7": 37,
+      "delta7": -15,
       "range30": [
-        13,
         1,
         0,
         3,
@@ -1437,141 +1585,277 @@
         2,
         5,
         1,
+        5,
         0
       ],
       "extra": null
     },
     {
       "registry": "npm",
-      "name": "@mcptoolshop/polyglot-mcp",
-      "week": 26,
-      "month": 303,
+      "name": "@ai-rpg-engine/audio-director",
+      "week": 20,
+      "month": 323,
       "day": 0,
       "total": 0,
-      "trendPct": -43.47826086956522,
-      "last7": 26,
-      "prev7": 46,
-      "delta7": -20,
+      "trendPct": -90.78341013824884,
+      "last7": 20,
+      "prev7": 217,
+      "delta7": -197,
       "range30": [
-        7,
         2,
-        3,
-        4,
+        0,
+        1,
         12,
         1,
-        14,
+        19,
+        1,
+        5,
+        10,
+        10,
+        1,
+        0,
         2,
-        2,
+        13,
+        0,
+        6,
+        6,
+        154,
+        33,
+        0,
+        0,
+        6,
         18,
-        7,
+        4,
+        3,
+        3,
+        4,
+        1,
+        5,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@mcptoolshop/synthesis",
+      "week": 20,
+      "month": 54,
+      "day": 0,
+      "total": 0,
+      "trendPct": 25,
+      "last7": 20,
+      "prev7": 16,
+      "delta7": 4,
+      "range30": [
+        0,
+        0,
+        0,
         2,
+        0,
+        3,
+        0,
+        2,
+        2,
+        3,
+        0,
+        0,
+        1,
+        0,
+        3,
+        2,
+        0,
+        1,
+        5,
+        5,
+        0,
+        5,
+        0,
+        0,
+        0,
+        4,
+        4,
+        5,
+        7,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@ai-rpg-engine/image-gen",
+      "week": 18,
+      "month": 116,
+      "day": 0,
+      "total": 0,
+      "trendPct": -41.935483870967744,
+      "last7": 18,
+      "prev7": 31,
+      "delta7": -13,
+      "range30": [
+        0,
+        1,
+        1,
+        10,
+        4,
+        16,
+        1,
+        4,
+        10,
         3,
         1,
-        7,
+        0,
+        4,
+        10,
+        0,
+        2,
         3,
+        0,
+        0,
+        6,
+        0,
+        6,
         16,
         3,
-        15,
         0,
-        10,
-        0,
-        2,
         7,
-        9,
-        2,
-        2,
-        5,
-        1,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@mcptoolshop/xrpl-lab",
-      "week": 25,
-      "month": 74,
-      "day": 0,
-      "total": 0,
-      "trendPct": 47.05882352941176,
-      "last7": 25,
-      "prev7": 17,
-      "delta7": 8,
-      "range30": [
-        0,
-        0,
-        0,
-        0,
         4,
         1,
-        7,
-        0,
-        0,
         3,
-        3,
-        2,
-        0,
-        0,
-        7,
-        1,
-        5,
-        2,
-        7,
-        0,
-        3,
-        0,
-        0,
-        6,
-        6,
-        2,
-        1,
-        8,
-        2,
         0
       ],
       "extra": null
     },
     {
       "registry": "npm",
-      "name": "@ai-rpg-engine/soundpack-core",
-      "week": 24,
-      "month": 293,
+      "name": "@mcptoolshop/shipcheck",
+      "week": 18,
+      "month": 108,
       "day": 0,
       "total": 0,
-      "trendPct": -88.17733990147784,
-      "last7": 24,
-      "prev7": 203,
-      "delta7": -179,
+      "trendPct": -35.714285714285715,
+      "last7": 18,
+      "prev7": 28,
+      "delta7": -10,
       "range30": [
-        0,
-        0,
-        0,
-        1,
-        13,
-        1,
-        10,
-        1,
-        3,
-        8,
-        10,
-        1,
         2,
+        6,
+        1,
+        4,
+        1,
+        1,
         0,
+        2,
+        4,
+        6,
+        1,
         12,
+        2,
+        4,
+        2,
+        7,
+        4,
+        5,
+        8,
+        0,
+        4,
+        0,
+        7,
         3,
+        1,
+        2,
+        5,
+        1,
+        6,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@mcptoolshop/vocal-synth-engine",
+      "week": 17,
+      "month": 166,
+      "day": 0,
+      "total": 0,
+      "trendPct": 183.33333333333331,
+      "last7": 17,
+      "prev7": 6,
+      "delta7": 11,
+      "range30": [
+        11,
+        6,
+        4,
+        5,
+        0,
+        2,
+        0,
+        1,
+        2,
+        4,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        0,
+        4,
+        0,
+        0,
+        1,
+        0,
+        4,
+        0,
+        1,
+        4,
+        3,
+        5,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@mcptoolshop/xrpl-camp",
+      "week": 17,
+      "month": 86,
+      "day": 0,
+      "total": 0,
+      "trendPct": -48.484848484848484,
+      "last7": 17,
+      "prev7": 33,
+      "delta7": -16,
+      "range30": [
+        1,
+        0,
+        0,
+        4,
+        1,
+        7,
+        0,
         3,
         4,
-        156,
-        22,
+        3,
+        0,
+        0,
+        0,
+        4,
+        2,
+        4,
         2,
         11,
-        5,
-        13,
-        0,
-        3,
+        8,
         2,
-        5,
         1,
+        4,
+        5,
+        4,
+        0,
+        1,
+        6,
+        1,
+        5,
         0
       ],
       "extra": null
@@ -1579,16 +1863,15 @@
     {
       "registry": "npm",
       "name": "@ai-rpg-engine/asset-registry",
-      "week": 24,
-      "month": 136,
+      "week": 16,
+      "month": 140,
       "day": 0,
       "total": 0,
-      "trendPct": -54.71698113207547,
-      "last7": 24,
-      "prev7": 53,
-      "delta7": -29,
+      "trendPct": -75,
+      "last7": 16,
+      "prev7": 64,
+      "delta7": -48,
       "range30": [
-        1,
         0,
         0,
         1,
@@ -1617,155 +1900,7 @@
         5,
         5,
         1,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@mcptoolshop/escape-the-valley",
-      "week": 24,
-      "month": 63,
-      "day": 0,
-      "total": 0,
-      "trendPct": 50,
-      "last7": 24,
-      "prev7": 16,
-      "delta7": 8,
-      "range30": [
-        0,
-        0,
-        3,
-        0,
-        2,
-        0,
-        1,
-        0,
-        2,
-        3,
-        3,
-        0,
-        2,
-        1,
         5,
-        1,
-        3,
-        1,
-        0,
-        0,
-        5,
-        7,
-        0,
-        4,
-        7,
-        1,
-        5,
-        6,
-        1,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "pypi",
-      "name": "backpropagate",
-      "week": 20,
-      "month": 1118,
-      "day": 0,
-      "total": 2594,
-      "trendPct": null,
-      "last7": null,
-      "prev7": null,
-      "delta7": null,
-      "range30": null,
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@mcptoolshop/registry-stats",
-      "week": 20,
-      "month": 228,
-      "day": 0,
-      "total": 0,
-      "trendPct": -77.77777777777779,
-      "last7": 20,
-      "prev7": 90,
-      "delta7": -70,
-      "range30": [
-        4,
-        0,
-        1,
-        1,
-        22,
-        2,
-        30,
-        0,
-        2,
-        19,
-        4,
-        0,
-        1,
-        2,
-        6,
-        5,
-        26,
-        4,
-        40,
-        19,
-        0,
-        1,
-        0,
-        6,
-        6,
-        1,
-        1,
-        4,
-        2,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@mcptoolshop/shipcheck",
-      "week": 19,
-      "month": 115,
-      "day": 0,
-      "total": 0,
-      "trendPct": -32.142857142857146,
-      "last7": 19,
-      "prev7": 28,
-      "delta7": -9,
-      "range30": [
-        7,
-        2,
-        6,
-        1,
-        4,
-        1,
-        1,
-        0,
-        2,
-        4,
-        6,
-        1,
-        12,
-        2,
-        4,
-        2,
-        7,
-        4,
-        5,
-        8,
-        0,
-        4,
-        0,
-        7,
-        3,
-        1,
-        2,
-        5,
-        1,
         0
       ],
       "extra": null
@@ -1773,16 +1908,15 @@
     {
       "registry": "npm",
       "name": "@mcptoolshop/websketch-ir",
-      "week": 18,
-      "month": 102,
+      "week": 16,
+      "month": 105,
       "day": 0,
       "total": 0,
-      "trendPct": -52.63157894736842,
-      "last7": 18,
-      "prev7": 38,
-      "delta7": -20,
+      "trendPct": -44.827586206896555,
+      "last7": 16,
+      "prev7": 29,
+      "delta7": -13,
       "range30": [
-        1,
         1,
         0,
         9,
@@ -1811,6 +1945,7 @@
         3,
         5,
         1,
+        3,
         0
       ],
       "extra": null
@@ -1818,16 +1953,15 @@
     {
       "registry": "npm",
       "name": "@ai-rpg-engine/campaign-memory",
-      "week": 17,
-      "month": 318,
+      "week": 14,
+      "month": 321,
       "day": 0,
       "total": 0,
-      "trendPct": -92.85714285714286,
-      "last7": 17,
-      "prev7": 238,
-      "delta7": -221,
+      "trendPct": -94.23868312757202,
+      "last7": 14,
+      "prev7": 243,
+      "delta7": -229,
       "range30": [
-        0,
         0,
         0,
         2,
@@ -1856,366 +1990,52 @@
         3,
         4,
         1,
+        5,
         0
       ],
       "extra": null
     },
     {
       "registry": "npm",
-      "name": "@mcptoolshop/xrpl-camp",
-      "week": 17,
-      "month": 84,
+      "name": "@ai-rpg-engine/soundpack-core",
+      "week": 14,
+      "month": 295,
       "day": 0,
       "total": 0,
-      "trendPct": -46.875,
-      "last7": 17,
-      "prev7": 32,
-      "delta7": -15,
+      "trendPct": -93.42723004694837,
+      "last7": 14,
+      "prev7": 213,
+      "delta7": -199,
       "range30": [
-        3,
+        0,
+        0,
         1,
-        0,
-        0,
-        4,
+        13,
         1,
-        7,
-        0,
+        10,
+        1,
         3,
-        4,
-        3,
-        0,
-        0,
-        0,
-        4,
-        2,
-        4,
-        2,
-        11,
         8,
+        10,
+        1,
         2,
-        1,
-        4,
-        5,
-        4,
         0,
-        1,
-        6,
-        1,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@mcptoolshop/claude-sfx",
-      "week": 16,
-      "month": 116,
-      "day": 0,
-      "total": 0,
-      "trendPct": -68.62745098039215,
-      "last7": 16,
-      "prev7": 51,
-      "delta7": -35,
-      "range30": [
-        1,
-        0,
-        5,
-        2,
-        9,
-        0,
-        15,
-        0,
-        0,
-        11,
-        3,
-        0,
-        1,
-        0,
-        0,
-        1,
         12,
-        1,
-        18,
-        13,
-        0,
+        3,
         3,
         4,
-        5,
-        0,
-        0,
-        3,
-        6,
-        2,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@mcptoolshop/claude-guardian",
-      "week": 15,
-      "month": 82,
-      "day": 0,
-      "total": 0,
-      "trendPct": -57.14285714285714,
-      "last7": 15,
-      "prev7": 35,
-      "delta7": -20,
-      "range30": [
-        1,
-        1,
-        0,
-        2,
-        7,
-        0,
-        3,
-        1,
-        0,
-        6,
-        3,
-        1,
-        3,
-        1,
-        0,
-        1,
-        8,
-        1,
-        11,
-        10,
-        0,
-        5,
-        0,
-        5,
-        0,
-        0,
-        3,
-        6,
-        1,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@ai-rpg-engine/rumor-system",
-      "week": 13,
-      "month": 278,
-      "day": 0,
-      "total": 0,
-      "trendPct": -93.77990430622009,
-      "last7": 13,
-      "prev7": 209,
-      "delta7": -196,
-      "range30": [
-        0,
-        0,
-        0,
-        1,
-        9,
-        1,
-        17,
-        2,
-        3,
-        8,
-        3,
-        2,
-        0,
-        0,
-        10,
-        0,
-        2,
-        6,
-        163,
+        156,
         22,
-        1,
+        2,
         11,
-        4,
-        6,
-        0,
-        0,
-        2,
-        4,
-        1,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@mcptoolshop/brand",
-      "week": 13,
-      "month": 188,
-      "day": 0,
-      "total": 0,
-      "trendPct": 44.44444444444444,
-      "last7": 13,
-      "prev7": 9,
-      "delta7": 4,
-      "range30": [
-        129,
         5,
-        3,
-        7,
-        4,
-        1,
-        1,
-        0,
-        2,
-        2,
-        3,
-        1,
-        2,
-        1,
-        4,
-        1,
-        3,
-        0,
-        0,
-        0,
-        2,
-        4,
-        0,
-        4,
-        1,
-        0,
-        3,
-        4,
-        1,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@mcptoolshop/synthesis",
-      "week": 13,
-      "month": 48,
-      "day": 0,
-      "total": 0,
-      "trendPct": -27.77777777777778,
-      "last7": 13,
-      "prev7": 18,
-      "delta7": -5,
-      "range30": [
-        0,
-        0,
-        0,
-        0,
-        2,
-        0,
-        3,
-        0,
-        2,
-        2,
-        3,
-        0,
-        0,
-        1,
-        0,
-        3,
-        2,
-        0,
-        1,
-        5,
-        5,
-        0,
-        5,
-        0,
-        0,
-        0,
-        4,
-        4,
-        5,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@mcptoolshop/vocal-synth-engine",
-      "week": 12,
-      "month": 161,
-      "day": 0,
-      "total": 0,
-      "trendPct": 71.42857142857143,
-      "last7": 12,
-      "prev7": 7,
-      "delta7": 5,
-      "range30": [
-        106,
-        11,
-        6,
-        4,
-        5,
-        0,
-        2,
-        0,
-        1,
-        2,
-        4,
-        0,
-        0,
-        0,
-        0,
-        1,
-        1,
-        1,
-        0,
-        4,
-        0,
-        0,
-        1,
-        0,
-        4,
-        0,
-        1,
-        4,
-        3,
-        0
-      ],
-      "extra": null
-    },
-    {
-      "registry": "npm",
-      "name": "@mcptoolshop/civility-kernel",
-      "week": 12,
-      "month": 88,
-      "day": 0,
-      "total": 0,
-      "trendPct": -71.42857142857143,
-      "last7": 12,
-      "prev7": 42,
-      "delta7": -30,
-      "range30": [
-        0,
-        1,
-        1,
-        0,
-        6,
-        0,
-        3,
-        1,
-        0,
-        6,
-        3,
-        2,
-        2,
-        1,
-        7,
-        1,
-        9,
-        1,
-        10,
         13,
-        8,
-        1,
         0,
+        3,
+        2,
         5,
-        0,
         1,
-        1,
-        4,
-        1,
+        3,
         0
       ],
       "extra": null
@@ -2223,16 +2043,15 @@
     {
       "registry": "npm",
       "name": "@mcptoolshop/ai-jam-sessions",
-      "week": 11,
-      "month": 157,
+      "week": 14,
+      "month": 160,
       "day": 0,
       "total": 0,
-      "trendPct": -26.666666666666668,
-      "last7": 11,
-      "prev7": 15,
-      "delta7": -4,
+      "trendPct": 0,
+      "last7": 14,
+      "prev7": 14,
+      "delta7": 0,
       "range30": [
-        0,
         0,
         0,
         108,
@@ -2261,51 +2080,277 @@
         3,
         5,
         3,
+        3,
         0
       ],
       "extra": null
     },
     {
       "registry": "npm",
-      "name": "@mcptoolshop/repomesh",
-      "week": 11,
-      "month": 44,
+      "name": "@mcptoolshop/claude-sfx",
+      "week": 14,
+      "month": 118,
       "day": 0,
       "total": 0,
-      "trendPct": 37.5,
-      "last7": 11,
-      "prev7": 8,
-      "delta7": 3,
+      "trendPct": -68.18181818181817,
+      "last7": 14,
+      "prev7": 44,
+      "delta7": -30,
       "range30": [
+        0,
+        5,
+        2,
+        9,
+        0,
+        15,
+        0,
+        0,
+        11,
+        3,
+        0,
+        1,
+        0,
+        0,
+        1,
+        12,
+        1,
+        18,
+        13,
+        0,
+        3,
+        4,
+        5,
+        0,
+        0,
+        3,
+        6,
+        2,
+        3,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@mcptoolshop/claude-guardian",
+      "week": 14,
+      "month": 84,
+      "day": 0,
+      "total": 0,
+      "trendPct": -56.25,
+      "last7": 14,
+      "prev7": 32,
+      "delta7": -18,
+      "range30": [
+        1,
+        0,
+        2,
+        7,
+        0,
+        3,
+        1,
+        0,
+        6,
+        3,
+        1,
+        3,
+        1,
+        0,
+        1,
+        8,
+        1,
+        11,
+        10,
+        0,
+        5,
+        0,
+        5,
+        0,
+        0,
+        3,
+        6,
+        1,
+        4,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@ai-rpg-engine/rumor-system",
+      "week": 12,
+      "month": 283,
+      "day": 0,
+      "total": 0,
+      "trendPct": -94.36619718309859,
+      "last7": 12,
+      "prev7": 213,
+      "delta7": -201,
+      "range30": [
+        0,
+        0,
+        1,
+        9,
+        1,
+        17,
+        2,
+        3,
+        8,
+        3,
+        2,
+        0,
+        0,
+        10,
+        0,
+        2,
+        6,
+        163,
+        22,
+        1,
+        11,
+        4,
+        6,
+        0,
+        0,
+        2,
+        4,
+        1,
+        5,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@mcptoolshop/brand",
+      "week": 12,
+      "month": 191,
+      "day": 0,
+      "total": 0,
+      "trendPct": 20,
+      "last7": 12,
+      "prev7": 10,
+      "delta7": 2,
+      "range30": [
+        5,
+        3,
+        7,
+        4,
+        1,
+        1,
+        0,
+        2,
+        2,
+        3,
+        1,
+        2,
+        1,
+        4,
+        1,
+        3,
         0,
         0,
         0,
         2,
+        4,
+        0,
+        4,
+        1,
+        0,
         3,
+        4,
+        1,
+        3,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@mcptoolshop/civility-kernel",
+      "week": 12,
+      "month": 93,
+      "day": 0,
+      "total": 0,
+      "trendPct": -68.42105263157895,
+      "last7": 12,
+      "prev7": 38,
+      "delta7": -26,
+      "range30": [
+        1,
+        1,
+        0,
+        6,
+        0,
+        3,
+        1,
+        0,
+        6,
+        3,
+        2,
+        2,
+        1,
+        7,
+        1,
+        9,
+        1,
+        10,
+        13,
+        8,
+        1,
         0,
         5,
         0,
         1,
+        1,
+        4,
+        1,
+        5,
+        0
+      ],
+      "extra": null
+    },
+    {
+      "registry": "npm",
+      "name": "@mcptoolshop/registry-sync",
+      "week": 11,
+      "month": 57,
+      "day": 0,
+      "total": 0,
+      "trendPct": -31.25,
+      "last7": 11,
+      "prev7": 16,
+      "delta7": -5,
+      "range30": [
         2,
-        3,
+        2,
+        0,
+        1,
+        2,
+        4,
         0,
         0,
         1,
-        7,
-        1,
-        2,
-        0,
-        0,
-        0,
         6,
-        0,
-        0,
-        4,
-        0,
-        0,
         1,
-        4,
         2,
+        1,
+        6,
+        1,
+        1,
+        1,
+        5,
+        4,
+        5,
+        1,
+        0,
+        0,
+        0,
+        0,
+        3,
+        4,
+        1,
+        3,
         0
       ],
       "extra": null
@@ -2314,8 +2359,8 @@
       "registry": "pypi",
       "name": "mcpt",
       "week": 10,
-      "month": 572,
-      "day": 4,
+      "month": 561,
+      "day": 0,
       "total": 2945,
       "trendPct": null,
       "last7": null,
@@ -2327,10 +2372,10 @@
     {
       "registry": "pypi",
       "name": "tool-compass",
-      "week": 8,
-      "month": 236,
-      "day": 3,
-      "total": 1289,
+      "week": 10,
+      "month": 155,
+      "day": 2,
+      "total": 1291,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -2341,10 +2386,10 @@
     {
       "registry": "pypi",
       "name": "audiobooker-ai",
-      "week": 8,
+      "week": 9,
       "month": 74,
-      "day": 5,
-      "total": 334,
+      "day": 2,
+      "total": 336,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -2353,57 +2398,40 @@
       "extra": null
     },
     {
-      "registry": "npm",
-      "name": "@mcptoolshop/registry-sync",
+      "registry": "pypi",
+      "name": "comfy-headless",
       "week": 8,
-      "month": 54,
-      "day": 0,
-      "total": 0,
-      "trendPct": -52.94117647058824,
-      "last7": 8,
-      "prev7": 17,
-      "delta7": -9,
-      "range30": [
-        0,
-        2,
-        2,
-        0,
-        1,
-        2,
-        4,
-        0,
-        0,
-        1,
-        6,
-        1,
-        2,
-        1,
-        6,
-        1,
-        1,
-        1,
-        5,
-        4,
-        5,
-        1,
-        0,
-        0,
-        0,
-        0,
-        3,
-        4,
-        1,
-        0
-      ],
+      "month": 93,
+      "day": 1,
+      "total": 569,
+      "trendPct": null,
+      "last7": null,
+      "prev7": null,
+      "delta7": null,
+      "range30": null,
       "extra": null
     },
     {
       "registry": "pypi",
-      "name": "comfy-headless",
+      "name": "xrpl-camp",
+      "week": 8,
+      "month": 85,
+      "day": 6,
+      "total": 429,
+      "trendPct": null,
+      "last7": null,
+      "prev7": null,
+      "delta7": null,
+      "range30": null,
+      "extra": null
+    },
+    {
+      "registry": "pypi",
+      "name": "polyglot-gpu",
       "week": 7,
-      "month": 94,
-      "day": 0,
-      "total": 568,
+      "month": 127,
+      "day": 7,
+      "total": 600,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -2415,7 +2443,7 @@
       "registry": "pypi",
       "name": "tool-scan",
       "week": 7,
-      "month": 90,
+      "month": 87,
       "day": 0,
       "total": 888,
       "trendPct": null,
@@ -2427,23 +2455,9 @@
     },
     {
       "registry": "pypi",
-      "name": "mcp-stress-test",
-      "week": 7,
-      "month": 83,
-      "day": 1,
-      "total": 546,
-      "trendPct": null,
-      "last7": null,
-      "prev7": null,
-      "delta7": null,
-      "range30": null,
-      "extra": null
-    },
-    {
-      "registry": "pypi",
       "name": "mcp-bouncer",
-      "week": 6,
-      "month": 57,
+      "week": 4,
+      "month": 53,
       "day": 0,
       "total": 453,
       "trendPct": null,
@@ -2456,8 +2470,8 @@
     {
       "registry": "pypi",
       "name": "sovereignty-game",
-      "week": 4,
-      "month": 154,
+      "week": 3,
+      "month": 131,
       "day": 0,
       "total": 816,
       "trendPct": null,
@@ -2469,53 +2483,25 @@
     },
     {
       "registry": "pypi",
+      "name": "mcp-stress-test",
+      "week": 3,
+      "month": 76,
+      "day": 1,
+      "total": 547,
+      "trendPct": null,
+      "last7": null,
+      "prev7": null,
+      "delta7": null,
+      "range30": null,
+      "extra": null
+    },
+    {
+      "registry": "pypi",
       "name": "nullout-mcp",
-      "week": 3,
+      "week": 2,
       "month": 69,
-      "day": 0,
-      "total": 333,
-      "trendPct": null,
-      "last7": null,
-      "prev7": null,
-      "delta7": null,
-      "range30": null,
-      "extra": null
-    },
-    {
-      "registry": "pypi",
-      "name": "venvkit",
-      "week": 3,
-      "month": 52,
-      "day": 0,
-      "total": 176,
-      "trendPct": null,
-      "last7": null,
-      "prev7": null,
-      "delta7": null,
-      "range30": null,
-      "extra": null
-    },
-    {
-      "registry": "pypi",
-      "name": "xrpl-camp",
-      "week": 2,
-      "month": 82,
-      "day": 0,
-      "total": 423,
-      "trendPct": null,
-      "last7": null,
-      "prev7": null,
-      "delta7": null,
-      "range30": null,
-      "extra": null
-    },
-    {
-      "registry": "pypi",
-      "name": "nexus-router-adapter-http",
-      "week": 2,
-      "month": 2,
-      "day": 0,
-      "total": 472,
+      "day": 1,
+      "total": 334,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -2526,10 +2512,10 @@
     {
       "registry": "pypi",
       "name": "escape-the-valley",
-      "week": 1,
+      "week": 2,
       "month": 47,
-      "day": 0,
-      "total": 197,
+      "day": 1,
+      "total": 198,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -2553,11 +2539,11 @@
     },
     {
       "registry": "pypi",
-      "name": "nexus-router-adapter-stdout",
+      "name": "mcp-kv-context",
       "week": 1,
-      "month": 3,
-      "day": 0,
-      "total": 492,
+      "month": 2,
+      "day": 1,
+      "total": 166,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -2570,22 +2556,8 @@
       "name": "voice-soundboard",
       "week": 1,
       "month": 1,
-      "day": 1,
-      "total": 1224,
-      "trendPct": null,
-      "last7": null,
-      "prev7": null,
-      "delta7": null,
-      "range30": null,
-      "extra": null
-    },
-    {
-      "registry": "pypi",
-      "name": "polyglot-gpu",
-      "week": 0,
-      "month": 125,
       "day": 0,
-      "total": 593,
+      "total": 1224,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -2597,7 +2569,7 @@
       "registry": "pypi",
       "name": "file-compass",
       "week": 0,
-      "month": 75,
+      "month": 74,
       "day": 0,
       "total": 915,
       "trendPct": null,
@@ -2609,11 +2581,11 @@
     },
     {
       "registry": "pypi",
-      "name": "a11y-ci",
+      "name": "venvkit",
       "week": 0,
-      "month": 5,
+      "month": 52,
       "day": 0,
-      "total": 1285,
+      "total": 176,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -2628,6 +2600,20 @@
       "month": 4,
       "day": 0,
       "total": 1303,
+      "trendPct": null,
+      "last7": null,
+      "prev7": null,
+      "delta7": null,
+      "range30": null,
+      "extra": null
+    },
+    {
+      "registry": "pypi",
+      "name": "a11y-ci",
+      "week": 0,
+      "month": 4,
+      "day": 0,
+      "total": 1285,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -2665,6 +2651,20 @@
     },
     {
       "registry": "pypi",
+      "name": "nexus-router-adapter-stdout",
+      "week": 0,
+      "month": 3,
+      "day": 0,
+      "total": 492,
+      "trendPct": null,
+      "last7": null,
+      "prev7": null,
+      "delta7": null,
+      "range30": null,
+      "extra": null
+    },
+    {
+      "registry": "pypi",
       "name": "headless-wheel-builder",
       "week": 0,
       "month": 2,
@@ -2684,6 +2684,20 @@
       "month": 2,
       "day": 0,
       "total": 681,
+      "trendPct": null,
+      "last7": null,
+      "prev7": null,
+      "delta7": null,
+      "range30": null,
+      "extra": null
+    },
+    {
+      "registry": "pypi",
+      "name": "nexus-router-adapter-http",
+      "week": 0,
+      "month": 2,
+      "day": 0,
+      "total": 472,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -2749,20 +2763,6 @@
     },
     {
       "registry": "pypi",
-      "name": "mcp-kv-context",
-      "week": 0,
-      "month": 1,
-      "day": 0,
-      "total": 165,
-      "trendPct": null,
-      "last7": null,
-      "prev7": null,
-      "delta7": null,
-      "range30": null,
-      "extra": null
-    },
-    {
-      "registry": "pypi",
       "name": "flexiflow",
       "week": 0,
       "month": 0,
@@ -2781,7 +2781,7 @@
       "week": 0,
       "month": 0,
       "day": 0,
-      "total": 668,
+      "total": 669,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -2961,7 +2961,7 @@
       "week": 0,
       "month": 0,
       "day": 0,
-      "total": 439,
+      "total": 443,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -3039,7 +3039,7 @@
       "week": 0,
       "month": 0,
       "day": 0,
-      "total": 397,
+      "total": 398,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -3165,7 +3165,7 @@
       "week": 0,
       "month": 0,
       "day": 0,
-      "total": 352,
+      "total": 353,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -3181,7 +3181,7 @@
       "week": 0,
       "month": 0,
       "day": 0,
-      "total": 347,
+      "total": 348,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -3230,7 +3230,7 @@
       "week": 0,
       "month": 0,
       "day": 0,
-      "total": 274,
+      "total": 275,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -3246,7 +3246,7 @@
       "week": 0,
       "month": 0,
       "day": 0,
-      "total": 257,
+      "total": 259,
       "trendPct": null,
       "last7": null,
       "prev7": null,
@@ -4701,11 +4701,42 @@
       "month": 0,
       "day": 0,
       "total": 0,
-      "trendPct": null,
-      "last7": null,
-      "prev7": null,
-      "delta7": null,
-      "range30": null,
+      "trendPct": 0,
+      "last7": 0,
+      "prev7": 0,
+      "delta7": 0,
+      "range30": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
       "extra": null
     },
     {
@@ -4760,11 +4791,42 @@
       "month": 0,
       "day": 0,
       "total": 0,
-      "trendPct": null,
-      "last7": null,
-      "prev7": null,
-      "delta7": null,
-      "range30": null,
+      "trendPct": 0,
+      "last7": 0,
+      "prev7": 0,
+      "delta7": 0,
+      "range30": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
       "extra": null
     },
     {
@@ -5444,7 +5506,6 @@
     }
   ],
   "sparkline30": [
-    454,
     86,
     138,
     392,
@@ -5473,24 +5534,17 @@
     326,
     421,
     303,
+    1013,
     0
   ],
   "errors": [
     {
       "scope": "npm.bulk",
-      "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-05-15:2026-06-14/%40mcptoolshop%2Fsovereignty"
+      "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-05-16:2026-06-15/%40mcptoolshop%2Fsovereignty"
     },
     {
       "scope": "npm:@mcptoolshop/backprop",
-      "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-05-15:2026-06-14/%40mcptoolshop%2Fbackprop"
-    },
-    {
-      "scope": "npm.range:@attestia/verify",
-      "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-05-15:2026-06-14/%40attestia%2Fverify"
-    },
-    {
-      "scope": "npm.range:@attestia/ledger",
-      "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-05-15:2026-06-14/%40attestia%2Fledger"
+      "message": "[npm] Too Many Requests: https://api.npmjs.org/downloads/range/2026-05-16:2026-06-15/%40mcptoolshop%2Fbackprop"
     }
   ],
   "history": {
@@ -5509,68 +5563,68 @@
         "updatedAt": "2026-03-19T18:03:10.097Z"
       },
       {
-        "week": "2026-W24",
-        "totalWeek": 2008,
-        "totalMonth": 16425,
+        "week": "2026-W25",
+        "totalWeek": 2465,
+        "totalMonth": 16942,
         "packages": 168,
         "registries": {
-          "npm": 1917,
-          "pypi": 91,
+          "npm": 2362,
+          "pypi": 103,
           "vscode": 0,
           "nuget": 0
         },
-        "updatedAt": "2026-06-14T15:33:10.544Z"
+        "updatedAt": "2026-06-15T08:28:02.381Z"
       }
     ],
     "packageCount": 168,
-    "lastUpdated": "2026-06-14T15:33:10.544Z"
+    "lastUpdated": "2026-06-15T08:28:02.381Z"
   },
   "inference": {
     "forecastTotal7": [
-      124,
-      119,
-      116,
-      116,
-      113,
-      113,
-      114
+      331,
+      343,
+      361,
+      376,
+      392,
+      409,
+      431
     ],
-    "riskScore": 30,
-    "portfolioMomentum": 1,
-    "diversityTrend": "declining",
+    "riskScore": 29,
+    "portfolioMomentum": 25,
+    "diversityTrend": "stable",
     "recommendations": [
       {
         "type": "risk",
         "priority": "medium",
         "title": "High portfolio concentration",
-        "detail": "Gini coefficient 0.80 indicates downloads are heavily concentrated in a few packages. Diversify promotion efforts across the portfolio.",
-        "metric": "Gini: 0.80"
+        "detail": "Gini coefficient 0.84 indicates downloads are heavily concentrated in a few packages. Diversify promotion efforts across the portfolio.",
+        "metric": "Gini: 0.84"
       },
       {
         "type": "risk",
         "priority": "medium",
         "title": "Heavy npm dependency",
-        "detail": "95% of downloads come from npm. Consider cross-publishing to PyPI and NuGet to reduce single-registry risk.",
-        "metric": "npm share: 95%"
+        "detail": "96% of downloads come from npm. Consider cross-publishing to PyPI and NuGet to reduce single-registry risk.",
+        "metric": "npm share: 96%"
       },
       {
         "type": "opportunity",
         "priority": "medium",
-        "title": "1 package gaining traction",
-        "detail": "@mcptoolshop/site-theme show organic growth with download spikes. Capitalize with blog posts, social media, or conference talks.",
-        "metric": "Best momentum: 52"
+        "title": "4 packages gaining traction",
+        "detail": "@mcptoolshop/registry-stats, @mcptoolshop/repomesh, @mcptoolshop/site-theme show organic growth with download spikes. Capitalize with blog posts, social media, or conference talks.",
+        "metric": "Best momentum: 72"
       },
       {
         "type": "growth",
         "priority": "low",
-        "title": "3 packages predicted to grow",
-        "detail": "Statistical models predict >20% growth in the next 7 days for @mcptoolshop/site-theme, @mcptoolshop/synthesis, @mcptoolshop/repomesh."
+        "title": "6 packages predicted to grow",
+        "detail": "Statistical models predict >20% growth in the next 7 days for @mcptoolshop/registry-stats, @mcptoolshop/repomesh, @mcptoolshop/site-theme."
       },
       {
         "type": "attention",
         "priority": "low",
-        "title": "17 packages with repeated spikes",
-        "detail": "Multiple download spikes detected for @ai-rpg-engine/starter-zombie, @ai-rpg-engine/starter-weird-west, @ai-rpg-engine/core. Could indicate bot activity, viral posts, or dependency adoption."
+        "title": "12 packages with repeated spikes",
+        "detail": "Multiple download spikes detected for @mcptoolshop/registry-stats, @mcptoolshop/repomesh, @mcptoolshop/npm-launcher. Could indicate bot activity, viral posts, or dependency adoption."
       }
     ],
     "actionableAdvice": [
@@ -5578,7 +5632,7 @@
         "type": "attention",
         "severity": "critical",
         "urgency": "immediate",
-        "title": "77 packages in critical health",
+        "title": "75 packages in critical health",
         "detail": "backpropagate, mcpt, tool-compass, audiobooker-ai, comfy-headless scored below 20/100.",
         "action": "Review these packages for broken installs, outdated dependencies, or missing documentation. Consider archiving if no longer maintained.",
         "packages": [
@@ -5587,31 +5641,31 @@
           "tool-compass",
           "audiobooker-ai",
           "comfy-headless",
+          "xrpl-camp",
+          "polyglot-gpu",
           "tool-scan",
-          "mcp-stress-test",
           "mcp-bouncer",
           "sovereignty-game",
+          "mcp-stress-test",
           "nullout-mcp",
-          "venvkit",
-          "xrpl-camp",
-          "nexus-router-adapter-http",
           "escape-the-valley",
           "payroll-engine",
-          "nexus-router-adapter-stdout",
+          "mcp-kv-context",
           "voice-soundboard",
-          "polyglot-gpu",
           "file-compass",
-          "a11y-ci",
+          "venvkit",
           "a11y-lint",
+          "a11y-ci",
           "voice-soundboard-plugin",
           "aspire-ai",
+          "nexus-router-adapter-stdout",
           "headless-wheel-builder",
           "integradio",
+          "nexus-router-adapter-http",
           "nexus-router",
           "zip-meta-map",
           "code-covered",
           "ally-demo-python",
-          "mcp-kv-context",
           "flexiflow",
           "MouseTrainer.Domain",
           "a11y-assist",
@@ -5656,20 +5710,21 @@
           "mcp-tool-shop.vscode-voice-soundboard",
           "mcp-tool-shop.registry-stats-vscode",
           "mcp-tool-shop.polyglot-vscode",
-          "mcp-tool-shop.websketch-vscode",
-          "@attestia/verify",
-          "@attestia/ledger"
+          "mcp-tool-shop.websketch-vscode"
         ]
       },
       {
         "type": "opportunity",
         "severity": "success",
         "urgency": "this-week",
-        "title": "1 package surging",
-        "detail": "@mcptoolshop/site-theme have strong positive momentum.",
+        "title": "4 packages surging",
+        "detail": "@mcptoolshop/registry-stats, @mcptoolshop/repomesh, @mcptoolshop/site-theme have strong positive momentum.",
         "action": "Capitalize now: write a blog post, tweet, or submit to newsletters. Post a \"Thank you\" issue or discussion.",
         "packages": [
-          "@mcptoolshop/site-theme"
+          "@mcptoolshop/registry-stats",
+          "@mcptoolshop/repomesh",
+          "@mcptoolshop/site-theme",
+          "@mcptoolshop/xrpl-lab"
         ]
       },
       {
@@ -5677,46 +5732,66 @@
         "severity": "info",
         "urgency": "this-month",
         "title": "Portfolio concentration risk",
-        "detail": "Gini coefficient 0.80 — downloads are concentrated in a few packages.",
+        "detail": "Gini coefficient 0.84 — downloads are concentrated in a few packages.",
         "action": "Promote underperforming packages in README badges, blog posts, and release notes of popular packages.",
-        "metric": "Gini: 0.80"
+        "metric": "Gini: 0.84"
       },
       {
         "type": "risk",
         "severity": "info",
         "urgency": "this-month",
-        "title": "95% of traffic from npm",
+        "title": "96% of traffic from npm",
         "detail": "Single-registry dependency increases blast radius if npm has outages or policy changes.",
         "action": "Cross-publish key packages to PyPI (via wrapper) or NuGet. Add install instructions for all registries in READMEs.",
-        "metric": "npm share: 95%"
-      },
-      {
-        "type": "opportunity",
-        "severity": "info",
-        "urgency": "this-month",
-        "title": "6 packages with untapped potential",
-        "detail": "@ai-rpg-engine/starter-pirate, @ai-rpg-engine/starter-colony, @ai-rpg-engine/starter-cyberpunk have active users but stalled growth.",
-        "action": "Add new features, improve docs, or create tutorials. Small efforts can shift these from D to C+ quickly.",
-        "packages": [
-          "@ai-rpg-engine/starter-pirate",
-          "@ai-rpg-engine/starter-colony",
-          "@ai-rpg-engine/starter-cyberpunk",
-          "@mcptoolshop/npm-launcher",
-          "@ai-rpg-engine/audio-director",
-          "@ai-rpg-engine/soundpack-core"
-        ]
+        "metric": "npm share: 96%"
       }
     ],
     "healthScores": [
       {
+        "name": "@mcptoolshop/registry-stats",
+        "registry": "npm",
+        "score": 48,
+        "grade": "C",
+        "components": {
+          "activity": 17,
+          "consistency": 0,
+          "growth": 22,
+          "stability": 9
+        }
+      },
+      {
+        "name": "@mcptoolshop/repomesh",
+        "registry": "npm",
+        "score": 53,
+        "grade": "C",
+        "components": {
+          "activity": 17,
+          "consistency": 0,
+          "growth": 19,
+          "stability": 17
+        }
+      },
+      {
         "name": "@mcptoolshop/site-theme",
         "registry": "npm",
-        "score": 52,
+        "score": 55,
+        "grade": "C",
+        "components": {
+          "activity": 17,
+          "consistency": 0,
+          "growth": 21,
+          "stability": 17
+        }
+      },
+      {
+        "name": "@mcptoolshop/xrpl-lab",
+        "registry": "npm",
+        "score": 54,
         "grade": "C",
         "components": {
           "activity": 16,
           "consistency": 0,
-          "growth": 19,
+          "growth": 21,
           "stability": 17
         }
       },
@@ -5733,51 +5808,15 @@
         }
       },
       {
-        "name": "@ai-rpg-engine/starter-fantasy",
+        "name": "@mcptoolshop/npm-launcher",
         "registry": "npm",
-        "score": 40,
-        "grade": "C",
-        "components": {
-          "activity": 13,
-          "consistency": 0,
-          "growth": 10,
-          "stability": 17
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/starter-pirate",
-        "registry": "npm",
-        "score": 39,
+        "score": 35,
         "grade": "D",
         "components": {
           "activity": 13,
           "consistency": 0,
-          "growth": 9,
-          "stability": 17
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/starter-colony",
-        "registry": "npm",
-        "score": 39,
-        "grade": "D",
-        "components": {
-          "activity": 13,
-          "consistency": 0,
-          "growth": 9,
-          "stability": 17
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/starter-zombie",
-        "registry": "npm",
-        "score": 41,
-        "grade": "C",
-        "components": {
-          "activity": 13,
-          "consistency": 0,
-          "growth": 11,
-          "stability": 17
+          "growth": 13,
+          "stability": 9
         }
       },
       {
@@ -5793,30 +5832,6 @@
         }
       },
       {
-        "name": "@ai-rpg-engine/starter-weird-west",
-        "registry": "npm",
-        "score": 50,
-        "grade": "C",
-        "components": {
-          "activity": 13,
-          "consistency": 0,
-          "growth": 12,
-          "stability": 25
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/core",
-        "registry": "npm",
-        "score": 31,
-        "grade": "D",
-        "components": {
-          "activity": 12,
-          "consistency": 0,
-          "growth": 10,
-          "stability": 9
-        }
-      },
-      {
         "name": "@world-forge/schema",
         "registry": "npm",
         "score": 53,
@@ -5829,14 +5844,14 @@
         }
       },
       {
-        "name": "@ai-rpg-engine/starter-cyberpunk",
+        "name": "@ai-rpg-engine/starter-zombie",
         "registry": "npm",
-        "score": 38,
-        "grade": "D",
+        "score": 40,
+        "grade": "C",
         "components": {
           "activity": 12,
           "consistency": 0,
-          "growth": 9,
+          "growth": 11,
           "stability": 17
         }
       },
@@ -5855,53 +5870,29 @@
       {
         "name": "@ai-rpg-engine/starter-detective",
         "registry": "npm",
-        "score": 39,
-        "grade": "D",
+        "score": 40,
+        "grade": "C",
         "components": {
           "activity": 12,
           "consistency": 0,
-          "growth": 10,
+          "growth": 11,
           "stability": 17
         }
       },
       {
         "name": "@world-forge/export-ai-rpg",
         "registry": "npm",
-        "score": 48,
+        "score": 49,
         "grade": "C",
         "components": {
           "activity": 12,
           "consistency": 0,
-          "growth": 11,
+          "growth": 12,
           "stability": 25
         }
       },
       {
-        "name": "@ai-rpg-engine/cli",
-        "registry": "npm",
-        "score": 43,
-        "grade": "C",
-        "components": {
-          "activity": 12,
-          "consistency": 0,
-          "growth": 14,
-          "stability": 17
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/character-profile",
-        "registry": "npm",
-        "score": 39,
-        "grade": "D",
-        "components": {
-          "activity": 12,
-          "consistency": 0,
-          "growth": 10,
-          "stability": 17
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/equipment",
+        "name": "@ai-rpg-engine/starter-fantasy",
         "registry": "npm",
         "score": 40,
         "grade": "C",
@@ -5913,39 +5904,51 @@
         }
       },
       {
-        "name": "@mcptoolshop/npm-launcher",
+        "name": "@ai-rpg-engine/starter-weird-west",
         "registry": "npm",
-        "score": 37,
-        "grade": "D",
-        "components": {
-          "activity": 11,
-          "consistency": 0,
-          "growth": 9,
-          "stability": 17
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/pack-registry",
-        "registry": "npm",
-        "score": 50,
+        "score": 48,
         "grade": "C",
         "components": {
-          "activity": 11,
+          "activity": 12,
           "consistency": 0,
-          "growth": 14,
+          "growth": 11,
           "stability": 25
         }
       },
       {
-        "name": "@ai-rpg-engine/modules",
+        "name": "@ai-rpg-engine/starter-pirate",
         "registry": "npm",
-        "score": 31,
+        "score": 40,
+        "grade": "C",
+        "components": {
+          "activity": 12,
+          "consistency": 0,
+          "growth": 11,
+          "stability": 17
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/starter-colony",
+        "registry": "npm",
+        "score": 39,
         "grade": "D",
         "components": {
           "activity": 11,
           "consistency": 0,
           "growth": 11,
-          "stability": 9
+          "stability": 17
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/core",
+        "registry": "npm",
+        "score": 38,
+        "grade": "D",
+        "components": {
+          "activity": 11,
+          "consistency": 0,
+          "growth": 10,
+          "stability": 17
         }
       },
       {
@@ -5961,43 +5964,7 @@
         }
       },
       {
-        "name": "@ai-rpg-engine/character-creation",
-        "registry": "npm",
-        "score": 38,
-        "grade": "D",
-        "components": {
-          "activity": 11,
-          "consistency": 0,
-          "growth": 10,
-          "stability": 17
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/terminal-ui",
-        "registry": "npm",
-        "score": 38,
-        "grade": "D",
-        "components": {
-          "activity": 11,
-          "consistency": 0,
-          "growth": 10,
-          "stability": 17
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/audio-director",
-        "registry": "npm",
-        "score": 37,
-        "grade": "D",
-        "components": {
-          "activity": 11,
-          "consistency": 0,
-          "growth": 9,
-          "stability": 17
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/ollama",
+        "name": "@ai-rpg-engine/equipment",
         "registry": "npm",
         "score": 40,
         "grade": "C",
@@ -6009,79 +5976,43 @@
         }
       },
       {
-        "name": "@mcptoolshop/sovereignty",
+        "name": "@ai-rpg-engine/character-profile",
         "registry": "npm",
-        "score": 33,
+        "score": 39,
         "grade": "D",
         "components": {
           "activity": 11,
           "consistency": 0,
-          "growth": 13,
-          "stability": 9
+          "growth": 11,
+          "stability": 17
         }
       },
       {
-        "name": "@ai-rpg-engine/image-gen",
+        "name": "@ai-rpg-engine/starter-cyberpunk",
         "registry": "npm",
-        "score": 42,
-        "grade": "C",
+        "score": 39,
+        "grade": "D",
         "components": {
           "activity": 11,
           "consistency": 0,
-          "growth": 14,
+          "growth": 11,
           "stability": 17
         }
       },
       {
-        "name": "@ai-rpg-engine/presentation",
+        "name": "@ai-rpg-engine/pack-registry",
         "registry": "npm",
-        "score": 49,
-        "grade": "C",
-        "components": {
-          "activity": 10,
-          "consistency": 1,
-          "growth": 13,
-          "stability": 25
-        }
-      },
-      {
-        "name": "@mcptoolshop/polyglot-mcp",
-        "registry": "npm",
-        "score": 48,
+        "score": 47,
         "grade": "C",
         "components": {
           "activity": 10,
           "consistency": 0,
-          "growth": 13,
+          "growth": 12,
           "stability": 25
         }
       },
       {
-        "name": "@mcptoolshop/xrpl-lab",
-        "registry": "npm",
-        "score": 43,
-        "grade": "C",
-        "components": {
-          "activity": 10,
-          "consistency": 1,
-          "growth": 15,
-          "stability": 17
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/soundpack-core",
-        "registry": "npm",
-        "score": 36,
-        "grade": "D",
-        "components": {
-          "activity": 10,
-          "consistency": 0,
-          "growth": 9,
-          "stability": 17
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/asset-registry",
+        "name": "@ai-rpg-engine/modules",
         "registry": "npm",
         "score": 38,
         "grade": "D",
@@ -6093,15 +6024,15 @@
         }
       },
       {
-        "name": "@mcptoolshop/escape-the-valley",
+        "name": "@ai-rpg-engine/character-creation",
         "registry": "npm",
-        "score": 34,
+        "score": 37,
         "grade": "D",
         "components": {
           "activity": 10,
-          "consistency": 1,
-          "growth": 14,
-          "stability": 9
+          "consistency": 0,
+          "growth": 10,
+          "stability": 17
         }
       },
       {
@@ -6117,14 +6048,122 @@
         }
       },
       {
-        "name": "@mcptoolshop/registry-stats",
+        "name": "@ai-rpg-engine/cli",
         "registry": "npm",
-        "score": 37,
+        "score": 38,
+        "grade": "D",
+        "components": {
+          "activity": 10,
+          "consistency": 0,
+          "growth": 11,
+          "stability": 17
+        }
+      },
+      {
+        "name": "@mcptoolshop/escape-the-valley",
+        "registry": "npm",
+        "score": 44,
+        "grade": "C",
+        "components": {
+          "activity": 10,
+          "consistency": 2,
+          "growth": 15,
+          "stability": 17
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/ollama",
+        "registry": "npm",
+        "score": 38,
+        "grade": "D",
+        "components": {
+          "activity": 10,
+          "consistency": 0,
+          "growth": 11,
+          "stability": 17
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/terminal-ui",
+        "registry": "npm",
+        "score": 38,
+        "grade": "D",
+        "components": {
+          "activity": 10,
+          "consistency": 0,
+          "growth": 11,
+          "stability": 17
+        }
+      },
+      {
+        "name": "@mcptoolshop/polyglot-mcp",
+        "registry": "npm",
+        "score": 48,
+        "grade": "C",
+        "components": {
+          "activity": 10,
+          "consistency": 0,
+          "growth": 13,
+          "stability": 25
+        }
+      },
+      {
+        "name": "@mcptoolshop/sovereignty",
+        "registry": "npm",
+        "score": 31,
+        "grade": "D",
+        "components": {
+          "activity": 10,
+          "consistency": 0,
+          "growth": 12,
+          "stability": 9
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/presentation",
+        "registry": "npm",
+        "score": 50,
+        "grade": "C",
+        "components": {
+          "activity": 10,
+          "consistency": 3,
+          "growth": 12,
+          "stability": 25
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/audio-director",
+        "registry": "npm",
+        "score": 38,
         "grade": "D",
         "components": {
           "activity": 9,
           "consistency": 0,
-          "growth": 11,
+          "growth": 12,
+          "stability": 17
+        }
+      },
+      {
+        "name": "@mcptoolshop/synthesis",
+        "registry": "npm",
+        "score": 40,
+        "grade": "C",
+        "components": {
+          "activity": 9,
+          "consistency": 0,
+          "growth": 14,
+          "stability": 17
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/image-gen",
+        "registry": "npm",
+        "score": 38,
+        "grade": "D",
+        "components": {
+          "activity": 9,
+          "consistency": 0,
+          "growth": 12,
           "stability": 17
         }
       },
@@ -6138,6 +6177,42 @@
           "consistency": 4,
           "growth": 13,
           "stability": 25
+        }
+      },
+      {
+        "name": "@mcptoolshop/vocal-synth-engine",
+        "registry": "npm",
+        "score": 42,
+        "grade": "C",
+        "components": {
+          "activity": 9,
+          "consistency": 0,
+          "growth": 16,
+          "stability": 17
+        }
+      },
+      {
+        "name": "@mcptoolshop/xrpl-camp",
+        "registry": "npm",
+        "score": 40,
+        "grade": "C",
+        "components": {
+          "activity": 9,
+          "consistency": 2,
+          "growth": 12,
+          "stability": 17
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/asset-registry",
+        "registry": "npm",
+        "score": 36,
+        "grade": "D",
+        "components": {
+          "activity": 9,
+          "consistency": 0,
+          "growth": 10,
+          "stability": 17
         }
       },
       {
@@ -6155,25 +6230,37 @@
       {
         "name": "@ai-rpg-engine/campaign-memory",
         "registry": "npm",
-        "score": 35,
+        "score": 36,
         "grade": "D",
         "components": {
-          "activity": 9,
+          "activity": 8,
           "consistency": 0,
-          "growth": 9,
+          "growth": 11,
           "stability": 17
         }
       },
       {
-        "name": "@mcptoolshop/xrpl-camp",
+        "name": "@ai-rpg-engine/soundpack-core",
         "registry": "npm",
-        "score": 40,
+        "score": 36,
+        "grade": "D",
+        "components": {
+          "activity": 8,
+          "consistency": 0,
+          "growth": 11,
+          "stability": 17
+        }
+      },
+      {
+        "name": "@mcptoolshop/ai-jam-sessions",
+        "registry": "npm",
+        "score": 46,
         "grade": "C",
         "components": {
-          "activity": 9,
-          "consistency": 2,
-          "growth": 12,
-          "stability": 17
+          "activity": 8,
+          "consistency": 0,
+          "growth": 13,
+          "stability": 25
         }
       },
       {
@@ -6182,9 +6269,9 @@
         "score": 37,
         "grade": "D",
         "components": {
-          "activity": 9,
+          "activity": 8,
           "consistency": 0,
-          "growth": 11,
+          "growth": 12,
           "stability": 17
         }
       },
@@ -6203,12 +6290,12 @@
       {
         "name": "@ai-rpg-engine/rumor-system",
         "registry": "npm",
-        "score": 34,
+        "score": 36,
         "grade": "D",
         "components": {
           "activity": 8,
           "consistency": 0,
-          "growth": 9,
+          "growth": 11,
           "stability": 17
         }
       },
@@ -6225,43 +6312,19 @@
         }
       },
       {
-        "name": "@mcptoolshop/synthesis",
-        "registry": "npm",
-        "score": 38,
-        "grade": "D",
-        "components": {
-          "activity": 8,
-          "consistency": 0,
-          "growth": 13,
-          "stability": 17
-        }
-      },
-      {
-        "name": "@mcptoolshop/vocal-synth-engine",
-        "registry": "npm",
-        "score": 41,
-        "grade": "C",
-        "components": {
-          "activity": 8,
-          "consistency": 0,
-          "growth": 16,
-          "stability": 17
-        }
-      },
-      {
         "name": "@mcptoolshop/civility-kernel",
         "registry": "npm",
-        "score": 20,
+        "score": 29,
         "grade": "D",
         "components": {
           "activity": 8,
           "consistency": 0,
-          "growth": 11,
-          "stability": 1
+          "growth": 12,
+          "stability": 9
         }
       },
       {
-        "name": "@mcptoolshop/ai-jam-sessions",
+        "name": "@mcptoolshop/registry-sync",
         "registry": "npm",
         "score": 46,
         "grade": "C",
@@ -6270,18 +6333,6 @@
           "consistency": 0,
           "growth": 13,
           "stability": 25
-        }
-      },
-      {
-        "name": "@mcptoolshop/repomesh",
-        "registry": "npm",
-        "score": 41,
-        "grade": "C",
-        "components": {
-          "activity": 8,
-          "consistency": 0,
-          "growth": 16,
-          "stability": 17
         }
       },
       {
@@ -6295,89 +6346,308 @@
           "growth": 0,
           "stability": 0
         }
-      },
-      {
-        "name": "tool-compass",
-        "registry": "pypi",
-        "score": 0,
-        "grade": "F",
-        "components": {
-          "activity": 0,
-          "consistency": 0,
-          "growth": 0,
-          "stability": 0
-        }
       }
     ],
     "packages": [
       {
-        "name": "@mcptoolshop/site-theme",
+        "name": "@mcptoolshop/registry-stats",
         "registry": "npm",
         "forecast7": [
           {
             "day": 1,
-            "predicted": 45,
+            "predicted": 85,
             "lower": 0,
-            "upper": 181
+            "upper": 351
           },
           {
             "day": 2,
-            "predicted": 48,
+            "predicted": 93,
             "lower": 0,
-            "upper": 199
+            "upper": 387
           },
           {
             "day": 3,
-            "predicted": 50,
+            "predicted": 101,
             "lower": 0,
-            "upper": 216
+            "upper": 424
           },
           {
             "day": 4,
-            "predicted": 53,
+            "predicted": 109,
             "lower": 0,
-            "upper": 234
+            "upper": 462
           },
           {
             "day": 5,
-            "predicted": 56,
+            "predicted": 117,
             "lower": 0,
-            "upper": 253
+            "upper": 500
           },
           {
             "day": 6,
-            "predicted": 58,
+            "predicted": 125,
             "lower": 0,
-            "upper": 271
+            "upper": 539
           },
           {
             "day": 7,
-            "predicted": 61,
+            "predicted": 133,
             "lower": 0,
-            "upper": 289
+            "upper": 578
           }
         ],
         "anomalies": [
           {
+            "day": 15,
+            "value": 26,
+            "expected": 7,
+            "zscore": 2,
+            "type": "spike"
+          },
+          {
+            "day": 17,
+            "value": 40,
+            "expected": 9,
+            "zscore": 3,
+            "type": "spike"
+          },
+          {
             "day": 28,
-            "value": 156,
-            "expected": 18,
-            "zscore": 11.4,
+            "value": 299,
+            "expected": 8,
+            "zscore": 24.5,
+            "type": "spike"
+          }
+        ],
+        "momentum": 72,
+        "seasonality": {
+          "dayOfWeek": [
+            61,
+            10,
+            4,
+            16,
+            6,
+            9,
+            2
+          ],
+          "peakDay": "Sun"
+        }
+      },
+      {
+        "name": "@mcptoolshop/repomesh",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 74,
+            "lower": 0,
+            "upper": 292
+          },
+          {
+            "day": 2,
+            "predicted": 81,
+            "lower": 0,
+            "upper": 322
+          },
+          {
+            "day": 3,
+            "predicted": 89,
+            "lower": 0,
+            "upper": 354
+          },
+          {
+            "day": 4,
+            "predicted": 96,
+            "lower": 0,
+            "upper": 386
+          },
+          {
+            "day": 5,
+            "predicted": 104,
+            "lower": 0,
+            "upper": 419
+          },
+          {
+            "day": 6,
+            "predicted": 111,
+            "lower": 0,
+            "upper": 451
+          },
+          {
+            "day": 7,
+            "predicted": 119,
+            "lower": 0,
+            "upper": 484
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 19,
+            "value": 6,
+            "expected": 2,
+            "zscore": 2.1,
+            "type": "spike"
+          },
+          {
+            "day": 28,
+            "value": 248,
+            "expected": 1,
+            "zscore": 126.5,
             "type": "spike"
           }
         ],
         "momentum": 52,
         "seasonality": {
           "dayOfWeek": [
-            7,
-            24,
+            50,
+            2,
+            1,
+            1,
+            0,
+            4,
+            2
+          ],
+          "peakDay": "Sun"
+        }
+      },
+      {
+        "name": "@mcptoolshop/site-theme",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 40,
+            "lower": 0,
+            "upper": 171
+          },
+          {
+            "day": 2,
+            "predicted": 42,
+            "lower": 0,
+            "upper": 187
+          },
+          {
+            "day": 3,
+            "predicted": 44,
+            "lower": 0,
+            "upper": 204
+          },
+          {
+            "day": 4,
+            "predicted": 46,
+            "lower": 0,
+            "upper": 220
+          },
+          {
+            "day": 5,
+            "predicted": 48,
+            "lower": 0,
+            "upper": 237
+          },
+          {
+            "day": 6,
+            "predicted": 50,
+            "lower": 0,
+            "upper": 255
+          },
+          {
+            "day": 7,
+            "predicted": 52,
+            "lower": 0,
+            "upper": 272
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 27,
+            "value": 156,
+            "expected": 18,
+            "zscore": 11.4,
+            "type": "spike"
+          }
+        ],
+        "momentum": 65,
+        "seasonality": {
+          "dayOfWeek": [
+            11,
+            19,
             31,
             18,
             17,
             18,
-            42
+            47
           ],
           "peakDay": "Sat"
+        }
+      },
+      {
+        "name": "@mcptoolshop/xrpl-lab",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 48,
+            "lower": 0,
+            "upper": 186
+          },
+          {
+            "day": 2,
+            "predicted": 53,
+            "lower": 0,
+            "upper": 206
+          },
+          {
+            "day": 3,
+            "predicted": 57,
+            "lower": 0,
+            "upper": 225
+          },
+          {
+            "day": 4,
+            "predicted": 62,
+            "lower": 0,
+            "upper": 245
+          },
+          {
+            "day": 5,
+            "predicted": 67,
+            "lower": 0,
+            "upper": 266
+          },
+          {
+            "day": 6,
+            "predicted": 71,
+            "lower": 0,
+            "upper": 286
+          },
+          {
+            "day": 7,
+            "predicted": 76,
+            "lower": 0,
+            "upper": 307
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 28,
+            "value": 158,
+            "expected": 3,
+            "zscore": 55.6,
+            "type": "spike"
+          }
+        ],
+        "momentum": 71,
+        "seasonality": {
+          "dayOfWeek": [
+            32,
+            3,
+            3,
+            4,
+            1,
+            5,
+            2
+          ],
+          "peakDay": "Sun"
         }
       },
       {
@@ -6386,282 +6656,443 @@
         "forecast7": [
           {
             "day": 1,
-            "predicted": 14,
+            "predicted": 9,
             "lower": 0,
-            "upper": 69
+            "upper": 62
           },
           {
             "day": 2,
-            "predicted": 14,
+            "predicted": 8,
             "lower": 0,
-            "upper": 75
+            "upper": 67
           },
           {
             "day": 3,
-            "predicted": 14,
+            "predicted": 7,
             "lower": 0,
-            "upper": 81
+            "upper": 71
           },
           {
             "day": 4,
-            "predicted": 14,
+            "predicted": 6,
+            "lower": 0,
+            "upper": 76
+          },
+          {
+            "day": 5,
+            "predicted": 6,
+            "lower": 0,
+            "upper": 82
+          },
+          {
+            "day": 6,
+            "predicted": 5,
             "lower": 0,
             "upper": 88
           },
           {
-            "day": 5,
-            "predicted": 14,
-            "lower": 0,
-            "upper": 94
-          },
-          {
-            "day": 6,
-            "predicted": 14,
-            "lower": 0,
-            "upper": 100
-          },
-          {
             "day": 7,
-            "predicted": 14,
+            "predicted": 4,
             "lower": 0,
-            "upper": 107
+            "upper": 93
           }
         ],
         "anomalies": [
           {
-            "day": 26,
+            "day": 25,
             "value": 62,
             "expected": 14,
             "zscore": 3.9,
             "type": "spike"
           }
         ],
-        "momentum": 26,
+        "momentum": 25,
         "seasonality": {
           "dayOfWeek": [
             5,
-            11,
+            9,
             6,
             26,
             24,
             22,
-            9
-          ],
-          "peakDay": "Wed"
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/starter-fantasy",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 95
-          },
-          {
-            "day": 2,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 105
-          },
-          {
-            "day": 3,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 115
-          },
-          {
-            "day": 4,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 126
-          },
-          {
-            "day": 5,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 137
-          },
-          {
-            "day": 6,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 148
-          },
-          {
-            "day": 7,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 159
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 18,
-            "value": 171,
-            "expected": 12,
-            "zscore": 13.1,
-            "type": "spike"
-          }
-        ],
-        "momentum": -21,
-        "seasonality": {
-          "dayOfWeek": [
-            5,
-            18,
-            6,
-            53,
-            1,
-            17,
-            12
-          ],
-          "peakDay": "Wed"
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/starter-pirate",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 92
-          },
-          {
-            "day": 2,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 102
-          },
-          {
-            "day": 3,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 112
-          },
-          {
-            "day": 4,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 123
-          },
-          {
-            "day": 5,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 133
-          },
-          {
-            "day": 6,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 144
-          },
-          {
-            "day": 7,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 154
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 18,
-            "value": 170,
-            "expected": 11,
-            "zscore": 12,
-            "type": "spike"
-          }
-        ],
-        "momentum": -25,
-        "seasonality": {
-          "dayOfWeek": [
-            4,
-            17,
-            6,
-            51,
-            11,
-            18,
-            9
-          ],
-          "peakDay": "Wed"
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/starter-colony",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 86
-          },
-          {
-            "day": 2,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 95
-          },
-          {
-            "day": 3,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 105
-          },
-          {
-            "day": 4,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 114
-          },
-          {
-            "day": 5,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 124
-          },
-          {
-            "day": 6,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 134
-          },
-          {
-            "day": 7,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 144
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 18,
-            "value": 158,
-            "expected": 12,
-            "zscore": 11.1,
-            "type": "spike"
-          }
-        ],
-        "momentum": -26,
-        "seasonality": {
-          "dayOfWeek": [
-            5,
-            17,
-            6,
-            47,
-            12,
-            15,
             11
           ],
           "peakDay": "Wed"
         }
       },
       {
+        "name": "@mcptoolshop/npm-launcher",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 14,
+            "lower": 0,
+            "upper": 78
+          },
+          {
+            "day": 2,
+            "predicted": 13,
+            "lower": 0,
+            "upper": 84
+          },
+          {
+            "day": 3,
+            "predicted": 13,
+            "lower": 0,
+            "upper": 91
+          },
+          {
+            "day": 4,
+            "predicted": 12,
+            "lower": 0,
+            "upper": 98
+          },
+          {
+            "day": 5,
+            "predicted": 12,
+            "lower": 0,
+            "upper": 105
+          },
+          {
+            "day": 6,
+            "predicted": 12,
+            "lower": 0,
+            "upper": 112
+          },
+          {
+            "day": 7,
+            "predicted": 11,
+            "lower": 0,
+            "upper": 119
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 16,
+            "value": 59,
+            "expected": 6,
+            "zscore": 6.2,
+            "type": "spike"
+          },
+          {
+            "day": 28,
+            "value": 64,
+            "expected": 13,
+            "zscore": 3,
+            "type": "spike"
+          }
+        ],
+        "momentum": 0,
+        "seasonality": {
+          "dayOfWeek": [
+            15,
+            7,
+            17,
+            2,
+            16,
+            7,
+            16
+          ],
+          "peakDay": "Tue"
+        }
+      },
+      {
+        "name": "@world-forge/editor",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 3,
+            "lower": 0,
+            "upper": 32
+          },
+          {
+            "day": 2,
+            "predicted": 2,
+            "lower": 0,
+            "upper": 34
+          },
+          {
+            "day": 3,
+            "predicted": 1,
+            "lower": 0,
+            "upper": 37
+          },
+          {
+            "day": 4,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 39
+          },
+          {
+            "day": 5,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 42
+          },
+          {
+            "day": 6,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 46
+          },
+          {
+            "day": 7,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 49
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 17,
+            "value": 44,
+            "expected": 10,
+            "zscore": 2.5,
+            "type": "spike"
+          }
+        ],
+        "momentum": 0,
+        "seasonality": {
+          "dayOfWeek": [
+            5,
+            7,
+            5,
+            20,
+            12,
+            13,
+            6
+          ],
+          "peakDay": "Wed"
+        }
+      },
+      {
+        "name": "@world-forge/schema",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 8,
+            "lower": 0,
+            "upper": 31
+          },
+          {
+            "day": 2,
+            "predicted": 8,
+            "lower": 0,
+            "upper": 34
+          },
+          {
+            "day": 3,
+            "predicted": 8,
+            "lower": 0,
+            "upper": 36
+          },
+          {
+            "day": 4,
+            "predicted": 8,
+            "lower": 0,
+            "upper": 39
+          },
+          {
+            "day": 5,
+            "predicted": 8,
+            "lower": 0,
+            "upper": 41
+          },
+          {
+            "day": 6,
+            "predicted": 8,
+            "lower": 0,
+            "upper": 44
+          },
+          {
+            "day": 7,
+            "predicted": 9,
+            "lower": 0,
+            "upper": 48
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 25,
+            "value": 28,
+            "expected": 6,
+            "zscore": 2.4,
+            "type": "spike"
+          }
+        ],
+        "momentum": 25,
+        "seasonality": {
+          "dayOfWeek": [
+            9,
+            9,
+            4,
+            11,
+            8,
+            5,
+            7
+          ],
+          "peakDay": "Wed"
+        }
+      },
+      {
         "name": "@ai-rpg-engine/starter-zombie",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 79
+          },
+          {
+            "day": 2,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 88
+          },
+          {
+            "day": 3,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 97
+          },
+          {
+            "day": 4,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 105
+          },
+          {
+            "day": 5,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 114
+          },
+          {
+            "day": 6,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 124
+          },
+          {
+            "day": 7,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 133
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 14,
+            "value": 39,
+            "expected": 11,
+            "zscore": 2.1,
+            "type": "spike"
+          },
+          {
+            "day": 17,
+            "value": 156,
+            "expected": 15,
+            "zscore": 9.8,
+            "type": "spike"
+          }
+        ],
+        "momentum": -9,
+        "seasonality": {
+          "dayOfWeek": [
+            14,
+            12,
+            5,
+            47,
+            14,
+            15,
+            13
+          ],
+          "peakDay": "Wed"
+        }
+      },
+      {
+        "name": "@mcptoolshop/ai-loadout",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 4,
+            "lower": 0,
+            "upper": 28
+          },
+          {
+            "day": 2,
+            "predicted": 4,
+            "lower": 0,
+            "upper": 31
+          },
+          {
+            "day": 3,
+            "predicted": 4,
+            "lower": 0,
+            "upper": 33
+          },
+          {
+            "day": 4,
+            "predicted": 3,
+            "lower": 0,
+            "upper": 35
+          },
+          {
+            "day": 5,
+            "predicted": 3,
+            "lower": 0,
+            "upper": 38
+          },
+          {
+            "day": 6,
+            "predicted": 2,
+            "lower": 0,
+            "upper": 40
+          },
+          {
+            "day": 7,
+            "predicted": 2,
+            "lower": 0,
+            "upper": 43
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 17,
+            "value": 26,
+            "expected": 7,
+            "zscore": 3.1,
+            "type": "spike"
+          },
+          {
+            "day": 26,
+            "value": 26,
+            "expected": 8,
+            "zscore": 2.5,
+            "type": "spike"
+          }
+        ],
+        "momentum": 8,
+        "seasonality": {
+          "dayOfWeek": [
+            2,
+            6,
+            42,
+            13,
+            7,
+            13,
+            4
+          ],
+          "peakDay": "Tue"
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/starter-detective",
         "registry": "npm",
         "forecast7": [
           {
@@ -6686,13 +7117,13 @@
             "day": 4,
             "predicted": 0,
             "lower": 0,
-            "upper": 112
+            "upper": 113
           },
           {
             "day": 5,
             "predicted": 0,
             "lower": 0,
-            "upper": 122
+            "upper": 123
           },
           {
             "day": 6,
@@ -6709,541 +7140,23 @@
         ],
         "anomalies": [
           {
-            "day": 15,
-            "value": 39,
-            "expected": 11,
-            "zscore": 2.1,
-            "type": "spike"
-          },
-          {
-            "day": 18,
-            "value": 156,
-            "expected": 15,
-            "zscore": 9.8,
-            "type": "spike"
-          }
-        ],
-        "momentum": -15,
-        "seasonality": {
-          "dayOfWeek": [
-            12,
-            15,
-            5,
-            47,
-            14,
-            15,
-            12
-          ],
-          "peakDay": "Wed"
-        }
-      },
-      {
-        "name": "@world-forge/editor",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 6,
-            "lower": 0,
-            "upper": 38
-          },
-          {
-            "day": 2,
-            "predicted": 5,
-            "lower": 0,
-            "upper": 41
-          },
-          {
-            "day": 3,
-            "predicted": 5,
-            "lower": 0,
-            "upper": 44
-          },
-          {
-            "day": 4,
-            "predicted": 4,
-            "lower": 0,
-            "upper": 47
-          },
-          {
-            "day": 5,
-            "predicted": 4,
-            "lower": 0,
-            "upper": 50
-          },
-          {
-            "day": 6,
-            "predicted": 3,
-            "lower": 0,
-            "upper": 53
-          },
-          {
-            "day": 7,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 56
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 18,
-            "value": 44,
-            "expected": 10,
-            "zscore": 2.5,
-            "type": "spike"
-          }
-        ],
-        "momentum": 0,
-        "seasonality": {
-          "dayOfWeek": [
-            4,
-            9,
-            5,
-            20,
-            12,
-            13,
-            5
-          ],
-          "peakDay": "Wed"
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/starter-weird-west",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 4,
-            "lower": 0,
-            "upper": 35
-          },
-          {
-            "day": 2,
-            "predicted": 3,
-            "lower": 0,
-            "upper": 37
-          },
-          {
-            "day": 3,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 39
-          },
-          {
-            "day": 4,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 43
-          },
-          {
-            "day": 5,
-            "predicted": 1,
-            "lower": 0,
-            "upper": 45
-          },
-          {
-            "day": 6,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 48
-          },
-          {
-            "day": 7,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 51
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 14,
-            "value": 32,
-            "expected": 10,
-            "zscore": 2.1,
-            "type": "spike"
-          },
-          {
-            "day": 19,
-            "value": 39,
-            "expected": 10,
-            "zscore": 2.5,
-            "type": "spike"
-          }
-        ],
-        "momentum": -2,
-        "seasonality": {
-          "dayOfWeek": [
-            2,
-            18,
-            8,
-            7,
-            13,
-            13,
-            12
-          ],
-          "peakDay": "Mon"
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/core",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 1,
-            "lower": 0,
-            "upper": 28
-          },
-          {
-            "day": 2,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 30
-          },
-          {
-            "day": 3,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 33
-          },
-          {
-            "day": 4,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 36
-          },
-          {
-            "day": 5,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 39
-          },
-          {
-            "day": 6,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 42
-          },
-          {
-            "day": 7,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 46
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 14,
-            "value": 41,
-            "expected": 9,
-            "zscore": 4.5,
-            "type": "spike"
-          },
-          {
-            "day": 19,
-            "value": 44,
-            "expected": 11,
-            "zscore": 3,
-            "type": "spike"
-          }
-        ],
-        "momentum": -19,
-        "seasonality": {
-          "dayOfWeek": [
-            4,
-            15,
-            11,
-            7,
-            16,
-            16,
-            12
-          ],
-          "peakDay": "Thu"
-        }
-      },
-      {
-        "name": "@world-forge/schema",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 10,
-            "lower": 0,
-            "upper": 34
-          },
-          {
-            "day": 2,
-            "predicted": 10,
-            "lower": 0,
-            "upper": 36
-          },
-          {
-            "day": 3,
-            "predicted": 11,
-            "lower": 0,
-            "upper": 40
-          },
-          {
-            "day": 4,
-            "predicted": 11,
-            "lower": 0,
-            "upper": 42
-          },
-          {
-            "day": 5,
-            "predicted": 11,
-            "lower": 0,
-            "upper": 45
-          },
-          {
-            "day": 6,
-            "predicted": 12,
-            "lower": 0,
-            "upper": 49
-          },
-          {
-            "day": 7,
-            "predicted": 12,
-            "lower": 0,
-            "upper": 51
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 26,
-            "value": 28,
-            "expected": 6,
-            "zscore": 2.4,
-            "type": "spike"
-          }
-        ],
-        "momentum": 27,
-        "seasonality": {
-          "dayOfWeek": [
-            9,
-            12,
-            4,
-            11,
-            8,
-            5,
-            8
-          ],
-          "peakDay": "Mon"
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/starter-cyberpunk",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 90
-          },
-          {
-            "day": 2,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 99
-          },
-          {
-            "day": 3,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 109
-          },
-          {
-            "day": 4,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 119
-          },
-          {
-            "day": 5,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 130
-          },
-          {
-            "day": 6,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 140
-          },
-          {
-            "day": 7,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 151
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 18,
-            "value": 168,
-            "expected": 9,
-            "zscore": 13,
-            "type": "spike"
-          }
-        ],
-        "momentum": -26,
-        "seasonality": {
-          "dayOfWeek": [
-            3,
-            17,
-            8,
-            52,
-            15,
-            10,
-            22
-          ],
-          "peakDay": "Wed"
-        }
-      },
-      {
-        "name": "@mcptoolshop/ai-loadout",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 5,
-            "lower": 0,
-            "upper": 30
-          },
-          {
-            "day": 2,
-            "predicted": 5,
-            "lower": 0,
-            "upper": 33
-          },
-          {
-            "day": 3,
-            "predicted": 4,
-            "lower": 0,
-            "upper": 35
-          },
-          {
-            "day": 4,
-            "predicted": 4,
-            "lower": 0,
-            "upper": 38
-          },
-          {
-            "day": 5,
-            "predicted": 4,
-            "lower": 0,
-            "upper": 41
-          },
-          {
-            "day": 6,
-            "predicted": 3,
-            "lower": 0,
-            "upper": 43
-          },
-          {
-            "day": 7,
-            "predicted": 3,
-            "lower": 0,
-            "upper": 46
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 18,
-            "value": 26,
-            "expected": 7,
-            "zscore": 3.1,
-            "type": "spike"
-          },
-          {
-            "day": 27,
-            "value": 26,
-            "expected": 8,
-            "zscore": 2.5,
-            "type": "spike"
-          }
-        ],
-        "momentum": 8,
-        "seasonality": {
-          "dayOfWeek": [
-            1,
-            8,
-            42,
-            13,
-            7,
-            13,
-            4
-          ],
-          "peakDay": "Tue"
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/starter-detective",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 92
-          },
-          {
-            "day": 2,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 101
-          },
-          {
-            "day": 3,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 111
-          },
-          {
-            "day": 4,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 122
-          },
-          {
-            "day": 5,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 132
-          },
-          {
-            "day": 6,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 143
-          },
-          {
-            "day": 7,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 153
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 18,
+            "day": 17,
             "value": 170,
             "expected": 12,
             "zscore": 12,
             "type": "spike"
           }
         ],
-        "momentum": -20,
+        "momentum": -12,
         "seasonality": {
           "dayOfWeek": [
-            5,
-            12,
+            6,
+            10,
             7,
             51,
             12,
             19,
-            10
+            13
           ],
           "peakDay": "Wed"
         }
@@ -7254,279 +7167,7 @@
         "forecast7": [
           {
             "day": 1,
-            "predicted": 4,
-            "lower": 0,
-            "upper": 40
-          },
-          {
-            "day": 2,
-            "predicted": 3,
-            "lower": 0,
-            "upper": 43
-          },
-          {
-            "day": 3,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 46
-          },
-          {
-            "day": 4,
             "predicted": 1,
-            "lower": 0,
-            "upper": 49
-          },
-          {
-            "day": 5,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 52
-          },
-          {
-            "day": 6,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 56
-          },
-          {
-            "day": 7,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 61
-          }
-        ],
-        "anomalies": [],
-        "momentum": -10,
-        "seasonality": {
-          "dayOfWeek": [
-            7,
-            12,
-            2,
-            22,
-            15,
-            21,
-            5
-          ],
-          "peakDay": "Wed"
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/cli",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 3,
-            "lower": 0,
-            "upper": 23
-          },
-          {
-            "day": 2,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 24
-          },
-          {
-            "day": 3,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 26
-          },
-          {
-            "day": 4,
-            "predicted": 1,
-            "lower": 0,
-            "upper": 27
-          },
-          {
-            "day": 5,
-            "predicted": 1,
-            "lower": 0,
-            "upper": 30
-          },
-          {
-            "day": 6,
-            "predicted": 1,
-            "lower": 0,
-            "upper": 32
-          },
-          {
-            "day": 7,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 33
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 23,
-            "value": 26,
-            "expected": 5,
-            "zscore": 3.7,
-            "type": "spike"
-          }
-        ],
-        "momentum": 15,
-        "seasonality": {
-          "dayOfWeek": [
-            4,
-            14,
-            7,
-            5,
-            1,
-            7,
-            5
-          ],
-          "peakDay": "Mon"
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/character-profile",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 165
-          },
-          {
-            "day": 2,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 183
-          },
-          {
-            "day": 3,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 201
-          },
-          {
-            "day": 4,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 219
-          },
-          {
-            "day": 5,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 238
-          },
-          {
-            "day": 6,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 257
-          },
-          {
-            "day": 7,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 276
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 18,
-            "value": 305,
-            "expected": 7,
-            "zscore": 41.9,
-            "type": "spike"
-          }
-        ],
-        "momentum": -17,
-        "seasonality": {
-          "dayOfWeek": [
-            5,
-            8,
-            6,
-            80,
-            14,
-            15,
-            6
-          ],
-          "peakDay": "Wed"
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/equipment",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 166
-          },
-          {
-            "day": 2,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 184
-          },
-          {
-            "day": 3,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 202
-          },
-          {
-            "day": 4,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 221
-          },
-          {
-            "day": 5,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 240
-          },
-          {
-            "day": 6,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 259
-          },
-          {
-            "day": 7,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 278
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 18,
-            "value": 307,
-            "expected": 9,
-            "zscore": 45.9,
-            "type": "spike"
-          }
-        ],
-        "momentum": -13,
-        "seasonality": {
-          "dayOfWeek": [
-            5,
-            10,
-            9,
-            80,
-            12,
-            14,
-            5
-          ],
-          "peakDay": "Wed"
-        }
-      },
-      {
-        "name": "@mcptoolshop/npm-launcher",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 0,
             "lower": 0,
             "upper": 34
           },
@@ -7540,337 +7181,50 @@
             "day": 3,
             "predicted": 0,
             "lower": 0,
-            "upper": 41
+            "upper": 40
           },
           {
             "day": 4,
             "predicted": 0,
             "lower": 0,
-            "upper": 45
+            "upper": 44
           },
           {
             "day": 5,
             "predicted": 0,
             "lower": 0,
-            "upper": 49
+            "upper": 48
           },
           {
             "day": 6,
             "predicted": 0,
             "lower": 0,
-            "upper": 53
+            "upper": 52
           },
           {
             "day": 7,
             "predicted": 0,
             "lower": 0,
-            "upper": 57
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 17,
-            "value": 59,
-            "expected": 6,
-            "zscore": 6.2,
-            "type": "spike"
-          }
-        ],
-        "momentum": -26,
-        "seasonality": {
-          "dayOfWeek": [
-            2,
-            9,
-            17,
-            2,
-            16,
-            7,
-            13
-          ],
-          "peakDay": "Tue"
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/pack-registry",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 4,
-            "lower": 0,
-            "upper": 20
-          },
-          {
-            "day": 2,
-            "predicted": 4,
-            "lower": 0,
-            "upper": 22
-          },
-          {
-            "day": 3,
-            "predicted": 4,
-            "lower": 0,
-            "upper": 23
-          },
-          {
-            "day": 4,
-            "predicted": 4,
-            "lower": 0,
-            "upper": 25
-          },
-          {
-            "day": 5,
-            "predicted": 3,
-            "lower": 0,
-            "upper": 26
-          },
-          {
-            "day": 6,
-            "predicted": 3,
-            "lower": 0,
-            "upper": 28
-          },
-          {
-            "day": 7,
-            "predicted": 3,
-            "lower": 0,
-            "upper": 30
+            "upper": 55
           }
         ],
         "anomalies": [],
-        "momentum": 10,
+        "momentum": -6,
         "seasonality": {
           "dayOfWeek": [
-            3,
-            9,
-            7,
-            3,
-            5,
-            10,
-            8
-          ],
-          "peakDay": "Fri"
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/modules",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 165
-          },
-          {
-            "day": 2,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 183
-          },
-          {
-            "day": 3,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 201
-          },
-          {
-            "day": 4,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 220
-          },
-          {
-            "day": 5,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 239
-          },
-          {
-            "day": 6,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 258
-          },
-          {
-            "day": 7,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 277
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 14,
-            "value": 60,
-            "expected": 13,
-            "zscore": 2.9,
-            "type": "spike"
-          },
-          {
-            "day": 18,
-            "value": 312,
-            "expected": 18,
-            "zscore": 15,
-            "type": "spike"
-          }
-        ],
-        "momentum": -16,
-        "seasonality": {
-          "dayOfWeek": [
-            6,
-            18,
-            9,
-            91,
-            19,
-            20,
-            17
-          ],
-          "peakDay": "Wed"
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/content-schema",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 176
-          },
-          {
-            "day": 2,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 195
-          },
-          {
-            "day": 3,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 214
-          },
-          {
-            "day": 4,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 234
-          },
-          {
-            "day": 5,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 254
-          },
-          {
-            "day": 6,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 274
-          },
-          {
-            "day": 7,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 294
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 18,
-            "value": 323,
-            "expected": 8,
-            "zscore": 47.1,
-            "type": "spike"
-          }
-        ],
-        "momentum": -4,
-        "seasonality": {
-          "dayOfWeek": [
-            3,
-            9,
-            11,
-            87,
-            16,
-            6,
-            9
-          ],
-          "peakDay": "Wed"
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/character-creation",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 1,
-            "lower": 0,
-            "upper": 26
-          },
-          {
-            "day": 2,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 27
-          },
-          {
-            "day": 3,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 30
-          },
-          {
-            "day": 4,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 33
-          },
-          {
-            "day": 5,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 36
-          },
-          {
-            "day": 6,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 38
-          },
-          {
-            "day": 7,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 41
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 19,
-            "value": 39,
-            "expected": 6,
-            "zscore": 5.1,
-            "type": "spike"
-          }
-        ],
-        "momentum": -17,
-        "seasonality": {
-          "dayOfWeek": [
-            3,
             8,
-            7,
-            4,
-            13,
-            10,
+            9,
+            2,
+            22,
+            15,
+            21,
             5
           ],
-          "peakDay": "Thu"
+          "peakDay": "Wed"
         }
       },
       {
-        "name": "@ai-rpg-engine/terminal-ui",
+        "name": "@ai-rpg-engine/starter-fantasy",
         "registry": "npm",
         "forecast7": [
           {
@@ -7883,7 +7237,7 @@
             "day": 2,
             "predicted": 0,
             "lower": 0,
-            "upper": 97
+            "upper": 98
           },
           {
             "day": 3,
@@ -7907,47 +7261,530 @@
             "day": 6,
             "predicted": 0,
             "lower": 0,
-            "upper": 137
+            "upper": 138
           },
           {
             "day": 7,
             "predicted": 0,
             "lower": 0,
-            "upper": 147
+            "upper": 148
           }
         ],
         "anomalies": [
           {
-            "day": 14,
-            "value": 15,
-            "expected": 4,
-            "zscore": 2,
+            "day": 17,
+            "value": 171,
+            "expected": 12,
+            "zscore": 13.1,
             "type": "spike"
+          }
+        ],
+        "momentum": -14,
+        "seasonality": {
+          "dayOfWeek": [
+            6,
+            14,
+            6,
+            53,
+            1,
+            17,
+            13
+          ],
+          "peakDay": "Wed"
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/starter-weird-west",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 5,
+            "lower": 0,
+            "upper": 35
           },
           {
+            "day": 2,
+            "predicted": 5,
+            "lower": 0,
+            "upper": 38
+          },
+          {
+            "day": 3,
+            "predicted": 4,
+            "lower": 0,
+            "upper": 41
+          },
+          {
+            "day": 4,
+            "predicted": 3,
+            "lower": 0,
+            "upper": 43
+          },
+          {
+            "day": 5,
+            "predicted": 3,
+            "lower": 0,
+            "upper": 47
+          },
+          {
+            "day": 6,
+            "predicted": 2,
+            "lower": 0,
+            "upper": 49
+          },
+          {
+            "day": 7,
+            "predicted": 1,
+            "lower": 0,
+            "upper": 51
+          }
+        ],
+        "anomalies": [
+          {
             "day": 18,
-            "value": 163,
-            "expected": 6,
-            "zscore": 29.2,
+            "value": 39,
+            "expected": 10,
+            "zscore": 2.5,
+            "type": "spike"
+          }
+        ],
+        "momentum": -15,
+        "seasonality": {
+          "dayOfWeek": [
+            5,
+            14,
+            8,
+            7,
+            13,
+            13,
+            14
+          ],
+          "peakDay": "Mon"
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/starter-pirate",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 85
+          },
+          {
+            "day": 2,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 94
+          },
+          {
+            "day": 3,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 104
+          },
+          {
+            "day": 4,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 113
+          },
+          {
+            "day": 5,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 123
+          },
+          {
+            "day": 6,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 133
+          },
+          {
+            "day": 7,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 142
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 17,
+            "value": 170,
+            "expected": 11,
+            "zscore": 12,
+            "type": "spike"
+          }
+        ],
+        "momentum": -12,
+        "seasonality": {
+          "dayOfWeek": [
+            6,
+            13,
+            6,
+            51,
+            11,
+            18,
+            11
+          ],
+          "peakDay": "Wed"
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/starter-colony",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 80
+          },
+          {
+            "day": 2,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 88
+          },
+          {
+            "day": 3,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 97
+          },
+          {
+            "day": 4,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 106
+          },
+          {
+            "day": 5,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 115
+          },
+          {
+            "day": 6,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 124
+          },
+          {
+            "day": 7,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 133
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 17,
+            "value": 158,
+            "expected": 12,
+            "zscore": 11.1,
+            "type": "spike"
+          }
+        ],
+        "momentum": -15,
+        "seasonality": {
+          "dayOfWeek": [
+            6,
+            14,
+            6,
+            47,
+            12,
+            15,
+            14
+          ],
+          "peakDay": "Wed"
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/core",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 25
+          },
+          {
+            "day": 2,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 28
+          },
+          {
+            "day": 3,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 31
+          },
+          {
+            "day": 4,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 34
+          },
+          {
+            "day": 5,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 37
+          },
+          {
+            "day": 6,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 40
+          },
+          {
+            "day": 7,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 43
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 18,
+            "value": 44,
+            "expected": 11,
+            "zscore": 3,
             "type": "spike"
           }
         ],
         "momentum": -23,
         "seasonality": {
           "dayOfWeek": [
-            3,
-            9,
+            5,
+            12,
+            11,
+            7,
+            16,
+            16,
+            14
+          ],
+          "peakDay": "Thu"
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/content-schema",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 164
+          },
+          {
+            "day": 2,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 182
+          },
+          {
+            "day": 3,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 200
+          },
+          {
+            "day": 4,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 218
+          },
+          {
+            "day": 5,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 237
+          },
+          {
+            "day": 6,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 256
+          },
+          {
+            "day": 7,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 275
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 17,
+            "value": 323,
+            "expected": 8,
+            "zscore": 47.1,
+            "type": "spike"
+          }
+        ],
+        "momentum": -4,
+        "seasonality": {
+          "dayOfWeek": [
             4,
-            45,
-            10,
-            9,
-            5
+            7,
+            11,
+            87,
+            16,
+            6,
+            9
           ],
           "peakDay": "Wed"
         }
       },
       {
-        "name": "@ai-rpg-engine/audio-director",
+        "name": "@ai-rpg-engine/equipment",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 155
+          },
+          {
+            "day": 2,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 172
+          },
+          {
+            "day": 3,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 189
+          },
+          {
+            "day": 4,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 207
+          },
+          {
+            "day": 5,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 224
+          },
+          {
+            "day": 6,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 242
+          },
+          {
+            "day": 7,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 260
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 17,
+            "value": 307,
+            "expected": 9,
+            "zscore": 45.9,
+            "type": "spike"
+          }
+        ],
+        "momentum": -6,
+        "seasonality": {
+          "dayOfWeek": [
+            6,
+            8,
+            9,
+            80,
+            12,
+            14,
+            6
+          ],
+          "peakDay": "Wed"
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/character-profile",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 153
+          },
+          {
+            "day": 2,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 170
+          },
+          {
+            "day": 3,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 186
+          },
+          {
+            "day": 4,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 204
+          },
+          {
+            "day": 5,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 221
+          },
+          {
+            "day": 6,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 239
+          },
+          {
+            "day": 7,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 257
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 17,
+            "value": 305,
+            "expected": 7,
+            "zscore": 41.9,
+            "type": "spike"
+          }
+        ],
+        "momentum": -12,
+        "seasonality": {
+          "dayOfWeek": [
+            6,
+            7,
+            6,
+            80,
+            14,
+            15,
+            7
+          ],
+          "peakDay": "Wed"
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/starter-cyberpunk",
         "registry": "npm",
         "forecast7": [
           {
@@ -7960,71 +7797,273 @@
             "day": 2,
             "predicted": 0,
             "lower": 0,
-            "upper": 92
+            "upper": 91
           },
           {
             "day": 3,
             "predicted": 0,
             "lower": 0,
-            "upper": 101
+            "upper": 100
           },
           {
             "day": 4,
             "predicted": 0,
             "lower": 0,
-            "upper": 111
+            "upper": 110
           },
           {
             "day": 5,
             "predicted": 0,
             "lower": 0,
-            "upper": 120
+            "upper": 119
           },
           {
             "day": 6,
             "predicted": 0,
             "lower": 0,
-            "upper": 130
+            "upper": 129
           },
           {
             "day": 7,
             "predicted": 0,
             "lower": 0,
-            "upper": 140
+            "upper": 138
           }
         ],
         "anomalies": [
           {
-            "day": 18,
-            "value": 154,
-            "expected": 6,
-            "zscore": 25.1,
+            "day": 17,
+            "value": 168,
+            "expected": 9,
+            "zscore": 13,
             "type": "spike"
           }
         ],
-        "momentum": -25,
+        "momentum": -12,
         "seasonality": {
           "dayOfWeek": [
-            3,
-            9,
             5,
-            43,
-            9,
-            6,
-            4
+            14,
+            8,
+            52,
+            15,
+            10,
+            14
           ],
           "peakDay": "Wed"
         }
       },
       {
-        "name": "@ai-rpg-engine/ollama",
+        "name": "@ai-rpg-engine/pack-registry",
         "registry": "npm",
         "forecast7": [
           {
             "day": 1,
-            "predicted": 2,
+            "predicted": 3,
+            "lower": 0,
+            "upper": 18
+          },
+          {
+            "day": 2,
+            "predicted": 3,
+            "lower": 0,
+            "upper": 20
+          },
+          {
+            "day": 3,
+            "predicted": 3,
             "lower": 0,
             "upper": 21
+          },
+          {
+            "day": 4,
+            "predicted": 3,
+            "lower": 0,
+            "upper": 23
+          },
+          {
+            "day": 5,
+            "predicted": 2,
+            "lower": 0,
+            "upper": 24
+          },
+          {
+            "day": 6,
+            "predicted": 2,
+            "lower": 0,
+            "upper": 25
+          },
+          {
+            "day": 7,
+            "predicted": 2,
+            "lower": 0,
+            "upper": 27
+          }
+        ],
+        "anomalies": [],
+        "momentum": -2,
+        "seasonality": {
+          "dayOfWeek": [
+            4,
+            7,
+            7,
+            3,
+            5,
+            10,
+            5
+          ],
+          "peakDay": "Fri"
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/modules",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 154
+          },
+          {
+            "day": 2,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 170
+          },
+          {
+            "day": 3,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 187
+          },
+          {
+            "day": 4,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 204
+          },
+          {
+            "day": 5,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 222
+          },
+          {
+            "day": 6,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 239
+          },
+          {
+            "day": 7,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 257
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 17,
+            "value": 312,
+            "expected": 18,
+            "zscore": 15,
+            "type": "spike"
+          }
+        ],
+        "momentum": -13,
+        "seasonality": {
+          "dayOfWeek": [
+            7,
+            15,
+            9,
+            91,
+            19,
+            20,
+            21
+          ],
+          "peakDay": "Wed"
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/character-creation",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 1,
+            "lower": 0,
+            "upper": 24
+          },
+          {
+            "day": 2,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 25
+          },
+          {
+            "day": 3,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 28
+          },
+          {
+            "day": 4,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 31
+          },
+          {
+            "day": 5,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 33
+          },
+          {
+            "day": 6,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 36
+          },
+          {
+            "day": 7,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 38
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 18,
+            "value": 39,
+            "expected": 6,
+            "zscore": 5.1,
+            "type": "spike"
+          }
+        ],
+        "momentum": -20,
+        "seasonality": {
+          "dayOfWeek": [
+            4,
+            6,
+            7,
+            4,
+            13,
+            10,
+            7
+          ],
+          "peakDay": "Thu"
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/cli",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 3,
+            "lower": 0,
+            "upper": 22
           },
           {
             "day": 2,
@@ -8034,61 +8073,340 @@
           },
           {
             "day": 3,
+            "predicted": 2,
+            "lower": 0,
+            "upper": 25
+          },
+          {
+            "day": 4,
+            "predicted": 2,
+            "lower": 0,
+            "upper": 27
+          },
+          {
+            "day": 5,
             "predicted": 1,
+            "lower": 0,
+            "upper": 28
+          },
+          {
+            "day": 6,
+            "predicted": 1,
+            "lower": 0,
+            "upper": 30
+          },
+          {
+            "day": 7,
+            "predicted": 1,
+            "lower": 0,
+            "upper": 33
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 22,
+            "value": 26,
+            "expected": 5,
+            "zscore": 3.7,
+            "type": "spike"
+          }
+        ],
+        "momentum": -10,
+        "seasonality": {
+          "dayOfWeek": [
+            5,
+            11,
+            7,
+            5,
+            1,
+            7,
+            5
+          ],
+          "peakDay": "Mon"
+        }
+      },
+      {
+        "name": "@mcptoolshop/escape-the-valley",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 3,
+            "lower": 0,
+            "upper": 11
+          },
+          {
+            "day": 2,
+            "predicted": 3,
+            "lower": 0,
+            "upper": 12
+          },
+          {
+            "day": 3,
+            "predicted": 3,
+            "lower": 0,
+            "upper": 13
+          },
+          {
+            "day": 4,
+            "predicted": 4,
+            "lower": 0,
+            "upper": 15
+          },
+          {
+            "day": 5,
+            "predicted": 4,
+            "lower": 0,
+            "upper": 16
+          },
+          {
+            "day": 6,
+            "predicted": 4,
+            "lower": 0,
+            "upper": 17
+          },
+          {
+            "day": 7,
+            "predicted": 4,
+            "lower": 0,
+            "upper": 18
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 19,
+            "value": 5,
+            "expected": 2,
+            "zscore": 2.3,
+            "type": "spike"
+          },
+          {
+            "day": 20,
+            "value": 7,
+            "expected": 2,
+            "zscore": 2.9,
+            "type": "spike"
+          },
+          {
+            "day": 23,
+            "value": 7,
+            "expected": 2,
+            "zscore": 2.1,
+            "type": "spike"
+          }
+        ],
+        "momentum": 16,
+        "seasonality": {
+          "dayOfWeek": [
+            2,
+            3,
+            3,
+            1,
+            2,
+            3,
+            3
+          ],
+          "peakDay": "Mon"
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/ollama",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 3,
+            "lower": 0,
+            "upper": 21
+          },
+          {
+            "day": 2,
+            "predicted": 3,
+            "lower": 0,
+            "upper": 23
+          },
+          {
+            "day": 3,
+            "predicted": 2,
             "lower": 0,
             "upper": 24
           },
           {
             "day": 4,
-            "predicted": 1,
+            "predicted": 2,
             "lower": 0,
             "upper": 26
           },
           {
             "day": 5,
-            "predicted": 0,
+            "predicted": 1,
             "lower": 0,
             "upper": 27
           },
           {
             "day": 6,
-            "predicted": 0,
+            "predicted": 1,
             "lower": 0,
             "upper": 29
           },
           {
             "day": 7,
-            "predicted": 0,
+            "predicted": 1,
             "lower": 0,
             "upper": 31
           }
         ],
         "anomalies": [
           {
-            "day": 14,
-            "value": 16,
-            "expected": 5,
-            "zscore": 2.4,
-            "type": "spike"
-          },
-          {
-            "day": 19,
+            "day": 18,
             "value": 23,
             "expected": 5,
             "zscore": 3.3,
             "type": "spike"
           }
         ],
-        "momentum": -4,
+        "momentum": -12,
         "seasonality": {
           "dayOfWeek": [
-            3,
-            9,
+            5,
+            7,
             2,
             3,
             7,
             8,
-            5
+            6
+          ],
+          "peakDay": "Fri"
+        }
+      },
+      {
+        "name": "@ai-rpg-engine/terminal-ui",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 82
+          },
+          {
+            "day": 2,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 91
+          },
+          {
+            "day": 3,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 100
+          },
+          {
+            "day": 4,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 109
+          },
+          {
+            "day": 5,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 118
+          },
+          {
+            "day": 6,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 128
+          },
+          {
+            "day": 7,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 137
+          }
+        ],
+        "anomalies": [
+          {
+            "day": 17,
+            "value": 163,
+            "expected": 6,
+            "zscore": 29.2,
+            "type": "spike"
+          }
+        ],
+        "momentum": -13,
+        "seasonality": {
+          "dayOfWeek": [
+            4,
+            7,
+            4,
+            45,
+            10,
+            9,
+            6
+          ],
+          "peakDay": "Wed"
+        }
+      },
+      {
+        "name": "@mcptoolshop/polyglot-mcp",
+        "registry": "npm",
+        "forecast7": [
+          {
+            "day": 1,
+            "predicted": 2,
+            "lower": 0,
+            "upper": 12
+          },
+          {
+            "day": 2,
+            "predicted": 1,
+            "lower": 0,
+            "upper": 12
+          },
+          {
+            "day": 3,
+            "predicted": 1,
+            "lower": 0,
+            "upper": 14
+          },
+          {
+            "day": 4,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 14
+          },
+          {
+            "day": 5,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 15
+          },
+          {
+            "day": 6,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 16
+          },
+          {
+            "day": 7,
+            "predicted": 0,
+            "lower": 0,
+            "upper": 17
+          }
+        ],
+        "anomalies": [],
+        "momentum": 1,
+        "seasonality": {
+          "dayOfWeek": [
+            3,
+            9,
+            6,
+            8,
+            2,
+            8,
+            3
           ],
           "peakDay": "Mon"
         }
@@ -8101,345 +8419,73 @@
             "day": 1,
             "predicted": 2,
             "lower": 0,
-            "upper": 20
+            "upper": 19
           },
           {
             "day": 2,
-            "predicted": 2,
+            "predicted": 1,
             "lower": 0,
-            "upper": 22
+            "upper": 20
           },
           {
             "day": 3,
             "predicted": 1,
             "lower": 0,
-            "upper": 23
+            "upper": 22
           },
           {
             "day": 4,
-            "predicted": 1,
+            "predicted": 0,
             "lower": 0,
-            "upper": 25
+            "upper": 22
           },
           {
             "day": 5,
             "predicted": 0,
             "lower": 0,
-            "upper": 26
+            "upper": 24
           },
           {
             "day": 6,
             "predicted": 0,
             "lower": 0,
-            "upper": 28
+            "upper": 26
           },
           {
             "day": 7,
             "predicted": 0,
             "lower": 0,
-            "upper": 30
+            "upper": 28
           }
         ],
         "anomalies": [
           {
-            "day": 18,
+            "day": 17,
             "value": 16,
             "expected": 4,
             "zscore": 2.5,
             "type": "spike"
           },
           {
-            "day": 19,
+            "day": 18,
             "value": 24,
             "expected": 5,
             "zscore": 3.7,
             "type": "spike"
           }
         ],
-        "momentum": 0,
+        "momentum": -5,
         "seasonality": {
           "dayOfWeek": [
-            1,
-            9,
+            2,
+            7,
             1,
             7,
             7,
             5,
-            2
-          ],
-          "peakDay": "Mon"
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/image-gen",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 3,
-            "lower": 0,
-            "upper": 16
-          },
-          {
-            "day": 2,
-            "predicted": 3,
-            "lower": 0,
-            "upper": 17
-          },
-          {
-            "day": 3,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 17
-          },
-          {
-            "day": 4,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 19
-          },
-          {
-            "day": 5,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 20
-          },
-          {
-            "day": 6,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 22
-          },
-          {
-            "day": 7,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 23
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 23,
-            "value": 16,
-            "expected": 3,
-            "zscore": 3.6,
-            "type": "spike"
-          }
-        ],
-        "momentum": 14,
-        "seasonality": {
-          "dayOfWeek": [
-            2,
-            7,
-            3,
-            3,
-            3,
-            8,
-            2
-          ],
-          "peakDay": "Fri"
-        }
-      },
-      {
-        "name": "@ai-rpg-engine/presentation",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 12
-          },
-          {
-            "day": 2,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 14
-          },
-          {
-            "day": 3,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 15
-          },
-          {
-            "day": 4,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 16
-          },
-          {
-            "day": 5,
-            "predicted": 1,
-            "lower": 0,
-            "upper": 16
-          },
-          {
-            "day": 6,
-            "predicted": 1,
-            "lower": 0,
-            "upper": 17
-          },
-          {
-            "day": 7,
-            "predicted": 1,
-            "lower": 0,
-            "upper": 18
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 23,
-            "value": 13,
-            "expected": 4,
-            "zscore": 2.3,
-            "type": "spike"
-          }
-        ],
-        "momentum": 5,
-        "seasonality": {
-          "dayOfWeek": [
-            2,
-            6,
-            5,
-            3,
-            1,
-            9,
-            7
-          ],
-          "peakDay": "Fri"
-        }
-      },
-      {
-        "name": "@mcptoolshop/polyglot-mcp",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 11
-          },
-          {
-            "day": 2,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 12
-          },
-          {
-            "day": 3,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 14
-          },
-          {
-            "day": 4,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 15
-          },
-          {
-            "day": 5,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 16
-          },
-          {
-            "day": 6,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 17
-          },
-          {
-            "day": 7,
-            "predicted": 0,
-            "lower": 0,
-            "upper": 19
-          }
-        ],
-        "anomalies": [],
-        "momentum": 0,
-        "seasonality": {
-          "dayOfWeek": [
-            2,
-            11,
-            6,
-            8,
-            2,
-            8,
             3
           ],
           "peakDay": "Mon"
-        }
-      },
-      {
-        "name": "@mcptoolshop/xrpl-lab",
-        "registry": "npm",
-        "forecast7": [
-          {
-            "day": 1,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 10
-          },
-          {
-            "day": 2,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 11
-          },
-          {
-            "day": 3,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 12
-          },
-          {
-            "day": 4,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 13
-          },
-          {
-            "day": 5,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 14
-          },
-          {
-            "day": 6,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 15
-          },
-          {
-            "day": 7,
-            "predicted": 2,
-            "lower": 0,
-            "upper": 16
-          }
-        ],
-        "anomalies": [
-          {
-            "day": 14,
-            "value": 7,
-            "expected": 1,
-            "zscore": 2.6,
-            "type": "spike"
-          }
-        ],
-        "momentum": 16,
-        "seasonality": {
-          "dayOfWeek": [
-            0,
-            4,
-            3,
-            4,
-            1,
-            5,
-            2
-          ],
-          "peakDay": "Fri"
         }
       }
     ]
