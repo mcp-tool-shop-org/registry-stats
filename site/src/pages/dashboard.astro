@@ -451,7 +451,7 @@ const chatContext = !missing && data ? JSON.stringify({
               <h2 class="text-lg font-semibold text-heading flex items-center gap-2">
                 <span class="text-xl">{"\uD83E\uDD99"}</span> Pulse
               </h2>
-              <p class="mt-0.5 text-xs text-dim">Your registry co-pilot &bull; Powered by Ollama</p>
+              <p class="mt-0.5 text-xs text-dim">Your registry co-pilot &bull; Powered by Ollama &bull; Cloud models by default</p>
             </div>
             <div class="flex items-center gap-3">
               <div id="ollama-status" aria-live="polite" class="flex items-center gap-1.5 text-xs">
@@ -1420,7 +1420,7 @@ const chatContext = !missing && data ? JSON.stringify({
             <div class="space-y-4 text-sm text-body">
               <div>
                 <h4 class="font-semibold text-heading flex items-center gap-2"><span>{"\uD83C\uDFE0"}</span> Home</h4>
-                <p class="mt-1 leading-relaxed">The landing view with the executive snapshot (total downloads, weekly change, health score, diversity) and the <strong>Registry Assistant</strong> &mdash; an AI chat powered by a local Ollama model that can answer questions about your data.</p>
+                <p class="mt-1 leading-relaxed">The landing view with the executive snapshot (total downloads, weekly change, health score, diversity) and the <strong>Registry Assistant</strong> &mdash; an AI chat (Ollama, defaulting to cloud models so a small rig still gets big-model answers) that can answer questions about your data.</p>
               </div>
               <div>
                 <h4 class="font-semibold text-heading flex items-center gap-2"><span>{"\uD83D\uDCCA"}</span> Analytics</h4>
@@ -1499,7 +1499,8 @@ const chatContext = !missing && data ? JSON.stringify({
                 <li>&ldquo;Summarise the npm vs PyPI split.&rdquo;</li>
                 <li>&ldquo;Why did site-theme spike on day 27?&rdquo;</li>
               </ul>
-              <p class="mt-2"><strong>Requirements:</strong> Ollama running locally with at least one model pulled (e.g., <code class="text-xs bg-surface-strong px-1 py-0.5 rounded">ollama pull llama3.2</code>). If Ollama is offline the chat shows a friendly fallback message &mdash; everything else works normally.</p>
+              <p class="mt-2"><strong>Cloud models by default.</strong> The model picker defaults to a cloud model (e.g. <code class="text-xs bg-surface-strong px-1 py-0.5 rounded">gpt-oss:120b-cloud</code>) that runs on Ollama&rsquo;s servers — so a small rig still gets big-model answers. Run <code class="text-xs bg-surface-strong px-1 py-0.5 rounded">ollama signin</code> once (free) to enable them; the browser can only reach the local daemon, which proxies cloud models for you. Full list: <a href="https://ollama.com/search?c=cloud" class="text-accent underline underline-offset-2 hover:brightness-125" target="_blank" rel="noopener">ollama.com/search?c=cloud</a>.</p>
+              <p class="mt-2"><strong>Prefer fully local?</strong> Pick a model from the &ldquo;Local&rdquo; group (e.g. after <code class="text-xs bg-surface-strong px-1 py-0.5 rounded">ollama pull llama3.2</code>) — it runs entirely on your machine, no sign-in. If Ollama is offline the chat shows a friendly fallback &mdash; everything else works normally.</p>
             </div>
           </div>
 
@@ -3125,6 +3126,24 @@ const chatContext = !missing && data ? JSON.stringify({
     var STORAGE_KEY = 'rp-chat-history';
     var STORAGE_MODEL = 'rp-chat-model';
 
+    // ── Ollama Cloud defaults ──────────────────────────────────────
+    // The chat talks to the LOCAL daemon (localhost:11434 — the only host a
+    // browser is allowed to call; Ollama Cloud sends no CORS headers). After a
+    // one-time `ollama signin`, the daemon proxies these cloud models to Ollama's
+    // servers, so model size is no longer capped by local VRAM. We default the
+    // picker to a cloud model so a small rig still gets big-model answers.
+    // Roster shifts over time — full live list: https://ollama.com/search?c=cloud
+    var CLOUD_MODELS = [
+      'gpt-oss:120b-cloud',      // default — fast, capable general chat
+      'gpt-oss:20b-cloud',       // fastest cloud
+      'qwen3-coder:480b-cloud',  // coding-heavy
+      'deepseek-v4-pro:cloud',   // flagship reasoning
+      'glm-5.2:cloud',           // flagship
+      'minimax-m3:cloud'         // flagship
+    ];
+    var DEFAULT_CLOUD = 'gpt-oss:120b-cloud';
+    function isCloudModel(name) { return /(?:[-:])cloud$/.test(String(name || '')); }
+
     var dot = document.getElementById('ollama-dot');
     var statusLabel = document.getElementById('ollama-label');
     var modelSelect = document.getElementById('ollama-model');
@@ -3220,24 +3239,58 @@ const chatContext = !missing && data ? JSON.stringify({
           dot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
           statusLabel.textContent = 'Connected';
 
-          var models = (data.models || []).map(function (m) { return m.name || m.model; });
-          if (models.length > 0) {
-            clearEl(modelSelect);
-            var saved = '';
-            try { saved = localStorage.getItem(STORAGE_MODEL) || ''; } catch (e) {}
-            for (var i = 0; i < models.length; i++) {
-              var opt = document.createElement('option');
-              opt.value = models[i]; opt.textContent = models[i];
-              if (models[i] === saved) opt.selected = true;
-              modelSelect.appendChild(opt);
-            }
-            modelSelect.disabled = false;
-            chatInput.disabled = false;
-            chatSend.disabled = false;
-            chatInput.focus();
+          var localModels = (data.models || []).map(function (m) { return m.name || m.model; });
+          var saved = '';
+          try { saved = localStorage.getItem(STORAGE_MODEL) || ''; } catch (e) {}
 
-            // Pre-warm: keep selected model loaded in VRAM for instant responses
-            var warmModel = modelSelect.value;
+          clearEl(modelSelect);
+          var seen = {};
+
+          // ☁ Cloud group — curated big models served via the local daemon.
+          // Always offered (even with nothing pulled) so the chat defaults to
+          // cloud out of the box; selecting one runs it on Ollama's servers.
+          var cloudGroup = document.createElement('optgroup');
+          cloudGroup.label = '☁ Cloud — runs on Ollama’s servers';
+          for (var c = 0; c < CLOUD_MODELS.length; c++) {
+            var cm = CLOUD_MODELS[c];
+            seen[cm] = true;
+            var copt = document.createElement('option');
+            copt.value = cm; copt.textContent = cm;
+            if (cm === saved) copt.selected = true;
+            cloudGroup.appendChild(copt);
+          }
+          modelSelect.appendChild(cloudGroup);
+
+          // 🖥 Local group — whatever the daemon has pulled (incl. cloud models
+          // the user already signed into, which arrive with their own tags).
+          if (localModels.length > 0) {
+            var localGroup = document.createElement('optgroup');
+            localGroup.label = '💻 Local — this machine';
+            for (var i = 0; i < localModels.length; i++) {
+              if (seen[localModels[i]]) continue;
+              seen[localModels[i]] = true;
+              var opt = document.createElement('option');
+              opt.value = localModels[i]; opt.textContent = localModels[i];
+              if (localModels[i] === saved) opt.selected = true;
+              localGroup.appendChild(opt);
+            }
+            if (localGroup.childNodes.length > 0) modelSelect.appendChild(localGroup);
+          }
+
+          // Default to a cloud model unless the user has a saved preference that
+          // still exists in the list (respect a returning user's explicit choice).
+          if (!saved || !seen[saved]) modelSelect.value = DEFAULT_CLOUD;
+
+          modelSelect.disabled = false;
+          chatInput.disabled = false;
+          chatSend.disabled = false;
+          chatInput.focus();
+
+          // Pre-warm only LOCAL models (keeps them resident in VRAM for instant
+          // replies). Cloud models run server-side — no warm-up, and an empty
+          // generate would bill a pointless cloud round-trip.
+          var warmModel = modelSelect.value;
+          if (!isCloudModel(warmModel)) {
             fetch(OLLAMA_BASE + '/api/generate', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -3258,7 +3311,7 @@ const chatContext = !missing && data ? JSON.stringify({
           l1.textContent = 'Could not connect to Ollama at localhost:11434';
           var l2 = document.createElement('div');
           l2.className = 'text-xs text-dim';
-          l2.textContent = 'Install from ollama.com \u2022 then run: ollama pull llama3.2';
+          l2.textContent = 'Install from ollama.com, then `ollama signin` to use big cloud models (no GPU needed) \u2014 or `ollama pull llama3.2` to run locally.';
           var retry = document.createElement('button');
           retry.className = 'mt-2 text-xs text-accent hover:underline cursor-pointer';
           retry.textContent = 'Retry connection';
