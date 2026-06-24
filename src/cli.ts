@@ -19,8 +19,9 @@ Usage: registry-stats [package] [options]
   If no package is given, reads from registry-stats.config.json.
 
 Options:
-  --registry, -r  Registry to query (npm, pypi, nuget, vscode, docker)
+  --registry, -r  Registry to query (npm, pypi, nuget, vscode, docker, github)
                   Omit to query all registries
+                  github: identifier is a repo slug, e.g. -r github owner/repo
   --mine          Discover and show stats for all npm packages by a maintainer
                   e.g. registry-stats --mine mikefrilot
   --range         Date range for time series (e.g. 2025-01-01:2025-06-30)

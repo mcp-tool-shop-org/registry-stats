@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.4.0] - 2026-06-24
+
+### Added
+- **GitHub Releases provider** — a sixth registry. The package identifier is a repository slug (`owner/repo`); it reports the cumulative download count of all uploaded release assets (binaries, checksums, SBOMs) summed across every release, plus release/asset counts and the latest tag. Query it with `registry-stats owner/repo -r github`, or via `stats('github', 'owner/repo')`.
+  - GitHub only counts manually-uploaded assets, not the auto-generated source archive, so source-only repos report `0`. The count is all-time cumulative (like NuGet/VS Code), so the dashboard derives weekly deltas from snapshot diffing.
+  - A `githubToken` option (wired to the CI `GITHUB_TOKEN`) raises the API rate limit from 60 to 5000 requests/hour.
+  - The dashboard now tracks 24 release-shipping repositories across both orgs.
+
 ## [3.3.1] - 2026-06-14
 
 Dev-dependency security upgrade (esbuild/tsup/vitest/Astro). **No consumer-facing change:** the published package keeps **zero runtime dependencies** and the same build output (ESM + CJS + `.d.ts`). All changes are dev/build-time only.

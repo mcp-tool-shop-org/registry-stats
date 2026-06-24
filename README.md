@@ -32,7 +32,7 @@
 
 ---
 
-You publish to npm, PyPI, NuGet, the VS Code Marketplace, and Docker Hub. Right now, answering "how are my packages doing?" means checking five different sites. **registry-stats** is the complete platform: a TypeScript engine (CLI + API + REST server), a live web dashboard, and a native Windows desktop app — all from one repo.
+You publish to npm, PyPI, NuGet, the VS Code Marketplace, Docker Hub, and GitHub Releases. Right now, answering "how are my packages doing?" means checking six different sites. **registry-stats** is the complete platform: a TypeScript engine (CLI + API + REST server), a live web dashboard, and a native Windows desktop app — all from one repo.
 
 Zero runtime dependencies. Uses native `fetch()`. Node 18+.
 
@@ -364,7 +364,7 @@ npm run site:build
 
 | Aspect | Detail |
 |--------|--------|
-| **Data touched** | Public download statistics from npm, PyPI, NuGet, VS Code Marketplace, Docker Hub. In-memory cache (optional) |
+| **Data touched** | Public download statistics from npm, PyPI, NuGet, VS Code Marketplace, Docker Hub, GitHub Releases. In-memory cache (optional) |
 | **Data NOT touched** | No telemetry. No analytics. No credential storage. No user data. No file writes |
 | **Permissions** | Read: public registry APIs via HTTPS. Write: stdout/stderr only |
 | **Network** | HTTPS outbound to public registry APIs. Optional localhost REST server |

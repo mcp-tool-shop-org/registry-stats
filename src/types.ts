@@ -1,4 +1,4 @@
-export type RegistryName = 'npm' | 'pypi' | 'nuget' | 'vscode' | 'docker';
+export type RegistryName = 'npm' | 'pypi' | 'nuget' | 'vscode' | 'docker' | 'github';
 
 export interface PackageStats {
   registry: RegistryName;
@@ -41,6 +41,8 @@ export interface StatsCache {
 
 export interface StatsOptions {
   dockerToken?: string;
+  /** GitHub token — raises the releases API rate limit from 60/hr to 5000/hr */
+  githubToken?: string;
   /** Max concurrent requests for bulk operations (default: 5) */
   concurrency?: number;
   /** Cache instance — use createCache() for built-in TTL cache */

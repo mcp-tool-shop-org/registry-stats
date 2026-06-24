@@ -16,6 +16,7 @@ const REGISTRY_DELAYS: Partial<Record<RegistryName, number>> = {
   npm: 800,    // ~1.25 req/s — safe for 91+ scoped packages (429s at 400ms)
   pypi: 2200,  // 30 req/60s = 1 per 2s, with headroom
   docker: 4000, // 10 req/3600s — very tight
+  github: 300, // authed 5000/hr; spacing also avoids secondary-rate-limit trips
 };
 
 const DEFAULT_DELAY = 100;

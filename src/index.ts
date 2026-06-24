@@ -6,6 +6,7 @@ import { pypi } from './providers/pypi.js';
 import { nuget } from './providers/nuget.js';
 import { vscode } from './providers/vscode.js';
 import { docker } from './providers/docker.js';
+import { github } from './providers/github.js';
 import { fetchDirect } from './fetch.js';
 
 export { calc } from './calc.js';
@@ -96,6 +97,7 @@ const providers = new Map<string, RegistryProvider>([
   ['nuget', nuget],
   ['vscode', vscode],
   ['docker', docker],
+  ['github', github],
 ]);
 
 /** Built-in registry names — overwriting one warns (it's almost always a mistake). */

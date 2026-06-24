@@ -14,6 +14,7 @@ sidebar:
 | **NuGet** | `Newtonsoft.Json` | No | total |
 | **VS Code** | `publisher.extension` | No | total (installs), rating, trends |
 | **Docker Hub** | `namespace/repo` | No | total (pulls), stars |
+| **GitHub Releases** | `owner/repo` | No | total (asset downloads), releases, assets, latestTag |
 
 ## npm
 
@@ -36,6 +37,12 @@ VS Code extensions use the format `publisher.extension` (e.g., `esbenp.prettier-
 ## Docker Hub
 
 Docker Hub images use the format `namespace/repo` (e.g., `library/node`). Reports total pull counts and star counts. GHCR (GitHub Container Registry) doesn't expose public pull counts.
+
+## GitHub Releases
+
+GitHub repositories use the format `owner/repo` (e.g., `mcp-tool-shop-org/prism-verify`). Reports the cumulative download count of all uploaded release assets — binaries, checksums, and SBOMs — summed across every release, plus the release/asset counts and latest tag.
+
+GitHub only counts **manually-uploaded assets**; it does not report downloads of the auto-generated source `zipball`/`tarball`, so a repo with source-only releases reports `0`. Like NuGet and VS Code, the count is all-time cumulative, so weekly deltas are derived from snapshot diffing between runs. Set a `githubToken` (the CI `GITHUB_TOKEN`) to raise the API rate limit from 60 to 5000 requests/hour.
 
 ## Adding custom registries
 

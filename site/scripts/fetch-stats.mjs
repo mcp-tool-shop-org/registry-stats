@@ -19,7 +19,7 @@ const HISTORY_PATH = path.join(DATA_DIR, "history.json");
 
 // ── Schema validation helpers ──────────────────────────────────
 
-const KNOWN_REGISTRIES = ["npm", "pypi", "vscode", "nuget", "docker"];
+const KNOWN_REGISTRIES = ["npm", "pypi", "vscode", "nuget", "docker", "github"];
 
 function validateManifest(manifest) {
   if (manifest == null || typeof manifest !== "object" || Array.isArray(manifest)) {
@@ -181,11 +181,12 @@ function dateStr(daysAgo) {
 }
 
 function regLabel(reg) {
-  return ({ npm: "npm", pypi: "PyPI", vscode: "VS Code", nuget: "NuGet", docker: "Docker Hub" })[reg] ?? reg;
+  return ({ npm: "npm", pypi: "PyPI", vscode: "VS Code", nuget: "NuGet", docker: "Docker Hub", github: "GitHub Releases" })[reg] ?? reg;
 }
 
-// Cumulative-only registries (no native weekly/monthly breakdowns)
-const CUMULATIVE_REGISTRIES = new Set(["docker", "vscode", "nuget"]);
+// Cumulative-only registries (no native weekly/monthly breakdowns).
+// GitHub asset download_count is all-time cumulative → weekly via snapshot delta.
+const CUMULATIVE_REGISTRIES = new Set(["docker", "vscode", "nuget", "github"]);
 
 function fmtInt(n) {
   return new Intl.NumberFormat("en-US").format(Math.round(Number(n ?? 0)));
@@ -342,7 +343,8 @@ async function main() {
     const reg = scope.split(".")[0].split(":")[0];
     errorsByRegistry[reg] = (errorsByRegistry[reg] ?? 0) + 1;
   }
-  const opts = { cache, cacheTtlMs: 600_000 };
+  // GITHUB_TOKEN (present in CI) raises the GitHub releases rate limit 60→5000/hr.
+  const opts = { cache, cacheTtlMs: 600_000, githubToken: process.env.GITHUB_TOKEN };
 
   const manifest = JSON.parse(await fs.readFile(MANIFEST_PATH, "utf8"));
   validateManifest(manifest);
@@ -399,6 +401,7 @@ async function main() {
     vscode: [...(manifest.vscode ?? [])],
     nuget: [...(manifest.nuget ?? [])],
     ...(manifest.docker?.length ? { docker: [...manifest.docker] } : {}),
+    ...(manifest.github?.length ? { github: [...manifest.github] } : {}),
   };
 
   const perRegistry = await fetchAllRegistries(registryLists, prevLeaderboard, trackError, opts);
