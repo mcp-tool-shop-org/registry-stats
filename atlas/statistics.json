@@ -155,8 +155,8 @@
         "path": ".github/workflows/desktop-ci.yml"
       },
       {
-        "commits": 9,
-        "lines": 67,
+        "commits": 11,
+        "lines": 71,
         "path": ".github/workflows/pages.yml"
       },
       {
@@ -225,8 +225,8 @@
         "path": "SHIP_GATE.md"
       },
       {
-        "commits": 1,
-        "lines": 98,
+        "commits": 3,
+        "lines": 186,
         "path": "atlas/README.md"
       },
       {
@@ -235,18 +235,18 @@
         "path": "atlas/boundaries.yaml"
       },
       {
-        "commits": 1,
-        "lines": 459,
+        "commits": 3,
+        "lines": 927,
         "path": "atlas/page.json"
       },
       {
-        "commits": 1,
-        "lines": 648,
+        "commits": 3,
+        "lines": 1308,
         "path": "atlas/statistics.json"
       },
       {
-        "commits": 1,
-        "lines": 2609,
+        "commits": 3,
+        "lines": 4703,
         "path": "atlas/structure.json"
       },
       {
@@ -345,13 +345,13 @@
         "path": "site/src/data/packages.json"
       },
       {
-        "commits": 94,
-        "lines": 8334,
+        "commits": 88,
+        "lines": 7830,
         "path": "site/src/data/snapshots.json"
       },
       {
-        "commits": 94,
-        "lines": 363751,
+        "commits": 88,
+        "lines": 337794,
         "path": "site/src/data/stats.json"
       },
       {
@@ -475,23 +475,16 @@
     "level": "low",
     "reason": "fewer than 25 source files reach 10 revisions in the window"
   },
-  "generatedAt": "2026-09-30T20:11:54.487Z",
+  "generatedAt": "2026-10-01T02:12:23.024Z",
   "generatedFrom": {
-    "commit": "ccdcd1374bfbc49d4c77bf18f1265745c64da64e"
+    "commit": "7bd013bf4d2a84f1c17307489c97afbc8667a7da"
   },
   "pairs": [
     {
-      "a": ".github/workflows/daily-refresh.yml",
-      "b": ".github/workflows/pages.yml",
-      "either": 8,
-      "shared": 4,
-      "strength": 0.5
-    },
-    {
       "a": "site/src/data/snapshots.json",
       "b": "site/src/data/stats.json",
-      "either": 94,
-      "shared": 94,
+      "either": 88,
+      "shared": 88,
       "strength": 1
     }
   ],
@@ -505,16 +498,16 @@
     "floor": "fallen",
     "floorHeld": false,
     "floorTrigger": "revision-depth",
-    "headDate": "2026-09-25T02:37:25-07:00",
+    "headDate": "2026-09-30T13:34:23-07:00",
     "inScopeFiles": 128,
     "pinnedStart": null,
     "priorFloor": "fallen",
-    "qualifyingCommits": 116,
+    "qualifyingCommits": 111,
     "qualifyingMinimum": 30,
     "revisions": 5,
     "shared": 10,
     "sharedFloorUsed": 3,
-    "since": "2026-03-29T09:37:25.000Z",
+    "since": "2026-04-03T20:34:23.000Z",
     "sourceExtensions": [
       ".js",
       ".mjs",
