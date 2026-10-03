@@ -22,8 +22,9 @@ export interface ServerOptions {
   /**
    * Trust the X-Forwarded-For header for client IP (default: false).
    * When false, the rate limiter keys on the real socket address so a
-   * spoofed X-Forwarded-For cannot bypass it. Enable only behind a proxy
-   * that sets X-Forwarded-For reliably.
+   * spoofed X-Forwarded-For cannot bypass it. When true, the rightmost
+   * trimmed hop is used. One appending proxy puts the client it saw at
+   * the end; the leftmost value is attacker-supplied.
    */
   trustProxy?: boolean;
 }
@@ -120,11 +121,20 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
  * Get client IP from request.
  * Only honors X-Forwarded-For when `trustProxy` is true — otherwise an
  * attacker could spoof the header to evade the per-IP rate limiter.
+ * When trusted, use the rightmost trimmed hop. One appending proxy puts
+ * the client it saw at the end; the leftmost value is attacker-supplied.
  */
 function getClientIp(req: IncomingMessage, trustProxy: boolean): string {
   if (trustProxy) {
     const forwarded = req.headers['x-forwarded-for'];
-    if (typeof forwarded === 'string') return forwarded.split(',')[0].trim();
+    const raw = Array.isArray(forwarded) ? forwarded.join(',') : forwarded;
+    if (typeof raw === 'string') {
+      const hops = raw.split(',');
+      for (let i = hops.length - 1; i >= 0; i--) {
+        const hop = hops[i].trim();
+        if (hop) return hop;
+      }
+    }
   }
   return req.socket.remoteAddress ?? '0.0.0.0';
 }
@@ -196,6 +206,11 @@ export function createHandler(opts?: StatsOptions & Pick<ServerOptions, 'corsOri
         if (path.length === 2) {
           const pkg = decodeURIComponent(path[1]);
           const results = await withTimeout(stats.all(pkg, options), timeoutMs);
+          // JSON.stringify of an array drops the .errors expando. Keep the
+          // body a JSON array and send failures in a header when there are any.
+          if (results.errors && results.errors.length > 0) {
+            res.setHeader('X-Registry-Errors', JSON.stringify(results.errors));
+          }
           json(res, results);
           return;
         }

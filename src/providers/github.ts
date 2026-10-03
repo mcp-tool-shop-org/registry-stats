@@ -50,6 +50,8 @@ export const github: RegistryProvider = {
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
     };
+    // Presence of this header is what fetch.ts uses to pick the gap
+    // (no header → ≥60s, header set → ≥800ms). The token is not hardcoded.
     if (options?.githubToken) {
       headers['Authorization'] = `Bearer ${options.githubToken}`;
     }

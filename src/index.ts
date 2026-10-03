@@ -189,6 +189,11 @@ async function stats(
  * surfaced on an additive `.errors` channel so a transient outage is not
  * mistaken for "package absent". The return type is array-compatible — existing
  * callers that treat it as PackageStats[] are unaffected.
+ *
+ * Fan-out goes through stats(), so options.cache uses the same
+ * `stats:${registry}:${pkg}` key as a single-registry lookup. Only a successful
+ * PackageStats is stored. Null (a legit 404) is not cached, and a thrown
+ * failure is not cached either — it stays on `.errors`.
  */
 stats.all = async function all(
   pkg: string,
@@ -201,7 +206,7 @@ stats.all = async function all(
 
   const providerList = [...providers.values()];
   const settled = await Promise.allSettled(
-    providerList.map((p) => p.getStats(pkg, options)),
+    providerList.map((p) => stats(p.name, pkg, options)),
   );
 
   const out: AllStatsResult = [];
