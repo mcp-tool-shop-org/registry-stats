@@ -29,6 +29,7 @@ jobs:
   verify:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -59,6 +60,7 @@ jobs:
   build:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
     steps:
@@ -94,6 +96,10 @@ jobs:
       - name: Fetch live stats
         if: github.event_name != 'pull_request'
         working-directory: site
+        # This job's token is read-only (contents: read). With it, GitHub release
+        # requests use the 800ms authenticated lane instead of the 60s one.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run fetch-stats
 
       - name: Upload fresh data for the commit-back job
@@ -125,6 +131,7 @@ jobs:
     needs: build
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
@@ -174,6 +181,7 @@ jobs:
     needs: build
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       pages: write
       id-token: write
