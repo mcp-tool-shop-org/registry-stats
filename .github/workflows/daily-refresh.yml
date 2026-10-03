@@ -15,6 +15,7 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
       issues: write
@@ -45,6 +46,11 @@ jobs:
       - name: Fetch live stats
         id: fetch
         working-directory: site
+        # This job's token cannot push (contents: read; issues: write is for the
+        # stale-data issue). With it, GitHub release requests use the 800ms
+        # authenticated lane instead of the 60s one.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run fetch-stats
 
       # Guard: catch a soft failure (script exited 0 but wrote stale data) by
@@ -114,6 +120,7 @@ jobs:
   persist:
     needs: refresh
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
