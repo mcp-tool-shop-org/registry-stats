@@ -231,15 +231,15 @@ npm/PyPI = last 7d &bull; VS Code/NuGet = all-time installs
           var conf = (data.confidence || {})[reg] || 'missing';
           var regErr = (data.errorsByRegistry || {})[reg] || 0;
           var badge = confBadge(conf);
-          var errStr = regErr > 0 ? ' <span class="ml-2 text-amber-400">(' + regErr + ' issues)</span>' : '';
+          var errStr = regErr > 0 ? ' <span class="ml-2 text-amber-400">(' + esc(String(regErr)) + ' issues)</span>' : '';
           return '<div class="flex items-center justify-between gap-3 rounded-xl border border-edge px-4 py-3">' +
             '<div class="flex items-center gap-2"><span>' + badge + '</span>' +
-            '<span class="font-medium text-heading">' + esc(regLabel(reg)) + '</span></div>' +
-            '<div class="text-sm text-dim tabular-nums">' + fetched + '/' + expected + ' fetched' + errStr + '</div></div>';
+            '<span class="font-medium text-heading">' + esc(String(regLabel(reg))) + '</span></div>' +
+            '<div class="text-sm text-dim tabular-nums">' + esc(String(fetched)) + '/' + esc(String(expected)) + ' fetched' + errStr + '</div></div>';
         }).join('');
       }
       var errCount = document.getElementById('health-error-count');
-      if (errCount) errCount.innerHTML = 'Errors: <span class="font-medium text-muted">' + (data.errors ? data.errors.length : 0) + '</span>';
+      if (errCount) errCount.innerHTML = 'Errors: <span class="font-medium text-muted">' + esc(String(data.errors ? data.errors.length : 0)) + '</span>';
       var freshness = document.getElementById('health-freshness');
       if (freshness && data.confidence) {
         var ok = Object.values(data.confidence).filter(function (c) { return c === 'ok'; }).length;
@@ -256,15 +256,15 @@ npm/PyPI = last 7d &bull; VS Code/NuGet = all-time installs
           var suffix = (key === 'vscode' || key === 'nuget') ? ' <span class="ml-1.5 text-xs text-dim font-normal">(all-time installs)</span>' : '';
           var pct = Math.round((Number(r.week || 0) / maxB) * 100);
           return '<div><div class="flex items-center justify-between text-sm">' +
-            '<div class="font-medium text-heading">' + esc(regLabel(key)) + suffix + '</div>' +
-            '<div class="text-dim"><span class="text-muted font-medium">' + fmtCompact.format(r.week) + '</span>' +
-            '<span class="mx-2 text-edge">\u2022</span>' + fmt.format(r.packages) + ' pkg</div></div>' +
+            '<div class="font-medium text-heading">' + esc(String(regLabel(key))) + suffix + '</div>' +
+            '<div class="text-dim"><span class="text-muted font-medium">' + esc(String(fmtCompact.format(r.week))) + '</span>' +
+            '<span class="mx-2 text-edge">\u2022</span>' + esc(String(fmt.format(r.packages))) + ' pkg</div></div>' +
             '<div class="mt-2 h-2 rounded-full bg-surface-strong overflow-hidden">' +
             '<div class="h-2 rounded-full bg-accent" style="width:' + pct + '%"></div></div></div>';
         }).join('');
       }
       var bmax = document.getElementById('breakdown-max');
-      if (bmax) bmax.innerHTML = 'Max: <span class="font-medium text-muted">' + fmtCompact.format(maxB) + '</span>';
+      if (bmax) bmax.innerHTML = 'Max: <span class="font-medium text-muted">' + esc(String(fmtCompact.format(maxB))) + '</span>';
 
       var sp30 = data.sparkline30 || [];
       var spMax = Math.max(1, Math.max.apply(null, sp30.map(Number)));
@@ -272,7 +272,7 @@ npm/PyPI = last 7d &bull; VS Code/NuGet = all-time installs
       if (spEl) {
         spEl.innerHTML = sp30.map(function (n) {
           var h = Math.max(2, Math.round((Number(n) / spMax) * 100));
-          return '<span class="spark" style="height:' + h + '%" title="' + fmt.format(n) + ' downloads"></span>';
+          return '<span class="spark" style="height:' + esc(String(h)) + '%" title="' + esc(String(fmt.format(n))) + ' downloads"></span>';
         }).join('');
       }
 
@@ -287,7 +287,7 @@ npm/PyPI = last 7d &bull; VS Code/NuGet = all-time installs
           var sparkHtml;
           if (has30) {
             var rm = Math.max(1, Math.max.apply(null, row.range30));
-            sparkHtml = '<div class="row-spark" title="Peak: ' + fmt.format(rm) + '/day">' +
+            sparkHtml = '<div class="row-spark" title="Peak: ' + esc(String(fmt.format(rm))) + '/day">' +
               row.range30.map(function (n) {
                 return '<span class="rs" style="height:' + Math.max(1, Math.round((n / rm) * 100)) + '%"></span>';
               }).join('') + '</div>';
@@ -297,9 +297,9 @@ npm/PyPI = last 7d &bull; VS Code/NuGet = all-time installs
           return '<tr class="border-t border-edge-subtle hover:bg-surface-raised/50">' +
             '<td class="px-5 py-3 text-dim tabular-nums">' + (i + 1) + '</td>' +
             '<td class="px-5 py-3 font-medium text-heading">' + esc(row.name) + '</td>' +
-            '<td class="px-5 py-3 text-dim">' + esc(regLabel(row.registry)) + '</td>' +
-            '<td class="px-5 py-3 text-right tabular-nums text-body">' + fmt.format(row.week) + '</td>' +
-            '<td class="px-5 py-3 text-right tabular-nums text-body">' + fmt.format(row.month) + '</td>' +
+            '<td class="px-5 py-3 text-dim">' + esc(String(regLabel(row.registry))) + '</td>' +
+            '<td class="px-5 py-3 text-right tabular-nums text-body">' + esc(String(fmt.format(row.week))) + '</td>' +
+            '<td class="px-5 py-3 text-right tabular-nums text-body">' + esc(String(fmt.format(row.month))) + '</td>' +
             '<td class="px-3 py-3">' + sparkHtml + '</td>' +
             '<td class="px-5 py-3 text-right tabular-nums ' + tb.cls + '">' + esc(tb.text) + '</td></tr>';
         }).join('');
@@ -309,7 +309,7 @@ npm/PyPI = last 7d &bull; VS Code/NuGet = all-time installs
       if (lbFoot) {
         if (data.errors && data.errors.length > 0) {
           lbFoot.innerHTML = '<div class="border-t border-edge bg-surface-raised px-5 py-3 text-xs text-dim">' +
-            'Some sources failed to fetch (' + data.errors.length + '). Data may be partial.</div>';
+            'Some sources failed to fetch (' + esc(String(data.errors.length)) + '). Data may be partial.</div>';
         } else {
           lbFoot.innerHTML = '';
         }
