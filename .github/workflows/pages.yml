@@ -50,7 +50,7 @@ jobs:
 
       - name: Audit site dependencies
         working-directory: site
-        run: npm audit --audit-level=high
+        run: node scripts/audit.mjs
 
       - name: Build site
         working-directory: site
@@ -86,7 +86,7 @@ jobs:
       # re-accumulate advisories (esbuild pinned via overrides to ^0.28.1).
       - name: Audit site dependencies
         working-directory: site
-        run: npm audit --audit-level=high
+        run: node scripts/audit.mjs
 
       # On pull_request we only verify (audit + build) — skip the live fetch, the
       # stats commit/push, the Pages artifact upload, and the deploy job. Those run
