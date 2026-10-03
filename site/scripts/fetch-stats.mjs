@@ -17,6 +17,24 @@ const MANIFEST_PATH = path.join(DATA_DIR, "packages.json");
 const OUT_PATH = path.join(DATA_DIR, "stats.json");
 const HISTORY_PATH = path.join(DATA_DIR, "history.json");
 
+// A registry that rate-limits us (back-to-back runs, a shared runner IP) can
+// turn every request into retries with up to 60s waits, and the run looks
+// frozen. Each phase gets a budget and the whole fetch a deadline; when either
+// runs out, the phase stops and its unfetched packages keep their previous
+// stats, marked stale. Normal phases take 1-5 minutes (2026-10-01 run).
+const PHASE_BUDGET_MS = 6 * 60_000;
+const TOTAL_BUDGET_MS = 30 * 60_000;
+const deadline = AbortSignal.timeout(TOTAL_BUDGET_MS);
+
+/** Options for one phase: the shared ones plus a signal that ends the phase. */
+function phaseOpts(opts) {
+  return { ...opts, signal: AbortSignal.any([deadline, AbortSignal.timeout(PHASE_BUDGET_MS)]) };
+}
+
+function budgetNote(signal, phase) {
+  if (signal.aborted) console.warn(`  ${phase}: time budget ran out; unfetched packages keep previous stats`);
+}
+
 // ── Schema validation helpers ──────────────────────────────────
 
 const KNOWN_REGISTRIES = ["npm", "pypi", "vscode", "nuget", "docker", "github"];
@@ -232,9 +250,12 @@ async function fetchAllRegistries(registryLists, prevLeaderboard, trackError, op
 
     console.log(`  ${registry}: fetching ${packages.length} packages...`);
     const items = [];
+    // Per-registry budget. After an abort, the individual pass below still
+    // returns anything the bulk pass cached and marks the rest stale at once.
+    const ropts = phaseOpts(opts);
 
     try {
-      const results = await stats.bulk(registry, packages, opts);
+      const results = await stats.bulk(registry, packages, ropts);
       for (let i = 0; i < packages.length; i++) {
         const r = results[i];
         if (r === null) {
@@ -266,7 +287,7 @@ async function fetchAllRegistries(registryLists, prevLeaderboard, trackError, op
 
       for (const pkg of packages) {
         try {
-          const r = await stats(registry, pkg, opts);
+          const r = await stats(registry, pkg, ropts);
           items.push({
             registry,
             name: pkg,
@@ -292,6 +313,7 @@ async function fetchAllRegistries(registryLists, prevLeaderboard, trackError, op
       }
     }
 
+    budgetNote(ropts.signal, registry);
     perRegistry[registry] = items;
     const staleCount = items.filter((i) => i.stale).length;
     const okCount = items.filter((i) => !i.error).length;
@@ -381,7 +403,7 @@ async function main() {
   if (manifest.npmMaintainer) {
     try {
       console.log(`  npm: discovering packages for maintainer "${manifest.npmMaintainer}"...`);
-      const discovered = await stats.mine(manifest.npmMaintainer, opts);
+      const discovered = await stats.mine(manifest.npmMaintainer, phaseOpts(opts));
       for (const pkg of discovered) {
         if (pkg.package && !npmPackages.includes(pkg.package)) {
           npmPackages.push(pkg.package);
@@ -411,9 +433,11 @@ async function main() {
   const thirtyAgo = dateStr(30);
 
   console.log("  npm: fetching 30-day ranges for sparklines...");
+  const rangeOpts = phaseOpts(opts);
   for (const item of perRegistry.npm ?? []) {
+    if (rangeOpts.signal.aborted) break; // the rest get no fresh sparkline this run
     try {
-      const daily = await stats.range("npm", item.name, thirtyAgo, today, opts);
+      const daily = await stats.range("npm", item.name, thirtyAgo, today, rangeOpts);
       const counts = daily.map((d) => safeNumber(d.downloads)).slice(-30);
       while (counts.length < 30) counts.unshift(0);
       item.range30 = counts;
@@ -438,6 +462,7 @@ async function main() {
       trackError(`npm.range:${item.name}`, String(e?.message ?? e));
     }
   }
+  budgetNote(rangeOpts.signal, "npm ranges");
   console.log("  npm: ranges done");
 
   // --- Snapshot-delta for cumulative-only registries ---

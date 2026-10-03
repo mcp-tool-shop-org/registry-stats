@@ -93,10 +93,11 @@ function acquireGithubSlot(init?: RequestInit): Promise<void> {
       githubMark = { start: Date.now(), delay: minDelay };
       resolve();
     };
+    const signal = requestSignals.getStore();
     if (wait === 0) release();
+    else if (signal?.aborted) resolve(); // 'abort' already fired; a listener would never run
     else {
       const timer = setTimeout(release, wait);
-      const signal = requestSignals.getStore();
       signal?.addEventListener('abort', () => {
         clearTimeout(timer);
         resolve();
