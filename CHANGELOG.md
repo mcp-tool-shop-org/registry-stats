@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **`signal` option** on `StatsOptions`. Aborting it stops every request, retry wait and throttle wait made by `stats`, `stats.bulk`, `stats.range` and `stats.mine`, which then reject with a `RegistryError`. Results already in `options.cache` still come back.
+
+### Fixed
+- A queued GitHub request whose signal had already aborted waited out the full spacing gap (60s without a token) instead of returning at once.
+
+### Changed
+- Dashboard (`site/`, not published): each fetch phase has a 6-minute budget and the whole fetch 30 minutes. A rate-limited registry falls back to its previous stats, marked stale, instead of holding the deploy for an hour.
+
 ## [3.4.0] - 2026-06-24
 
 ### Added

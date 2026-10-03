@@ -7,7 +7,7 @@ import { nuget } from './providers/nuget.js';
 import { vscode } from './providers/vscode.js';
 import { docker } from './providers/docker.js';
 import { github } from './providers/github.js';
-import { fetchDirect } from './fetch.js';
+import { fetchDirect, bindRequestSignal } from './fetch.js';
 
 export { calc } from './calc.js';
 export type { RegistryName, PackageStats, DailyDownloads, StatsOptions, StatsCache, RegistryProvider, RateLimitConfig, Config, PackageConfig, ComparisonResult, ChartData } from './types.js';
@@ -165,6 +165,11 @@ function toRegistryFailure(registry: string, reason: unknown): RegistryFailure {
 
 const DEFAULT_TTL = 300_000; // 5 minutes
 
+/** Run fn with options.signal bound to every request, retry sleep and slot wait inside it. */
+function withSignal<T>(options: StatsOptions | undefined, fn: () => Promise<T>): Promise<T> {
+  return options?.signal ? bindRequestSignal(options.signal, fn) : fn();
+}
+
 /**
  * Fetch download stats for a single package from one registry.
  * Returns null if the package is not found (404).
@@ -186,12 +191,12 @@ async function stats(
     const key = `stats:${registry}:${pkg}`;
     const cached = cache.get(key) as PackageStats | undefined;
     if (cached) return cached;
-    const result = await provider.getStats(pkg, options);
+    const result = await withSignal(options, () => provider.getStats(pkg, options));
     if (result) cache.set(key, result, options?.cacheTtlMs ?? DEFAULT_TTL);
     return result;
   }
 
-  return provider.getStats(pkg, options);
+  return withSignal(options, () => provider.getStats(pkg, options));
 }
 
 /**
@@ -290,9 +295,9 @@ async function npmBulkStats(
   }
 
   // Unscoped: single bulk API call
-  const bulkMonth = unscoped.length > 0 ? await npmBulkPoint(unscoped, 'last-month') : new Map();
-  const bulkWeek = unscoped.length > 0 ? await npmBulkPoint(unscoped, 'last-week') : new Map();
-  const bulkDay = unscoped.length > 0 ? await npmBulkPoint(unscoped, 'last-day') : new Map();
+  const bulkMonth = unscoped.length > 0 ? await withSignal(options, () => npmBulkPoint(unscoped, 'last-month')) : new Map();
+  const bulkWeek = unscoped.length > 0 ? await withSignal(options, () => npmBulkPoint(unscoped, 'last-week')) : new Map();
+  const bulkDay = unscoped.length > 0 ? await withSignal(options, () => npmBulkPoint(unscoped, 'last-day')) : new Map();
 
   const unscopedResults = new Map<string, PackageStats | null>();
   for (const pkg of unscoped) {
@@ -354,12 +359,12 @@ stats.range = async function range(
     const key = `range:${registry}:${pkg}:${start}:${end}`;
     const cached = cache.get(key) as DailyDownloads[] | undefined;
     if (cached) return cached;
-    const result = await provider.getRange(pkg, start, end);
+    const result = await withSignal(options, () => provider.getRange!(pkg, start, end));
     cache.set(key, result, options?.cacheTtlMs ?? DEFAULT_TTL);
     return result;
   }
 
-  return provider.getRange(pkg, start, end);
+  return withSignal(options, () => provider.getRange!(pkg, start, end));
 };
 
 /**
@@ -427,7 +432,7 @@ stats.mine = async function mine(
   while (page < MAX_PAGES) {
     page++;
     const url = `https://registry.npmjs.org/-/v1/search?text=maintainer:${encodeURIComponent(maintainer)}&size=${PAGE_SIZE}&from=${offset}`;
-    const data = await fetchDirect<NpmSearchResult>(url, 'npm');
+    const data = await withSignal(options, () => fetchDirect<NpmSearchResult>(url, 'npm'));
     if (!data || data.objects.length === 0) break;
 
     for (const obj of data.objects) {

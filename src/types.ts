@@ -54,6 +54,12 @@ export interface StatsOptions {
    * Omitted means every registered provider.
    */
   registries?: string[];
+  /**
+   * Stops every request, retry sleep and throttle wait made on this call once
+   * aborted; they reject with a RegistryError. Results already cached are still
+   * returned.
+   */
+  signal?: AbortSignal;
 }
 
 export interface PackageConfig {
