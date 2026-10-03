@@ -7,7 +7,7 @@ sidebar:
 
 ## What is registry-stats?
 
-registry-stats is a TypeScript tool that pulls download statistics from five package registries — npm, PyPI, NuGet, the VS Code Marketplace, and Docker Hub — through a single interface. Instead of visiting five different websites to check how your packages are performing, you run one command or call one API and get consolidated results.
+registry-stats is a TypeScript tool that pulls download statistics from six registries — npm, PyPI, NuGet, the VS Code Marketplace, Docker Hub, and GitHub Releases — through a single interface. A plain package name is sent to every built-in registry; GitHub Releases wants an `owner/repo` slug. Instead of checking each site yourself, you run one command or call one API and get consolidated results.
 
 It ships as an npm package (`@mcptoolshop/registry-stats`) with three surfaces: a CLI for quick terminal lookups, a programmatic API for automation, and a REST server for integrating with other tools. There is also a web dashboard with AI-powered analytics and a native Windows desktop app.
 
@@ -21,11 +21,11 @@ Zero runtime dependencies. Uses native `fetch()`. Requires Node 18 or later.
 - **Automation builders** who want download data in CI pipelines, dashboards, or Slack bots
 - **Solo developers** who want to know if anyone is actually using their packages
 
-If you publish anything to npm, PyPI, NuGet, the VS Code Marketplace, or Docker Hub, this tool saves you time.
+If you publish anything to npm, PyPI, NuGet, the VS Code Marketplace, Docker Hub, or GitHub Releases, this tool saves you time.
 
 ## Key concepts
 
-**Registries** — The five package hosts that registry-stats can query: npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub. Each returns different data (npm gives daily/weekly/monthly counts; NuGet only gives totals). See the [Registries](/registry-stats/handbook/registries/) page for details.
+**Registries** — The six built-in hosts registry-stats can query: npm, PyPI, NuGet, the VS Code Marketplace, Docker Hub, and GitHub Releases. GitHub Releases takes an `owner/repo` slug and reports cumulative release-asset downloads, not a time series. Each host returns different data (npm gives daily/weekly/monthly counts; NuGet only gives totals). See the [Registries](/registry-stats/handbook/registries/) page for details.
 
 **Stats** — The download counts and metadata returned for a package. The core `PackageStats` object includes `downloads` (with optional `total`, `lastDay`, `lastWeek`, `lastMonth` fields), the `registry` name, `package` name, and a `fetchedAt` timestamp.
 
@@ -53,10 +53,11 @@ Run your first query:
 registry-stats express -r npm
 ```
 
-This fetches download stats for the `express` package from npm and prints them as a table. To query all five registries at once, omit the `-r` flag:
+This fetches download stats for the `express` package from npm and prints them as a table. Omit `-r` to query every built-in registry with that name. GitHub Releases is one of them and wants an `owner/repo` slug, so a plain name is an error from `github` and the other registries still return:
 
 ```bash
 registry-stats express
+registry-stats owner/repo -r github
 ```
 
 To set up a config file for tracking your own packages:
@@ -139,9 +140,9 @@ All algorithms are pure math on arrays of numbers — weighted linear regression
 
 ## Troubleshooting
 
-**"Unknown registry" error** — You passed a registry name that is not built in. The five built-in registries are `npm`, `pypi`, `nuget`, `vscode`, and `docker`. Names are lowercase. If you need a different registry, use `registerProvider()`.
+**"Unknown registry" error** — You passed a registry name that is not built in. The built-in names are `npm`, `pypi`, `nuget`, `vscode`, `docker`, and `github`. Names are lowercase. `github` takes an `owner/repo` slug (`registry-stats owner/repo -r github`). `registerProvider()` is for a registry that is not one of those six.
 
-**"does not support time-series data" error** — You called `stats.range()` on a registry that does not support it. Only `npm` and `pypi` have daily download history. NuGet, VS Code, and Docker do not.
+**"does not support time-series data" error** — You called `stats.range()` on a registry that does not support it. Only `npm` and `pypi` have daily download history. NuGet, VS Code, Docker, and GitHub do not.
 
 **429 Too Many Requests** — You are hitting the registry's rate limit. The library retries automatically with backoff, but very large bulk queries can still exhaust limits. Reduce `concurrency` in your config or add a cache. For Docker Hub, set the `dockerToken` config field to raise limits.
 

@@ -11,47 +11,50 @@ try { await import('../data/stats.json'); hasSnapshot = true; } catch {}
 
   <div class="mx-auto max-w-3xl px-6 py-10">
     <h1 class="text-2xl font-semibold tracking-tight text-heading">Privacy Policy</h1>
-    <p class="mt-2 text-sm text-dim">Last updated: March 1, 2026</p>
+    <p class="mt-2 text-sm text-dim">Last updated: 2026-10-03</p>
 
     <div class="mt-8 space-y-6 text-sm text-body leading-relaxed">
       <section>
         <h2 class="text-lg font-semibold text-heading mb-2">Overview</h2>
-        <p>Registry Pulse is a local-only application that displays public download statistics from package registries. It does not collect, transmit, or store any personal data.</p>
+        <p>Registry Pulse displays public download statistics. It does not run user accounts, analytics, or crash reporting. It is not true that nothing leaves the machine: the dashboard and the desktop app call the hosts listed below. A GitHub personal access token you paste into the dashboard can sit in <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">sessionStorage</code>.</p>
       </section>
 
       <section>
         <h2 class="text-lg font-semibold text-heading mb-2">Data Collection</h2>
-        <p>Registry Pulse does <strong class="text-heading">not</strong> collect any personal information. Specifically:</p>
+        <p>Registry Pulse does <strong class="text-heading">not</strong> operate its own accounts or telemetry. Specifically:</p>
         <ul class="mt-2 list-disc list-inside space-y-1 text-dim">
-          <li>No user accounts or sign-in</li>
+          <li>No user accounts or sign-in to Registry Pulse</li>
           <li>No analytics or telemetry</li>
           <li>No cookies or tracking</li>
           <li>No advertising</li>
           <li>No crash reporting</li>
         </ul>
+        <p class="mt-2">A GitHub PAT you choose to save is kept in the browser under the <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">sessionStorage</code> key <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">rp-gh-pat</code> (cleared when the tab closes). It is not sent to a Registry Pulse server.</p>
       </section>
 
       <section>
         <h2 class="text-lg font-semibold text-heading mb-2">Network Requests</h2>
-        <p>The application makes HTTP requests exclusively to public registry APIs to retrieve download statistics:</p>
+        <p>The dashboard calls these hosts:</p>
         <ul class="mt-2 list-disc list-inside space-y-1 text-dim">
-          <li>npm (registry.npmjs.org)</li>
-          <li>PyPI (pypi.org)</li>
-          <li>NuGet (api.nuget.org)</li>
-          <li>VS Code Marketplace (marketplace.visualstudio.com)</li>
-          <li>Docker Hub (hub.docker.com)</li>
+          <li><code class="px-1 py-0.5 rounded bg-surface-strong text-muted">cdn.jsdelivr.net</code> — Chart.js, the zoom plugin, Hammer.js, and jsPDF</li>
+          <li><code class="px-1 py-0.5 rounded bg-surface-strong text-muted">en.wikipedia.org</code> — assistant web search (<code class="px-1 py-0.5 rounded bg-surface-strong text-muted">/w/api.php</code>)</li>
+          <li><code class="px-1 py-0.5 rounded bg-surface-strong text-muted">api.github.com</code> — only when a GitHub PAT is supplied. The token is sent as <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">Authorization: token …</code></li>
+          <li><code class="px-1 py-0.5 rounded bg-surface-strong text-muted">http://localhost:11434</code> — local Ollama (<code class="px-1 py-0.5 rounded bg-surface-strong text-muted">/api/tags</code>, <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">/api/chat</code>, and <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">/api/generate</code> for a local model). The picker defaults to a cloud model. The page talks only to that daemon, which can proxy the prompt — including the injected portfolio snapshot — off the machine</li>
+          <li><code class="px-1 py-0.5 rounded bg-surface-strong text-muted">http://localhost:11435</code> — optional local voice server</li>
+          <li>SearXNG, only if you run it. The default base is <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">http://localhost:8888</code>. A different base you type is stored in <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">localStorage</code> and then requested</li>
+          <li>Same-origin <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">data/stats.json</code> on the web dashboard</li>
         </ul>
-        <p class="mt-2">These requests contain only the package names you configure. No personal data, device identifiers, or authentication tokens are sent.</p>
+        <p class="mt-2">The desktop app, on refresh, downloads <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">https://mcp-tool-shop-org.github.io/registry-stats/data/stats.json</code>. The bundled dashboard makes the same calls as the web dashboard.</p>
       </section>
 
       <section>
         <h2 class="text-lg font-semibold text-heading mb-2">Local Storage</h2>
-        <p>All configuration and cached data is stored locally on your device. On Windows, data is stored in your user profile directory under <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">%LOCALAPPDATA%\RegistryPulse</code>. No data is transmitted to external servers.</p>
+        <p>On Windows the desktop app writes <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">config\packages.json</code> and cached <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">data\stats.json</code> under <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">%LOCALAPPDATA%\RegistryPulse</code>. That cache is not uploaded as a sync. The dashboard can keep a GitHub PAT in <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">sessionStorage</code>, and it keeps chat history, the selected model, the SearXNG base URL, and a public org-repo summary in <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">localStorage</code>. The PAT is sent only to <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">api.github.com</code>.</p>
       </section>
 
       <section>
         <h2 class="text-lg font-semibold text-heading mb-2">Third-Party Services</h2>
-        <p>Registry Pulse does not integrate with any third-party analytics, advertising, or tracking services.</p>
+        <p>Registry Pulse does not integrate analytics, advertising, or crash reporting. Chart and PDF scripts are loaded from <code class="px-1 py-0.5 rounded bg-surface-strong text-muted">cdn.jsdelivr.net</code>. Wikipedia, GitHub (when a PAT is supplied), and an optional SearXNG base are contacted as listed above.</p>
       </section>
 
       <section>
