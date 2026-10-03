@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  Five registries. One engine. Dashboard included.
+  Six registries. One engine. Dashboard included.
 </p>
 
 <p align="center">
@@ -40,7 +40,7 @@ Zero runtime dependencies. Uses native `fetch()`. Node 18+.
 
 | Layer | What it does |
 |-------|-------------|
-| **Engine** | TypeScript library + CLI + REST server + AI inference. Query five registries with one interface. Published to npm as `@mcptoolshop/registry-stats`. |
+| **Engine** | TypeScript library + CLI + REST server + AI inference. Query six registries — npm, PyPI, NuGet, the VS Code Marketplace, Docker Hub, and GitHub Releases — with one interface. A plain package name queries every built-in registry; GitHub Releases wants an owner/repo slug. Published to npm as `@mcptoolshop/registry-stats`. |
 | **Dashboard** | Astro-powered web app with AI inference panel (health scores, forecasts, actionable advice), Pulse AI co-pilot (streaming voice, web search, fullscreen, GitHub data connectors), seven interactive charts with zoom/pan, live refresh, export reports (PDF / JSONL / Markdown), and tabbed Help guide. Rebuilt daily by CI; refreshable on demand. |
 | **Desktop** | WinUI 3 + WebView2 native Windows app. Bundles the dashboard offline, fetches live stats on demand. |
 
@@ -364,10 +364,11 @@ npm run site:build
 
 | Aspect | Detail |
 |--------|--------|
-| **Data touched** | Public download statistics from npm, PyPI, NuGet, VS Code Marketplace, Docker Hub, GitHub Releases. In-memory cache (optional) |
-| **Data NOT touched** | No telemetry. No analytics. No credential storage. No user data. No file writes |
-| **Permissions** | Read: public registry APIs via HTTPS. Write: stdout/stderr only |
-| **Network** | HTTPS outbound to public registry APIs. Optional localhost REST server |
+| **Data touched** | Public download statistics from npm, PyPI, NuGet, the VS Code Marketplace, Docker Hub, and GitHub Releases. Optional in-memory cache. `registry-stats --init` writes `registry-stats.config.json`. The desktop app writes `packages.json` and `stats.json` under `%LOCALAPPDATA%\RegistryPulse`. |
+| **Credentials** | The tool does not write a token. The config file can hold a `dockerToken` if you add one; the CLI sends it as a Bearer token to Docker Hub. A caller-supplied `githubToken` is sent as a Bearer token to `api.github.com` and is not stored. The dashboard can keep a GitHub PAT in `sessionStorage` and send it to `api.github.com`. |
+| **Data NOT touched** | No telemetry. No analytics. No user accounts. |
+| **Permissions** | Read: public registry APIs via HTTPS, plus those authenticated calls when a token is supplied. Write: stdout/stderr, `registry-stats.config.json` on `--init`, and desktop files under `%LOCALAPPDATA%\RegistryPulse`. Optional REST server on a user-specified port. |
+| **Network** | HTTPS outbound to `api.npmjs.org`, `registry.npmjs.org` (`--mine`), `pypistats.org`, `azuresearch-usnc.nuget.org`, `marketplace.visualstudio.com`, `hub.docker.com`, and `api.github.com` (GitHub Releases). Desktop refresh also downloads stats from `mcp-tool-shop-org.github.io`. Optional localhost REST server. |
 | **Telemetry** | None collected or sent |
 
 See [SECURITY.md](SECURITY.md) for vulnerability reporting.
