@@ -229,7 +229,8 @@ const nuget = await stats('nuget', 'Newtonsoft.Json');
 const vscode = await stats('vscode', 'esbenp.prettier-vscode');
 const docker = await stats('docker', 'library/node');
 
-// All registries at once (uses Promise.allSettled — never throws)
+// All registries at once. Provider failures stay off the success list.
+// An invalid name throws RegistryError before any request.
 const all = await stats.all('express');
 
 // Bulk — multiple packages, concurrency-limited (default: 5)

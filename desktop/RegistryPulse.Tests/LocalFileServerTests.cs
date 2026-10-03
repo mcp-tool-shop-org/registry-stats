@@ -1,4 +1,6 @@
 using System.Net;
+using System.Net.Sockets;
+using System.Text;
 using RegistryPulse.Desktop.Services;
 using Xunit;
 
@@ -27,21 +29,27 @@ public class LocalFileServerTests : IDisposable
     }
 
     [Fact]
-    public async Task PathTraversal_DotDotSlash_DeniesAccess()
+    public async Task PathTraversal_RawDotDot_Returns403AndDoesNotReadTheSibling()
     {
-        var response = await _http.GetAsync($"{_server.BaseUrl}/../../../etc/passwd");
-        // HttpClient normalizes leading ".." segments before sending, so the server
-        // sees a path that resolves outside-or-missing → either 403 (traversal caught)
-        // or 404 (file not found). The contract is simply: never 200.
-        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
-    }
+        var secretName = "rp-secret-" + Guid.NewGuid().ToString("N") + ".txt";
+        var secretPath = Path.Combine(Directory.GetParent(_wwwroot)!.FullName, secretName);
+        await File.WriteAllTextAsync(secretPath, "TOP-SECRET-MARKER");
+        try
+        {
+            // HttpClient collapses ".." before the request leaves. A raw request
+            // with encoded dots reaches GetFullPath, which must refuse the sibling.
+            var raw = await RawGet("/%2E%2E/" + secretName);
+            Assert.StartsWith("HTTP/1.1 403", raw);
+            Assert.DoesNotContain("TOP-SECRET-MARKER", raw);
 
-    [Fact]
-    public async Task PathTraversal_EncodedDotDot_Returns403()
-    {
-        var response = await _http.GetAsync($"{_server.BaseUrl}/sub/..%2F..%2F..%2Fetc%2Fpasswd");
-        // Should be either 403 (traversal caught) or 404 (file not found) — never 200
-        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+            var nested = await RawGet("/sub/%2E%2E/%2E%2E/" + secretName);
+            Assert.StartsWith("HTTP/1.1 403", nested);
+            Assert.DoesNotContain("TOP-SECRET-MARKER", nested);
+        }
+        finally
+        {
+            if (File.Exists(secretPath)) File.Delete(secretPath);
+        }
     }
 
     [Fact]
@@ -125,14 +133,23 @@ public class LocalFileServerTests : IDisposable
     }
 
     [Fact]
-    public async Task PathTraversal_EncodedBackslash_DeniesAccess()
+    public async Task PathTraversal_EncodedBackslash_Returns403()
     {
-        // %5C is an encoded backslash — on Windows, '\' is a directory separator,
-        // so "..%5C..%5C..%5Cwindows%5Cwin.ini" would escape wwwroot if unguarded.
-        // Must never return 200 (403 traversal-caught or 404 not-found are both fine).
-        var response = await _http.GetAsync(
-            $"{_server.BaseUrl}/sub/..%5C..%5C..%5Cwindows%5Cwin.ini");
-        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
+        // %5C is an encoded backslash. On Windows that is a directory separator,
+        // so a raw request must reach GetFullPath and come back 403.
+        var secretName = "rp-secret-" + Guid.NewGuid().ToString("N") + ".txt";
+        var secretPath = Path.Combine(Directory.GetParent(_wwwroot)!.FullName, secretName);
+        await File.WriteAllTextAsync(secretPath, "TOP-SECRET-MARKER");
+        try
+        {
+            var raw = await RawGet("/sub/..%5C..%5C" + secretName);
+            Assert.StartsWith("HTTP/1.1 403", raw);
+            Assert.DoesNotContain("TOP-SECRET-MARKER", raw);
+        }
+        finally
+        {
+            if (File.Exists(secretPath)) File.Delete(secretPath);
+        }
     }
 
     [Fact]
@@ -148,6 +165,18 @@ public class LocalFileServerTests : IDisposable
             server2.Dispose();
         });
         Assert.Null(ex);
+    }
+
+    private async Task<string> RawGet(string path)
+    {
+        var uri = new Uri(_server.BaseUrl);
+        using var tcp = new TcpClient();
+        await tcp.ConnectAsync(uri.Host, uri.Port);
+        await using var stream = tcp.GetStream();
+        var request = $"GET {path} HTTP/1.1\r\nHost: {uri.Host}:{uri.Port}\r\nConnection: close\r\n\r\n";
+        await stream.WriteAsync(Encoding.ASCII.GetBytes(request));
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+        return await reader.ReadToEndAsync();
     }
 
     public void Dispose()

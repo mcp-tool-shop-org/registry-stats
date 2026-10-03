@@ -126,11 +126,13 @@ jobs:
 
       - name: Commit fresh stats back to repo
         run: |
-          cp fresh-stats/site/src/data/stats.json site/src/data/stats.json
-          cp fresh-stats/site/src/data/snapshots.json site/src/data/snapshots.json
-          cp fresh-stats/site/src/data/history.json site/src/data/history.json
-          cp fresh-stats/site/public/data/stats.json site/public/data/stats.json
-          cp fresh-stats/site/public/data/packages.json site/public/data/packages.json
+          # upload-artifact roots a multi-path upload at the least common
+          # ancestor, which is site/. The zip contains src/ and public/.
+          cp fresh-stats/src/data/stats.json site/src/data/stats.json
+          cp fresh-stats/src/data/snapshots.json site/src/data/snapshots.json
+          cp fresh-stats/src/data/history.json site/src/data/history.json
+          cp fresh-stats/public/data/stats.json site/public/data/stats.json
+          cp fresh-stats/public/data/packages.json site/public/data/packages.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add site/src/data/stats.json site/src/data/snapshots.json site/src/data/history.json site/public/data/stats.json site/public/data/packages.json

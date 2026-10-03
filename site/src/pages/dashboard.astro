@@ -1409,7 +1409,7 @@ const chatContext = !missing && data ? JSON.stringify({
             <h3 class="text-lg font-semibold text-heading mb-3">Quick start</h3>
             <ol class="list-decimal list-inside space-y-2 text-sm text-body leading-relaxed">
               <li><strong class="text-heading">Set up your portfolio</strong> &mdash; go to the <a href={`${base}/setup/`} class="text-accent underline underline-offset-2 hover:brightness-125">Setup</a> page, paste your package names (one per line), and save.</li>
-              <li><strong class="text-heading">Wait for data</strong> &mdash; registry-stats fetches download counts from npm, PyPI, VS Code Marketplace, NuGet, and Docker Hub. The first snapshot takes about a minute.</li>
+              <li><strong class="text-heading">Wait for data</strong> &mdash; registry-stats fetches download counts from npm, PyPI, VS Code Marketplace, NuGet, Docker Hub, and GitHub Releases. The first snapshot takes about a minute.</li>
               <li><strong class="text-heading">Explore the tabs</strong> &mdash; <em>Home</em> has the AI chat assistant, <em>Analytics</em> shows charts and insights, and <em>Leaderboard</em> ranks every package.</li>
             </ol>
           </div>
@@ -3168,7 +3168,7 @@ const chatContext = !missing && data ? JSON.stringify({
     var rawCtx = '';
     if (ctxEl) { try { rawCtx = ctxEl.getAttribute('data-json') || ''; } catch (e) {} }
 
-    var SYSTEM = 'You are Pulse — a sharp, friendly co-pilot for an open-source team shipping packages across npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub.\n\n' +
+    var SYSTEM = 'You are Pulse — a sharp, friendly co-pilot for an open-source team shipping packages across npm, PyPI, NuGet, VS Code Marketplace, Docker Hub, and GitHub Releases.\n\n' +
       'Personality: direct, warm, concise. Talk like a smart teammate on a call — not a report generator. ' +
       'Lead with the insight, skip the preamble. Two to three sentences is your sweet spot. ' +
       'Use numbers from the data when they matter, but don\'t recite tables back. ' +

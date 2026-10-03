@@ -37,7 +37,7 @@ const notice = Astro.url.searchParams.get('notice');
         <h1 class="text-lg font-semibold tracking-tight text-heading">Portfolio Configuration</h1>
         <p class="mt-1 text-xs text-muted max-w-md">
           Select the registries and packages included in reporting.
-          All data remains local to this installation.
+          The portfolio file stays on this machine. Refresh reads public registry data and does not upload it.
         </p>
       </div>
 
@@ -94,6 +94,10 @@ const notice = Astro.url.searchParams.get('notice');
               <div class="rounded border border-edge px-2.5 py-1 flex justify-between items-center text-[11px]">
                 <span class="font-medium text-heading">Docker Hub</span>
                 <span class="font-mono text-[10px] text-dim/60">user/image</span>
+              </div>
+              <div class="rounded border border-edge px-2.5 py-1 flex justify-between items-center text-[11px]">
+                <span class="font-medium text-heading">GitHub</span>
+                <span class="font-mono text-[10px] text-dim/60">owner/repo</span>
               </div>
             </div>
           </details>
@@ -428,7 +432,7 @@ const notice = Astro.url.searchParams.get('notice');
       return false;
     }
 
-    const registries = ['npm', 'pypi', 'vscode', 'nuget', 'docker'];
+    const registries = ['npm', 'pypi', 'vscode', 'nuget', 'docker', 'github'];
     const hasArrays = registries.some(r => Array.isArray(parsed[r]) && parsed[r].length > 0);
     const hasMaintainer = typeof parsed.npmMaintainer === 'string' && parsed.npmMaintainer.trim().length > 0;
 
@@ -494,7 +498,7 @@ const notice = Astro.url.searchParams.get('notice');
 
   // ── Actions ──
   async function resetToSample() {
-    const fallback = '{\n  "npm": [],\n  "pypi": [],\n  "vscode": [],\n  "nuget": [],\n  "docker": []\n}';
+    const fallback = '{\n  "npm": [],\n  "pypi": [],\n  "vscode": [],\n  "nuget": [],\n  "docker": [],\n  "github": []\n}';
     try {
       const res = await fetch(basePath + 'sample-packages.json');
       if (!res.ok) { editor.value = fallback; return; }

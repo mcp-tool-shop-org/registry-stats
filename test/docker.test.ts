@@ -28,21 +28,27 @@ afterEach(() => {
 
 describe('docker provider (mocked)', () => {
   it('getStats returns structured result for valid image', async () => {
-    mockFetch(async () => ({
-      status: 200,
-      body: {
-        name: 'node',
-        namespace: 'library',
-        pull_count: 1000000,
-        star_count: 500,
-        last_updated: '2025-01-01T00:00:00Z',
-      },
-    }));
+    const urls: string[] = [];
+    mockFetch(async (url) => {
+      urls.push(url);
+      return {
+        status: 200,
+        body: {
+          name: 'node',
+          namespace: 'library',
+          pull_count: 1000000,
+          star_count: 500,
+          last_updated: '2025-01-01T00:00:00Z',
+        },
+      };
+    });
 
     const official = await docker.getStats('node');
     expect(official!.package).toBe('library/node');
+    expect(urls[0]).toContain('/v2/repositories/library/node');
 
     const result = await docker.getStats('library/node');
+    expect(urls[1]).toContain('/v2/repositories/library/node');
     expect(result).not.toBeNull();
     expect(result!.registry).toBe('docker');
     expect(result!.package).toBe('library/node');

@@ -141,6 +141,14 @@ public sealed class StatsService
             }
         }
 
+        if (rows.Count == 0)
+        {
+            LastError = errors.Count > 0
+                ? string.Join("; ", errors)
+                : "No package stats were returned.";
+            return false;
+        }
+
         var document = BuildDocument(packages, rows, errors);
         var json = JsonSerializer.Serialize(document, JsonOptions);
         await WriteAtomicAsync(CachePath, Encoding.UTF8.GetBytes(json));

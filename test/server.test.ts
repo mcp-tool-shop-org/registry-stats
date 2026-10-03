@@ -132,6 +132,38 @@ describe('REST API server', () => {
     expect(body.registries).toBeDefined();
   });
 
+  it('keeps a scoped npm name intact on compare and on all-registries', async () => {
+    const originalCompare = stats.compare;
+    const originalAll = stats.all;
+    const compare = vi.fn(async (pkg: string) => ({
+      package: pkg,
+      registries: {},
+      fetchedAt: new Date().toISOString(),
+    }));
+    const all = vi.fn(async () => []);
+    (stats as any).compare = compare;
+    (stats as any).all = all;
+    try {
+      const compared = await fetch(`http://127.0.0.1:${testServer.port}/compare/@scope/pkg`);
+      expect(compared.status).toBe(200);
+      expect((await compared.json()).package).toBe('@scope/pkg');
+      expect(compare).toHaveBeenCalledWith('@scope/pkg', undefined, expect.anything());
+
+      const allRes = await fetch(`http://127.0.0.1:${testServer.port}/stats/@scope/pkg`);
+      expect(allRes.status).toBe(200);
+      expect(all).toHaveBeenCalledWith('@scope/pkg', expect.anything());
+
+      const single = await fetch(`http://127.0.0.1:${testServer.port}/stats/npm/@scope/pkg`);
+      expect(single.status).toBe(200);
+      const singleBody = await single.json();
+      expect(singleBody.registry).toBe('npm');
+      expect(singleBody.package).toBe('@scope/pkg');
+    } finally {
+      (stats as any).compare = originalCompare;
+      (stats as any).all = originalAll;
+    }
+  });
+
   it('returns error for range without start/end', async () => {
     const res = await fetch(`http://localhost:${testServer.port}/range/npm/express`);
     expect(res.status).toBe(400);

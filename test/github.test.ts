@@ -108,8 +108,10 @@ describe('github provider (mocked)', () => {
       assets: i === 1 ? undefined : [{ name: 'a', download_count: i === 2 ? 'nope' : 1 }],
     }));
     let auth: string | undefined;
+    const urls: string[] = [];
     globalThis.fetch = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      urls.push(url);
       const headers = init?.headers as Record<string, string> | undefined;
       auth = headers?.Authorization;
       const status = url.includes('page=2') ? 404 : 200;
@@ -125,6 +127,8 @@ describe('github provider (mocked)', () => {
 
     const result = await settleGithub(() => github.getStats('owner/repo', { githubToken: 'gh-token' }));
     expect(auth).toBe('Bearer gh-token');
+    expect(urls.some((url) => url.includes('page=1'))).toBe(true);
+    expect(urls.some((url) => url.includes('page=2'))).toBe(true);
     expect(result).not.toBeNull();
     expect(result!.downloads.total).toBe(98);
     expect(result!.extra).toMatchObject({ releases: 100, latestTag: 'v1' });

@@ -134,7 +134,9 @@ function runBounded<T>(ms: number, fn: () => Promise<T>): Promise<T> {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
-        ac.abort();
+        // The same signal cancels the registry spacing timer. Aborting after a
+        // success released the next caller immediately. Only the timeout path
+        // aborts, and it does that before rejecting.
         resolve(value);
       },
       (err) => {
@@ -142,7 +144,6 @@ function runBounded<T>(ms: number, fn: () => Promise<T>): Promise<T> {
         settled = true;
         clearTimeout(timer);
         const timedOut = ac.signal.aborted;
-        ac.abort();
         if (timedOut) reject(new Error('__TIMEOUT__'));
         else reject(err);
       },
@@ -245,9 +246,13 @@ export function createHandler(opts?: HandlerOptions): Handler {
 
       // GET /stats/:package — all registries
       // GET /stats/:registry/:package — single registry
+      // A scoped npm name contains a slash. /stats/@scope/name is one package,
+      // not registry "@scope". /stats/npm/@scope/name stays a single registry.
       if (path[0] === 'stats') {
-        if (path.length === 2) {
-          const pkg = decodeURIComponent(path[1]);
+        const segments = path.slice(1).map((segment) => decodeURIComponent(segment));
+        const scopedPackage = segments.length > 1 && segments[0].startsWith('@');
+        if (segments.length === 1 || scopedPackage) {
+          const pkg = segments.join('/');
           const results = await runBounded(timeoutMs, () => stats.all(pkg, options));
           // JSON.stringify of an array drops the .errors expando. Keep the
           // body a JSON array and send failures in a header when there are any.
@@ -257,9 +262,9 @@ export function createHandler(opts?: HandlerOptions): Handler {
           json(res, results);
           return;
         }
-        if (path.length >= 3) {
-          const registry = path[1];
-          const pkg = path.slice(2).join('/');
+        if (segments.length >= 2) {
+          const registry = segments[0];
+          const pkg = segments.slice(1).join('/');
           const result = await runBounded(timeoutMs, () => stats(registry, pkg, options));
           if (!result) {
             error(res, `Package "${pkg}" not found on ${registry}`, 404);
@@ -271,8 +276,9 @@ export function createHandler(opts?: HandlerOptions): Handler {
       }
 
       // GET /compare/:package?registries=npm,pypi
+      // Join every segment so /compare/@scope/name keeps the scoped name.
       if (path[0] === 'compare' && path.length >= 2) {
-        const pkg = decodeURIComponent(path[1]);
+        const pkg = path.slice(1).map((segment) => decodeURIComponent(segment)).join('/');
         const registries = query.registries ? query.registries.split(',') : undefined;
         const result = await runBounded(timeoutMs, () => stats.compare(pkg, registries, options));
         json(res, result);

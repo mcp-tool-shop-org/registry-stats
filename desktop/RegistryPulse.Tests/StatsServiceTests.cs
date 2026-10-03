@@ -109,6 +109,34 @@ public class StatsServiceTests
         }
     }
 
+    [Fact]
+    public async Task RefreshAsync_KeepsTheCache_WhenEveryPackageMisses()
+    {
+        var root = TempRoot();
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(root, "RegistryPulse", "config"));
+            await File.WriteAllTextAsync(
+                Path.Combine(root, "RegistryPulse", "config", "packages.json"),
+                """{"npm":["missing-pkg"]}""");
+
+            var service = new StatsService(root, new StubHandler
+            {
+                Respond = _ => new HttpResponseMessage(HttpStatusCode.NotFound),
+            });
+            Directory.CreateDirectory(Path.GetDirectoryName(service.CachePath)!);
+            await File.WriteAllTextAsync(service.CachePath, """{"kept":true}""");
+
+            Assert.False(await service.RefreshAsync());
+            Assert.Equal("No package stats were returned.", service.LastError);
+            Assert.Equal("""{"kept":true}""", await File.ReadAllTextAsync(service.CachePath));
+        }
+        finally
+        {
+            DeleteTemp(root);
+        }
+    }
+
     private static HttpResponseMessage Json(HttpStatusCode status, object body)
     {
         var json = JsonSerializer.Serialize(body);
