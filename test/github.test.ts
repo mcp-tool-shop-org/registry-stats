@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { stats } from '../src/index.js';
 import { github } from '../src/providers/github.js';
+import { RegistryError } from '../src/types.js';
 
 const LIVE = process.env.LIVE_API === '1';
 const liveIt = LIVE ? it : it.skip;
@@ -19,11 +20,31 @@ function mockFetch(handler: (url: string) => Promise<{ status: number; body?: un
       json: async () => resp.body,
     } as unknown as Response;
   });
+  return globalThis.fetch as ReturnType<typeof vi.fn>;
 }
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
+  vi.useRealTimers();
 });
+
+/** Flush GitHub's inter-request gap (60s when unauthenticated) without sleeping. */
+async function settleGithub<T>(work: () => Promise<T>): Promise<T> {
+  vi.useFakeTimers();
+  try {
+    const pending = work();
+    let settled = false;
+    const tracked = pending.finally(() => {
+      settled = true;
+    });
+    for (let i = 0; i < 8 && !settled; i++) {
+      await vi.advanceTimersByTimeAsync(60_000);
+    }
+    return await tracked;
+  } finally {
+    vi.useRealTimers();
+  }
+}
 
 describe('github provider (mocked)', () => {
   it('sums asset download_count across all releases', async () => {
@@ -41,7 +62,7 @@ describe('github provider (mocked)', () => {
       return { status: 200, body: [] };
     });
 
-    const result = await github.getStats('owner/repo');
+    const result = await settleGithub(() => github.getStats('owner/repo'));
     expect(result).not.toBeNull();
     expect(result!.registry).toBe('github');
     expect(result!.package).toBe('owner/repo');
@@ -51,25 +72,37 @@ describe('github provider (mocked)', () => {
 
   it('returns total 0 for an existing repo with no releases', async () => {
     mockFetch(async () => ({ status: 200, body: [] }));
-    const result = await github.getStats('owner/empty');
+    const result = await settleGithub(() => github.getStats('owner/empty'));
     expect(result).not.toBeNull();
     expect(result!.downloads.total).toBe(0);
   });
 
   it('returns null for a nonexistent repo (404 on first page)', async () => {
     mockFetch(async () => ({ status: 404 }));
-    const result = await github.getStats('owner/missing');
+    const result = await settleGithub(() => github.getStats('owner/missing'));
     expect(result).toBeNull();
   });
 
   it('rejects identifiers that are not owner/repo', async () => {
-    await expect(github.getStats('not-a-slug')).rejects.toThrow(/owner\/repo/);
-    await expect(github.getStats('owner/../etc')).rejects.toThrow(/traversal|owner\/repo/);
+    const fetchMock = mockFetch(async () => ({ status: 200, body: [] }));
+    await expect(github.getStats('not-a-slug')).rejects.toThrow(/expected "owner\/repo"/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  // 'owner/../etc' is three segments, so a length check rejects it before the
+  // '.' / '..' check. These names are exactly two segments.
+  it('rejects a two-segment name containing . or .. before fetching', async () => {
+    for (const name of ['owner/..', '../repo', 'owner/.', './repo', 'owner/']) {
+      const fetchMock = mockFetch(async () => ({ status: 200, body: [] }));
+      await expect(github.getStats(name)).rejects.toBeInstanceOf(RegistryError);
+      await expect(github.getStats(name)).rejects.toThrow(`Invalid repository "${name}"`);
+      expect(fetchMock).not.toHaveBeenCalled();
+    }
   });
 
   it('is registered and reachable via stats()', async () => {
     mockFetch(async () => ({ status: 200, body: [{ tag_name: 'v1', published_at: null, assets: [{ name: 'a', download_count: 3 }] }] }));
-    const result = await stats('github', 'owner/repo');
+    const result = await settleGithub(() => stats('github', 'owner/repo'));
     expect(result!.registry).toBe('github');
     expect(result!.downloads.total).toBe(3);
   });
