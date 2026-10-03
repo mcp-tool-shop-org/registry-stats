@@ -12,6 +12,10 @@ public partial class MainPage : ContentPage, IDisposable
     private readonly StatsService _stats;
     private LocalFileServer? _server;
     private bool _disposed;
+    private bool _handlerRetryArmed;
+    private bool _webViewReady;
+    private bool _navigationHooked;
+    private bool _startupRefreshFailed;
 
     private static readonly string ConfigDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -88,35 +92,84 @@ public partial class MainPage : ContentPage, IDisposable
         // a blank window with no explanation. Catch and surface the concrete cause.
         try
         {
+            if (_webViewReady) return;
+
             var handler = DashboardWebView.Handler;
-            if (handler?.PlatformView is not Microsoft.UI.Xaml.Controls.WebView2 webView2)
+            var platformIsWebView2 = handler?.PlatformView is Microsoft.UI.Xaml.Controls.WebView2;
+            var step = DashboardAttach.Next(handler is not null, platformIsWebView2, _handlerRetryArmed);
+            if (step == DashboardAttach.Step.WaitForHandler)
+            {
+                // Loaded can run before the platform view exists. Retry once when it appears.
+                _handlerRetryArmed = true;
+                DashboardWebView.HandlerChanged -= OnDashboardHandlerChanged;
+                DashboardWebView.HandlerChanged += OnDashboardHandlerChanged;
                 return;
+            }
+            if (step == DashboardAttach.Step.Alert)
+            {
+                await DisplayAlertAsync("Dashboard unavailable",
+                    "Registry Pulse couldn't attach its dashboard view. Close other copies of the app and relaunch.",
+                    "OK");
+                return;
+            }
+            if (handler?.PlatformView is not Microsoft.UI.Xaml.Controls.WebView2 webView2)
+            {
+                await DisplayAlertAsync("Dashboard unavailable",
+                    "Registry Pulse couldn't attach its dashboard view. Close other copies of the app and relaunch.",
+                    "OK");
+                return;
+            }
 
             await webView2.EnsureCoreWebView2Async();
             var core = webView2.CoreWebView2;
-            if (core is null) return;
-
-            // Start local file server
-            var wwwroot = ResolveWwwrootPath();
-            _server = new LocalFileServer(wwwroot, () => _stats.GetCachedStatsBytes());
-            _server.Start();
-
-            // Security: block navigation to external URLs
-            core.NavigationStarting += (s, navArgs) =>
+            if (core is null)
             {
-                var uri = navArgs.Uri;
-                if (uri is not null
-                    && !uri.StartsWith(_server!.BaseUrl, StringComparison.OrdinalIgnoreCase)
-                    && !uri.StartsWith("about:blank", StringComparison.OrdinalIgnoreCase))
-                {
-                    navArgs.Cancel = true;
-                    // Open external links in the default browser instead
-                    _ = Launcher.OpenAsync(new Uri(uri));
-                }
-            };
+                await DisplayAlertAsync("Dashboard unavailable",
+                    "Registry Pulse couldn't attach its dashboard view. Close other copies of the app and relaunch.",
+                    "OK");
+                return;
+            }
 
-            // Bridge: handle messages from the setup page
-            core.WebMessageReceived += OnWebMessage;
+            // Start local file server once. A second SetupWebView must not bind the port again.
+            if (_server is null)
+            {
+                var wwwroot = ResolveWwwrootPath();
+                _server = new LocalFileServer(wwwroot, () => _stats.GetCachedStatsBytes());
+                _server.Start();
+            }
+
+            if (!_navigationHooked)
+            {
+                _navigationHooked = true;
+
+                // Security: block navigation to external URLs
+                core.NavigationStarting += (s, navArgs) =>
+                {
+                    var uri = navArgs.Uri;
+                    if (uri is null || IsInAppNavigation(uri, _server!.BaseUrl)) return;
+
+                    navArgs.Cancel = true;
+                    // Only http(s) leaves the app. file:, shell:, and other schemes stay cancelled.
+                    if (Uri.TryCreate(uri, UriKind.Absolute, out var target)
+                        && (target.Scheme == Uri.UriSchemeHttps || target.Scheme == Uri.UriSchemeHttp))
+                    {
+                        _ = Launcher.OpenAsync(target);
+                    }
+                };
+
+                // Bridge: handle messages from the setup page
+                core.WebMessageReceived += OnWebMessage;
+
+                // The failure post can land before this document's script runs. Send it
+                // again once the page has parsed, so the banner listener is attached.
+                core.DOMContentLoaded += (_, _) =>
+                {
+                    if (_startupRefreshFailed)
+                        PostStartupRefreshFailed(core);
+                };
+            }
+
+            _webViewReady = true;
 
             // First-run: if no cached stats, navigate to setup
             var hasStats = _stats.GetCachedStatsBytes() is not null;
@@ -137,10 +190,9 @@ public partial class MainPage : ContentPage, IDisposable
                 "This usually means the app wasn't packaged correctly. Reinstalling the latest release should fix it.",
                 "OK");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (IsWebView2Failure(ex))
         {
-            // Most commonly the WebView2 runtime is missing on this machine.
-            Debug.WriteLine($"[MainPage] SetupWebView error: {ex.Message}");
+            Debug.WriteLine($"[MainPage] SetupWebView WebView2 error: {ex.Message}");
             await DisplayAlertAsync("WebView2 required",
                 "Registry Pulse needs the Microsoft Edge WebView2 runtime to display its dashboard, " +
                 "and it couldn't be started.\n\n" +
@@ -149,6 +201,20 @@ public partial class MainPage : ContentPage, IDisposable
                 "https://developer.microsoft.com/microsoft-edge/webview2/",
                 "OK");
         }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[MainPage] SetupWebView error: {ex.Message}");
+            await DisplayAlertAsync("Dashboard unavailable",
+                "Registry Pulse couldn't start its dashboard.\n\n" +
+                $"{ex.Message}",
+                "OK");
+        }
+    }
+
+    private void OnDashboardHandlerChanged(object? sender, EventArgs e)
+    {
+        DashboardWebView.HandlerChanged -= OnDashboardHandlerChanged;
+        _ = SetupWebView();
     }
 
     private async Task RefreshStatsAsync(CoreWebView2 core)
@@ -156,25 +222,30 @@ public partial class MainPage : ContentPage, IDisposable
         var success = await _stats.RefreshAsync();
         if (success)
         {
+            _startupRefreshFailed = false;
             core.Reload();
+            return;
         }
-        else
+
+        // Don't interrupt startup with a modal. The dashboard draws a banner.
+        _startupRefreshFailed = true;
+        PostStartupRefreshFailed(core);
+    }
+
+    private void PostStartupRefreshFailed(CoreWebView2 core)
+    {
+        try
         {
-            // Don't interrupt startup with a modal — surface a non-blocking banner the
-            // dashboard renders on the existing status channel. Cached data stays visible.
-            try
+            core.PostWebMessageAsJson(JsonSerializer.Serialize(new
             {
-                core.PostWebMessageAsJson(JsonSerializer.Serialize(new
-                {
-                    action = "status",
-                    refreshFailed = true,
-                    message = "Showing cached data — couldn't reach live source."
-                }));
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[MainPage] RefreshStatsAsync notify error: {ex.Message}");
-            }
+                action = "status",
+                refreshFailed = true,
+                message = "Showing cached data — couldn't reach live source."
+            }));
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[MainPage] RefreshStatsAsync notify error: {ex.Message}");
         }
     }
 
@@ -224,7 +295,12 @@ public partial class MainPage : ContentPage, IDisposable
                 case "fetchNow":
                     sender.PostWebMessageAsJson(JsonSerializer.Serialize(new { action = "fetchProgress", line = "Downloading stats from GitHub Pages..." }));
                     var ok = await _stats.RefreshAsync();
-                    sender.PostWebMessageAsJson(JsonSerializer.Serialize(new { action = "fetchComplete", ok }));
+                    sender.PostWebMessageAsJson(JsonSerializer.Serialize(new
+                    {
+                        action = "fetchComplete",
+                        ok,
+                        error = ok ? null : _stats.LastError,
+                    }));
                     if (ok) SendStatus(sender);
                     break;
 
@@ -282,8 +358,29 @@ public partial class MainPage : ContentPage, IDisposable
             hasStats = cached is not null,
             hasPackages = File.Exists(PackagesPath),
             lastFetch,
-            dataPath = ConfigDir
+            dataPath = ConfigDir,
+            packagesPath = PackagesPath,
+            statsPath = _stats.CachePath
         }));
+    }
+
+    private static bool IsInAppNavigation(string uri, string baseUrl)
+    {
+        if (uri.Equals("about:blank", StringComparison.OrdinalIgnoreCase)) return true;
+        if (!uri.StartsWith(baseUrl, StringComparison.OrdinalIgnoreCase)) return false;
+        if (uri.Length == baseUrl.Length) return true;
+        var next = uri[baseUrl.Length];
+        return next is '/' or '?' or '#';
+    }
+
+    private static bool IsWebView2Failure(Exception ex)
+    {
+        for (Exception? current = ex; current is not null; current = current.InnerException)
+        {
+            if (current.GetType().Name.Contains("WebView2", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return ex.ToString().Contains("WebView2", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string ResolveWwwrootPath()
@@ -405,7 +502,7 @@ public partial class MainPage : ContentPage, IDisposable
     {
         var version = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "3.3.0";
         await DisplayAlertAsync("Registry Pulse Desktop",
-            $"Version {version}\n\nOne dashboard. Five registries.\nAll your download stats.\n\nBuilt by MCP Tool Shop",
+            $"Version {version}\n\nOne dashboard. Six registries.\nAll your download stats.\n\nBuilt by MCP Tool Shop",
             "OK");
     }
 
@@ -414,5 +511,27 @@ public partial class MainPage : ContentPage, IDisposable
         if (_disposed) return;
         _disposed = true;
         _server?.Dispose();
+    }
+}
+
+/// <summary>
+/// How SetupWebView should treat the platform handler. The first miss waits
+/// for HandlerChanged. A miss after that, or a handler that is not WebView2,
+/// is the alert. A WebView2 handler attaches.
+/// </summary>
+internal static class DashboardAttach
+{
+    internal enum Step
+    {
+        Attach,
+        WaitForHandler,
+        Alert,
+    }
+
+    internal static Step Next(bool handlerPresent, bool platformIsWebView2, bool retryArmed)
+    {
+        if (!handlerPresent)
+            return retryArmed ? Step.Alert : Step.WaitForHandler;
+        return platformIsWebView2 ? Step.Attach : Step.Alert;
     }
 }

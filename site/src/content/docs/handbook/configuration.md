@@ -93,17 +93,18 @@ await stats('cargo', 'serde');
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `registries` | `string[]` | All five | Default registries to query |
+| `registries` | `string[]` | Every built-in registry | Registries the CLI queries when `-r` is omitted. `defaultConfig()` lists npm, PyPI, NuGet, VS Code, and Docker Hub. Add `github` to include GitHub Releases. |
 | `packages` | `object` | `{}` | Map of display names to registry-specific package IDs |
 | `cache` | `boolean` | `true` | Enable in-memory caching |
 | `cacheTtlMs` | `number` | `300000` | Cache TTL in milliseconds (5 minutes) |
 | `concurrency` | `number` | `5` | Max concurrent requests for bulk operations |
 | `dockerToken` | `string` | — | Docker Hub auth token (raises rate limits) |
+| `githubToken` | `string` | — | GitHub token. Sent as `Authorization: Bearer` to `api.github.com`. `--init` does not write one. |
 
 ## Built-in reliability
 
 - Automatic retry with exponential backoff on 429/5xx errors
-- Respects `Retry-After` headers
-- 30-second request timeouts via `AbortSignal.timeout`
-- Per-registry throttling (npm: 400ms, PyPI: 2.2s, Docker: 4s between requests)
+- Respects `Retry-After` headers, capped at 60 seconds
+- 30-second request timeouts via `AbortSignal.timeout`. The HTTP handler aborts that work when its own timeout fires.
+- Per-registry throttling (npm: 800ms, PyPI: 2.2s, Docker: 4s, GitHub: 60s without a token and 800ms with one)
 - Concurrency limiting for bulk requests (default: 5)

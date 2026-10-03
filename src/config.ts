@@ -9,10 +9,12 @@ const CONFIG_NAME = 'registry-stats.config.json';
  * Returns null if no config file is found.
  * Throws a descriptive error if the config is malformed or invalid.
  */
-export function loadConfig(startDir?: string): Config | null {
-  let dir = startDir ?? process.cwd();
+export function loadConfig(startDir?: string, boundary?: string): Config | null {
+  let dir = resolve(startDir ?? process.cwd());
+  const stop = boundary ? resolve(boundary) : null;
 
-  // Walk up from cwd looking for config
+  // Walk up from cwd looking for config. `boundary` stops the walk so a test
+  // can keep a temp directory from reading a config that lives above it.
   while (true) {
     const configPath = resolve(dir, CONFIG_NAME);
     if (existsSync(configPath)) {
@@ -28,6 +30,7 @@ export function loadConfig(startDir?: string): Config | null {
 
       return validateConfig(parsed, configPath);
     }
+    if (stop && resolve(dir) === stop) break;
     const parent = dirname(dir);
     if (parent === dir) break;
     dir = parent;
@@ -88,6 +91,13 @@ function validateConfig(raw: unknown, source: string): Config {
       throw new Error(`Config "dockerToken" must be a string in ${source}`);
     }
     config.dockerToken = obj.dockerToken;
+  }
+
+  if (obj.githubToken !== undefined) {
+    if (typeof obj.githubToken !== 'string') {
+      throw new Error(`Config "githubToken" must be a string in ${source}`);
+    }
+    if (obj.githubToken.trim() !== '') config.githubToken = obj.githubToken;
   }
 
   return config;

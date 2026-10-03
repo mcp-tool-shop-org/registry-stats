@@ -40,7 +40,7 @@ export const github: RegistryProvider = {
     // the rest to neutralize injection characters.
     const segments = pkg.split('/');
     if (segments.length !== 2 || segments.some((s) => s === '' || s === '.' || s === '..')) {
-      throw new RegistryError('github', 0, `Invalid repository "${pkg}": expected "owner/repo"`);
+      throw new RegistryError('github', 400, `Invalid repository "${pkg}": expected "owner/repo"`);
     }
     const safe = segments.map((s) => encodeURIComponent(s)).join('/');
 

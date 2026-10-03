@@ -266,12 +266,14 @@ describe('registerProvider', () => {
     // RegistryError ("Unknown registry"), never a raw TypeError from the
     // prototype chain.
     await expect(stats('nope-not-registered', 'x')).rejects.toThrow(RegistryError);
+    await expect(stats('nope-not-registered', 'x')).rejects.toMatchObject({ statusCode: 400 });
     await expect(stats('nope-not-registered', 'x')).rejects.toThrow(/Unknown registry/);
   });
 });
 
 describe('package name validation', () => {
   it('rejects empty package name', async () => {
+    await expect(stats('npm', '')).rejects.toMatchObject({ statusCode: 400 });
     await expect(stats('npm', '')).rejects.toThrow(/Invalid package name/);
   });
 

@@ -1,4 +1,5 @@
 import type { RegistryProvider, PackageStats, DailyDownloads } from '../types.js';
+import { RegistryError } from '../types.js';
 import { fetchWithRetry } from '../fetch.js';
 
 const API = 'https://pypistats.org/api';
@@ -61,8 +62,11 @@ export const pypi: RegistryProvider = {
 
     if (!data) return [];
 
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+    const startDate = parseUtcDay(start);
+    const endDate = parseUtcDay(end);
+    if (!startDate || !endDate || startDate.getTime() > endDate.getTime()) {
+      throw new RegistryError('pypi', 400, `Invalid date range "${start}:${end}". Use YYYY-MM-DD.`);
+    }
 
     return data.data
       .filter((d) => {
@@ -74,3 +78,11 @@ export const pypi: RegistryProvider = {
       .sort((a, b) => a.date.localeCompare(b.date));
   },
 };
+
+function parseUtcDay(value: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return null;
+  if (date.toISOString().slice(0, 10) !== value) return null;
+  return date;
+}

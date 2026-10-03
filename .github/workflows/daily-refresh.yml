@@ -6,16 +6,18 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: write
-  issues: write
+  contents: read
 
 concurrency:
   group: daily-refresh
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -53,10 +55,13 @@ jobs:
             const fs = require("fs");
             const p = "site/src/data/stats.json";
             if (!fs.existsSync(p)) { console.error("::error::stats.json missing"); process.exit(1); }
-            const fetchedAt = new Date(JSON.parse(fs.readFileSync(p, "utf8")).fetchedAt);
+            const doc = JSON.parse(fs.readFileSync(p, "utf8"));
+            const fetchedAt = new Date(doc.fetchedAt);
             const ageH = (Date.now() - fetchedAt.getTime()) / 3.6e6;
-            console.log(`stats.json fetchedAt=${fetchedAt.toISOString()} age=${ageH.toFixed(1)}h`);
+            console.log(`stats.json fetchedAt=${fetchedAt.toISOString()} age=${ageH.toFixed(1)}h dataQuality=${doc.dataQuality || "ok"}`);
             if (!(ageH < 26)) { console.error(`::error::stats.json is stale (${ageH.toFixed(1)}h old)`); process.exit(1); }
+            if (doc.dataQuality === "unusable") { console.error("::error::stats.json dataQuality is unusable"); process.exit(1); }
+            if (doc.dataQuality === "degraded") console.log("::warning::stats.json dataQuality is degraded");
           '
 
       # Surface any failure (fetch crash or stale data) as a single tracked issue
@@ -90,27 +95,64 @@ jobs:
       - name: Run tests
         run: npm test
 
-      # ── Commit (best-effort) ──────────────────────────────────
-      # `main` is a protected branch with required status checks (`build`) that a
-      # [skip ci] data commit cannot satisfy, so this push is expected to be
-      # rejected. Persistence is best-effort: a rejected push must NOT fail the run
-      # (the data was fetched + freshness-verified above; the live dashboard is
-      # refreshed by the pages.yml deploy, which fetches its own fresh copy). This
-      # keeps the daily run green instead of opening a false "Daily refresh failing"
-      # issue every night for a non-actionable branch-protection rejection.
-      - name: Commit changes if any (best-effort)
+      - name: Upload fresh data for the commit-back job
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fresh-stats
+          path: |
+            site/src/data/stats.json
+            site/src/data/snapshots.json
+            site/src/data/history.json
+            site/public/data/stats.json
+            site/public/data/packages.json
+          if-no-files-found: error
+          retention-days: 1
+
+  # contents: write is only on this job, so npm and fetch-stats never see a token
+  # that can push. Branch protection rejecting a [skip ci] commit is expected and
+  # must not fail the run. Any other pull or push failure does.
+  persist:
+    needs: refresh
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: fresh-stats
+          path: fresh-stats
+
+      - name: Commit fresh stats back to repo
         run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add site/src/data/stats.json site/src/data/snapshots.json site/src/data/history.json
-            if ! git diff --cached --quiet; then
-              git commit -m "chore: daily stats refresh [skip ci]"
-              git pull --rebase --autostash origin main || true
-              git push || echo "::notice::daily stats commit-back push rejected (protected branch); data fetched + verified, no persistence this run"
-            else
-              echo "No stats changes to commit."
+          cp fresh-stats/site/src/data/stats.json site/src/data/stats.json
+          cp fresh-stats/site/src/data/snapshots.json site/src/data/snapshots.json
+          cp fresh-stats/site/src/data/history.json site/src/data/history.json
+          cp fresh-stats/site/public/data/stats.json site/public/data/stats.json
+          cp fresh-stats/site/public/data/packages.json site/public/data/packages.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add site/src/data/stats.json site/src/data/snapshots.json site/src/data/history.json site/public/data/stats.json site/public/data/packages.json
+          if git diff --cached --quiet; then
+            echo "No stats changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: daily stats refresh [skip ci]"
+          if ! git pull --rebase --autostash origin main; then
+            echo "::error::rebase onto origin/main failed"
+            exit 1
+          fi
+          set +e
+          push_out=$(git push 2>&1)
+          push_status=$?
+          set -e
+          echo "$push_out"
+          if [ "$push_status" -ne 0 ]; then
+            if echo "$push_out" | grep -Eqi 'protected branch|required status check|GH006|must be made through a pull request'; then
+              echo "::notice::daily stats commit-back push rejected by branch protection; data fetched and verified"
+              exit 0
             fi
-          else
-            echo "No changes to commit."
+            echo "::error::daily stats push failed"
+            exit 1
           fi

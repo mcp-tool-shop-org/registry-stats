@@ -477,6 +477,25 @@ describe('computeYearlyProgress', () => {
     expect(result.projectedYearEnd).toBe(0);
     expect(result.monthlyTotals).toHaveLength(0);
   });
+
+  it('keeps a zero month instead of substituting weekly downloads', () => {
+    const monthlyHistory = {
+      [`${currentYear}-01`]: { week: 100, month: 0, total: 0, lastUpdated: '' },
+    };
+    const result = computeYearlyProgress('test-pkg', 'npm', monthlyHistory);
+    expect(result.currentYearTotal).toBe(0);
+    expect(result.monthlyTotals[0].downloads).toBe(0);
+    expect(result.projectedYearEnd).toBe(0);
+  });
+
+  it('projects from the months present, not the calendar position', () => {
+    const monthlyHistory = {
+      [`${currentYear}-01`]: { week: 10, month: 100, total: 100, lastUpdated: '' },
+    };
+    const result = computeYearlyProgress('test-pkg', 'npm', monthlyHistory);
+    expect(result.currentYearTotal).toBe(100);
+    expect(result.projectedYearEnd).toBe(1200);
+  });
 });
 
 describe('computeHealthScore', () => {
@@ -713,6 +732,13 @@ describe('numerical correctness', () => {
     expect(m).toBeGreaterThan(30);
   });
 
+  it('segmentTrends keeps only the last 1000 points of a longer series', () => {
+    const long = Array.from({ length: 1001 }, (_, i) => i);
+    const segments = segmentTrends(long, 5);
+    expect(segments.length).toBeGreaterThan(0);
+    expect(segments[segments.length - 1].end).toBeLessThan(1000);
+  });
+
   it('segmentTrends correctly labels a perfectly flat series as flat', () => {
     const flat = new Array(15).fill(100);
     const segments = segmentTrends(flat);
@@ -721,5 +747,54 @@ describe('numerical correctness', () => {
       expect(seg.direction).toBe('flat');
       expect(seg.slope).toBe(0);
     }
+  });
+});
+
+describe('coverage of milestone and growth advice', () => {
+  it('flags a forecast that sits on a weekly download milestone', () => {
+    const forecast7 = Array.from({ length: 7 }, (_, i) => ({
+      day: i + 1,
+      predicted: 150,
+      lower: 100,
+      upper: 200,
+    }));
+    const advice = generateActionableAdvice(
+      [{
+        name: 'almost-1k',
+        registry: 'npm',
+        forecast7,
+        anomalies: [],
+        trendSegments: [],
+        seasonality: null,
+        momentum: 10,
+      }],
+      [{
+        name: 'almost-1k',
+        registry: 'npm',
+        score: 70,
+        grade: 'B',
+        components: { activity: 20, consistency: 20, growth: 15, stability: 15 },
+      }],
+    );
+    expect(advice.some((item) => item.type === 'milestone')).toBe(true);
+  });
+
+  it('recommends packages whose forecast grows more than 20%', () => {
+    const forecast7 = Array.from({ length: 7 }, (_, i) => ({
+      day: i + 1,
+      predicted: 100 + i * 8,
+      lower: 80,
+      upper: 200,
+    }));
+    const recs = generateRecommendations([{
+      name: 'riser',
+      registry: 'npm',
+      forecast7,
+      anomalies: [],
+      trendSegments: [],
+      seasonality: null,
+      momentum: 0,
+    }]);
+    expect(recs.some((item) => item.type === 'growth')).toBe(true);
   });
 });

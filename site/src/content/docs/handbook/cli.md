@@ -22,7 +22,7 @@ registry-stats
 
 | Flag | Description |
 |------|-------------|
-| `-r, --registry` | Registry to query: `npm`, `pypi`, `nuget`, `vscode`, `docker` |
+| `-r, --registry` | Registry to query: `npm`, `pypi`, `nuget`, `vscode`, `docker`, `github` (`owner/repo`) |
 | `--mine <username>` | Discover all npm packages by a maintainer and show stats |
 | `--json` | Raw JSON output (shorthand for `--format json`) |
 | `--range <start>:<end>` | Time series (YYYY-MM-DD format) |
@@ -78,6 +78,7 @@ Start a local REST API:
 
 ```bash
 registry-stats serve --port 3000
+registry-stats serve --host 127.0.0.1 --port 3000 --cors https://example.com
 ```
 
 Endpoints:

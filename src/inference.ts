@@ -465,7 +465,8 @@ export function computeYearlyProgress(
   for (const [monthKey, agg] of Object.entries(monthlyHistory)) {
     const [yearStr, monthStr] = monthKey.split('-');
     const year = parseInt(yearStr, 10);
-    const dl = agg.month || agg.week * 4; // approximate if only weekly available
+    // A real zero month is zero. Fall back to week*4 only when month is missing.
+    const dl = Number.isFinite(agg.month) ? agg.month : (Number.isFinite(agg.week) ? agg.week * 4 : 0);
 
     if (year === currentYear) {
       currentMonths.push({ month: monthKey, downloads: dl });
@@ -480,14 +481,27 @@ export function computeYearlyProgress(
   const currentYearTotal = currentMonths.reduce((s, m) => s + m.downloads, 0);
   const previousYearTotal = prevMonths.length > 0 ? prevMonths.reduce((s, m) => s + m.downloads, 0) : null;
 
-  // YoY growth
-  const yoyGrowthPct = previousYearTotal !== null && previousYearTotal > 0
-    ? ((currentYearTotal - previousYearTotal) / previousYearTotal) * 100
+  // YoY compares the same months. February must not be divided by all of last year.
+  const currentMonthKeys = new Set(currentMonths.map((m) => m.month.slice(5)));
+  const comparablePrev = prevMonths.filter((m) => currentMonthKeys.has(m.month.slice(5)));
+  const comparableCurrent = currentMonths.filter((m) =>
+    comparablePrev.some((prev) => prev.month.slice(5) === m.month.slice(5)),
+  );
+  const comparablePrevTotal = comparablePrev.reduce((s, m) => s + m.downloads, 0);
+  const comparableCurrentTotal = comparableCurrent.reduce((s, m) => s + m.downloads, 0);
+  const yoyGrowthPct = comparablePrev.length > 0 && comparablePrevTotal > 0
+    ? ((comparableCurrentTotal - comparablePrevTotal) / comparablePrevTotal) * 100
     : null;
 
-  // Project year-end based on current run rate
-  const monthsElapsed = currentMonth + 1;
-  const monthlyRate = monthsElapsed > 0 ? currentYearTotal / monthsElapsed : 0;
+  // Project from months that have already started and are actually in the history.
+  // A January-only series in October is one month of evidence, not ten.
+  const lastElapsedMonth = currentMonth + 1;
+  const elapsedMonths = currentMonths.filter((m) => {
+    const n = parseInt(m.month.slice(5), 10);
+    return n >= 1 && n <= lastElapsedMonth;
+  });
+  const elapsedTotal = elapsedMonths.reduce((s, m) => s + m.downloads, 0);
+  const monthlyRate = elapsedMonths.length > 0 ? elapsedTotal / elapsedMonths.length : 0;
   const projectedYearEnd = Math.round(monthlyRate * 12);
 
   // Best month
@@ -842,7 +856,7 @@ export function inferPortfolio(
   const totalWeek = leaderboard.reduce((s, r) => s + (r.week ?? 0), 0);
   let weightedMomentum = 0;
   for (const pkg of packages) {
-    const row = leaderboard.find((r) => r.name === pkg.name);
+    const row = leaderboard.find((r) => r.name === pkg.name && r.registry === pkg.registry);
     const weight = totalWeek > 0 ? (row?.week ?? 0) / totalWeek : 1 / packages.length;
     weightedMomentum += pkg.momentum * weight;
   }
@@ -886,7 +900,7 @@ export function inferPortfolio(
 
   // Health scores for each package
   const healthScores = leaderboard.map((row) => {
-    const pkg = packages.find((p) => p.name === row.name);
+    const pkg = packages.find((p) => p.name === row.name && p.registry === row.registry);
     return computeHealthScore(row.name, row.registry, row.range30 ?? null, pkg?.momentum ?? 0);
   });
 

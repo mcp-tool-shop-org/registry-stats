@@ -137,21 +137,17 @@ public sealed class LocalFileServer : IDisposable
             //                                         every co-pilot call is plain fetch.
             //   https://en.wikipedia.org           — Wikipedia web-search (always-on knowledge)
             //   https://api.github.com             — GitHub data connector (org repo listing)
-            //   https:                             — the user-configurable SearXNG base can be
-            //                                         ANY https URL the user types into Settings;
-            //                                         we cannot know it ahead of time. Allowing
-            //                                         https: in connect-src ONLY is acceptable for
-            //                                         a local-first desktop app the user controls,
-            //                                         and is required for an arbitrary user-supplied
-            //                                         search host. script-src/default-src are NOT
-            //                                         broadened, so this cannot load remote code.
+            // Portfolio refresh is done by StatsService, not by page fetch, so the
+            // registry hosts are not listed here. A scheme source of https: is not
+            // used: a custom remote search host is not allowed from the packaged
+            // page. Loopback SearXNG still is.
             response.Headers.Set("Content-Security-Policy",
                 "default-src 'self'; " +
                 "script-src 'self' 'unsafe-inline'; " +
                 "style-src 'self' 'unsafe-inline'; " +
                 "connect-src 'self' https://mcp-tool-shop-org.github.io " +
                 "http://localhost:* http://127.0.0.1:* " +
-                "https://en.wikipedia.org https://api.github.com https:; " +
+                "https://en.wikipedia.org https://api.github.com; " +
                 "img-src 'self' data:; " +
                 "font-src 'self';");
         }

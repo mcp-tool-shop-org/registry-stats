@@ -39,6 +39,9 @@ describe('docker provider (mocked)', () => {
       },
     }));
 
+    const official = await docker.getStats('node');
+    expect(official!.package).toBe('library/node');
+
     const result = await docker.getStats('library/node');
     expect(result).not.toBeNull();
     expect(result!.registry).toBe('docker');
@@ -46,6 +49,27 @@ describe('docker provider (mocked)', () => {
     expect(result!.downloads.total).toBe(1000000);
     expect(result!.extra?.stars).toBe(500);
   });
+
+  it('sends a bearer token and rejects a name that is not namespace/name', async () => {
+    let auth: string | undefined;
+    let requested = '';
+    mockFetch(async (url, init) => {
+      requested = url;
+      const headers = init?.headers as Record<string, string> | undefined;
+      auth = headers?.Authorization;
+      return {
+        status: 200,
+        body: { name: 'img', namespace: 'org', pull_count: 1, star_count: 2, last_updated: 't' },
+      };
+    });
+
+    await expect(docker.getStats('a/b/c')).rejects.toThrow(/expected namespace\/name/);
+    await expect(docker.getStats('a//b')).rejects.toThrow(/expected namespace\/name/);
+    const result = await docker.getStats('org/img', { dockerToken: 'secret-token' });
+    expect(result!.package).toBe('org/img');
+    expect(auth).toBe('Bearer secret-token');
+    expect(requested).toContain('/org/img');
+  }, 15000);
 
   it('getStats returns null for nonexistent image', async () => {
     mockFetch(async () => ({ status: 404 }));
@@ -65,6 +89,7 @@ describe('docker provider (mocked)', () => {
     // the path collapsed to a different hub.docker.com resource. The provider
     // must now reject traversal segments before any request is made.
     await expect(docker.getStats('../../etc/passwd')).rejects.toThrow(RegistryError);
+    await expect(docker.getStats('../../etc/passwd')).rejects.toMatchObject({ statusCode: 400 });
     await expect(docker.getStats('../../etc/passwd')).rejects.toThrow(/path traversal/);
     await expect(docker.getStats('a/../../b')).rejects.toThrow(/path traversal/);
     await expect(docker.getStats('a/./b')).rejects.toThrow(/path traversal/);

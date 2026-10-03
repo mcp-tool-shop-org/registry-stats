@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { stats } from '../src/index.js';
 import { npm, npmBulkPoint } from '../src/providers/npm.js';
+import { RegistryError } from '../src/types.js';
 
 const LIVE = process.env.LIVE_API === '1';
 const liveIt = LIVE ? it : it.skip;
@@ -74,6 +75,29 @@ describe('npm provider (mocked)', () => {
     expect(data.length).toBe(2);
     expect(data[0]).toEqual({ date: '2025-01-01', downloads: 100 });
     expect(data[1]).toEqual({ date: '2025-01-02', downloads: 200 });
+  });
+
+  it('getRange fetches a one-day window and rejects a non-date', async () => {
+    let calls = 0;
+    mockFetch(async (url) => {
+      calls++;
+      expect(url).toContain('/range/2025-01-01:2025-01-01/');
+      return {
+        status: 200,
+        body: {
+          downloads: [{ day: '2025-01-01', downloads: 7 }],
+          start: '2025-01-01',
+          end: '2025-01-01',
+          package: 'express',
+        },
+      };
+    });
+
+    const data = await npm.getRange!('express', '2025-01-01', '2025-01-01');
+    expect(calls).toBe(1);
+    expect(data).toEqual([{ date: '2025-01-01', downloads: 7 }]);
+    await expect(npm.getRange!('express', 'not-a-date', '2025-01-01')).rejects.toThrow(RegistryError);
+    await expect(npm.getRange!('express', '2025-06-01', '2025-01-01')).rejects.toThrow(/Start is after end/);
   });
 
   it('npmBulkPoint returns download counts for multiple packages', async () => {

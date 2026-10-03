@@ -18,11 +18,17 @@ export const docker: RegistryProvider = {
     // so '..' / '.' segments would survive and collapse the path to a different
     // hub.docker.com resource. Reject those segments outright, then encode the
     // rest to neutralize spaces / injection characters.
-    const segments = pkg.split('/');
-    for (const seg of segments) {
+    // encodeURIComponent('..') === '..', so reject traversal before building the path.
+    for (const seg of pkg.split('/')) {
       if (seg === '..' || seg === '.') {
-        throw new RegistryError('docker', 0, `Invalid image name "${pkg}": path traversal not allowed`);
+        throw new RegistryError('docker', 400, `Invalid image name "${pkg}": path traversal not allowed`);
       }
+    }
+    // Hub's repository resource is /v2/repositories/<namespace>/<name>/.
+    // A single segment is an official image (library/<name>), not a namespace listing.
+    const segments = (pkg.includes('/') ? pkg : `library/${pkg}`).split('/');
+    if (segments.length !== 2 || segments.some((seg) => seg === '')) {
+      throw new RegistryError('docker', 400, `Invalid image name "${pkg}": expected namespace/name`);
     }
     const safePkg = segments.map(s => encodeURIComponent(s)).join('/');
 

@@ -14,18 +14,51 @@ on:
     - cron: '0 7 * * 1'  # Monday 07:00 UTC (staggered after daily-refresh 06:00)
   workflow_dispatch:
 
+# Schedule, push, and workflow_dispatch each get their own group, so a push
+# cannot cancel the Monday refresh. Duplicate pushes still cancel each other.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  group: pages-${{ github.event_name }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
 
 jobs:
-  build:
+  verify:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 22
+
+      - name: Install library dependencies
+        run: npm ci
+
+      - name: Build library
+        run: npm run build
+
+      - name: Install site dependencies
+        working-directory: site
+        run: npm ci
+
+      - name: Audit site dependencies
+        working-directory: site
+        run: npm audit --audit-level=high
+
+      - name: Build site
+        working-directory: site
+        run: npm run build
+
+  build:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -58,23 +91,18 @@ jobs:
         working-directory: site
         run: npm run fetch-stats
 
-      # Best-effort persistence. The fresh stats are already baked into the Pages
-      # artifact built below, so the deploy reflects current data regardless of
-      # whether this push lands. `main` is a protected branch with required status
-      # checks that a [skip ci] data commit can never satisfy, so the push is
-      # expected to be rejected — that must NOT abort the build→deploy. Never let a
-      # persistence failure mask a successful, fresh deploy.
-      - name: Commit fresh stats back to repo (best-effort)
-        if: github.event_name != 'pull_request'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add site/src/data/stats.json site/src/data/snapshots.json
-          if ! git diff --cached --quiet; then
-            git commit -m "chore: update stats snapshot [skip ci]"
-            git pull --rebase --autostash origin main || true
-            git push || echo "::notice::stats commit-back push rejected (protected branch); deploying fresh data anyway"
-          fi
+      - name: Upload fresh data for the commit-back job
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fresh-stats
+          path: |
+            site/src/data/stats.json
+            site/src/data/snapshots.json
+            site/src/data/history.json
+            site/public/data/stats.json
+            site/public/data/packages.json
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Build site
         working-directory: site
@@ -85,10 +113,63 @@ jobs:
         with:
           path: site/dist
 
+  # contents: write lives only here, so npm ci and fetch-stats never see a token
+  # that can push. A rejected [skip ci] push does not fail the deploy, which
+  # already baked the fresh stats into the Pages artifact.
+  persist:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: fresh-stats
+          path: fresh-stats
+
+      - name: Commit fresh stats back to repo
+        run: |
+          cp fresh-stats/site/src/data/stats.json site/src/data/stats.json
+          cp fresh-stats/site/src/data/snapshots.json site/src/data/snapshots.json
+          cp fresh-stats/site/src/data/history.json site/src/data/history.json
+          cp fresh-stats/site/public/data/stats.json site/public/data/stats.json
+          cp fresh-stats/site/public/data/packages.json site/public/data/packages.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add site/src/data/stats.json site/src/data/snapshots.json site/src/data/history.json site/public/data/stats.json site/public/data/packages.json
+          if git diff --cached --quiet; then
+            echo "No stats changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: update stats snapshot [skip ci]"
+          if ! git pull --rebase --autostash origin main; then
+            echo "::error::rebase onto origin/main failed"
+            exit 1
+          fi
+          set +e
+          push_out=$(git push 2>&1)
+          push_status=$?
+          set -e
+          echo "$push_out"
+          if [ "$push_status" -ne 0 ]; then
+            if echo "$push_out" | grep -Eqi 'protected branch|required status check|GH006|must be made through a pull request'; then
+              echo "::notice::stats commit-back push rejected by branch protection; deploying fresh data anyway"
+              exit 0
+            fi
+            echo "::error::stats commit-back push failed"
+            exit 1
+          fi
+
   deploy:
     needs: build
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

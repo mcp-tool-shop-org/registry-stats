@@ -45,6 +45,10 @@
     <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.30" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="RegistryPulse.Tests" />
+  </ItemGroup>
+
   <!-- Copy Astro dist/ directly to output wwwroot (bypasses MAUI asset pipeline
        which strips _-prefixed directories like _astro/) -->
   <Target Name="CopyWebAssets" AfterTargets="Build">

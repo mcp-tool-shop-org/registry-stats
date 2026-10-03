@@ -43,7 +43,7 @@
 ## D. Shipping Hygiene
 
 - [x] `[all]` `verify` script exists (test + build + smoke in one command) — vitest + tsup
-- [x] `[all]` Version in manifest matches git tag — package.json is 3.3.1; to be tagged `v3.3.1` at this release via the OIDC `release.yml` flow.
+- [x] `[all]` Version in manifest matches git tag — package.json is 3.4.0, already published and tagged `v3.4.0`. This pass does not cut a new npm release.
 - [x] `[all]` Dependency scanning runs in CI (ecosystem-appropriate) — full-tree `npm audit --audit-level=high` on the engine (`ci.yml`) **and** the dashboard tree (`pages.yml`); esbuild pinned to `^0.28.1` via `overrides` in both trees.
 - [x] `[all]` Automated dependency update mechanism exists
 - [x] `[npm]` `npm pack --dry-run` includes: dist/, README.md, LICENSE (note: CHANGELOG.md is not in the package.json files array and is excluded from the tarball)

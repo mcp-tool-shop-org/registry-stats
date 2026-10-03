@@ -25,7 +25,7 @@ const docker = await stats('docker', 'library/node');
 
 ### stats.all()
 
-Query all registries at once. Uses `Promise.allSettled` — never throws:
+Query all registries at once. A bad package name throws `RegistryError`. A registry that fails is recorded on `.errors` and does not reject the call. Pass `options.registries` to query a subset:
 
 ```typescript
 const all = await stats.all('express');

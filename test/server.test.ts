@@ -228,12 +228,22 @@ describe('RegistryError propagation', () => {
     expect(res.status).toBe(502);
   });
 
-  it('maps unknown status to 500', async () => {
+  it('maps network status 0 to 502', async () => {
     vi.spyOn(stats as any, 'all').mockRejectedValueOnce(
       new RegistryError('npm', 0, 'Unknown error'),
     );
     const res = await fetch(`http://localhost:${testServer.port}/stats/test-pkg-500`);
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(502);
+  });
+
+  it('passes a client status 400 through', async () => {
+    vi.spyOn(stats as any, 'all').mockRejectedValueOnce(
+      new RegistryError('npm', 400, 'Invalid package name'),
+    );
+    const res = await fetch(`http://localhost:${testServer.port}/stats/test-pkg-400`);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toContain('Invalid package name');
   });
 
   it('returns generic message for non-RegistryError', async () => {
@@ -493,6 +503,22 @@ describe('default bind host', () => {
     expect(resolveServeHost({ host: '::' })).toBe('::');
   });
 
+  it('forgets expired buckets on the cleanup interval and on reset', () => {
+    vi.useFakeTimers();
+    try {
+      const limiter = createRateLimiter(1, 1);
+      expect(limiter.allow('203.0.113.9')).toBe(true);
+      expect(limiter.allow('203.0.113.9')).toBe(false);
+      limiter.reset();
+      expect(limiter.allow('203.0.113.9')).toBe(true);
+      expect(limiter.allow('203.0.113.9')).toBe(false);
+      vi.advanceTimersByTime(60_000);
+      expect(limiter.allow('203.0.113.9')).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('serve() binds the resolved host (smoke: actually listens on loopback)', async () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     try {
@@ -506,5 +532,92 @@ describe('default bind host', () => {
     } finally {
       logSpy.mockRestore();
     }
+  });
+});
+
+describe('handler failures outside the route', () => {
+  function fakeRes(behavior?: { headersSent?: boolean; failWrite?: boolean; failDestroy?: boolean }) {
+    const res: {
+      headersSent: boolean;
+      status?: number;
+      body?: string;
+      ended: boolean;
+      destroyed: boolean;
+      setHeader: () => void;
+      writeHead: (status: number) => void;
+      end: (body?: string) => void;
+      destroy: () => void;
+    } = {
+      headersSent: behavior?.headersSent ?? false,
+      ended: false,
+      destroyed: false,
+      setHeader() {},
+      writeHead(status: number) {
+        if (behavior?.failWrite) throw new Error('cannot write');
+        res.status = status;
+      },
+      end(body?: string) {
+        res.ended = true;
+        res.body = body;
+      },
+      destroy() {
+        if (behavior?.failDestroy) throw new Error('cannot destroy');
+        res.destroyed = true;
+      },
+    };
+    return res;
+  }
+
+  it('answers 500 when request inspection throws before the route try', async () => {
+    const handler = createHandler({ cache: false });
+    const req = {
+      get method() {
+        throw new Error('header boom');
+      },
+      headers: {},
+      socket: { remoteAddress: '203.0.113.10' },
+      url: '/',
+    };
+    const res = fakeRes();
+    await handler(req as unknown as Parameters<typeof handler>[0], res as unknown as Parameters<typeof handler>[1]);
+    expect(res.status).toBe(500);
+    expect(res.body).toContain('Internal server error');
+  });
+
+  it('ends the response when headers were already sent', async () => {
+    const handler = createHandler({ cache: false });
+    const req = {
+      get method() {
+        throw new Error('late boom');
+      },
+      headers: {},
+      socket: {},
+      url: '/',
+    };
+    const res = fakeRes({ headersSent: true });
+    await handler(req as unknown as Parameters<typeof handler>[0], res as unknown as Parameters<typeof handler>[1]);
+    expect(res.ended).toBe(true);
+    expect(res.status).toBeUndefined();
+  });
+
+  it('destroys the socket when the 500 write fails, and survives a failed destroy', async () => {
+    const handler = createHandler({ cache: false });
+    const req = {
+      get method() {
+        throw new Error('write boom');
+      },
+      headers: {},
+      socket: {},
+      url: '/',
+    };
+    const destroyed = fakeRes({ failWrite: true });
+    await handler(req as unknown as Parameters<typeof handler>[0], destroyed as unknown as Parameters<typeof handler>[1]);
+    expect(destroyed.destroyed).toBe(true);
+
+    const both = fakeRes({ failWrite: true, failDestroy: true });
+    await expect(handler(
+      req as unknown as Parameters<typeof handler>[0],
+      both as unknown as Parameters<typeof handler>[1],
+    )).resolves.toBeUndefined();
   });
 });

@@ -49,6 +49,11 @@ export interface StatsOptions {
   cache?: StatsCache;
   /** Cache TTL in milliseconds (default: 300000 = 5 min) */
   cacheTtlMs?: number;
+  /**
+   * When set, stats.all queries only these registries.
+   * Omitted means every registered provider.
+   */
+  registries?: string[];
 }
 
 export interface PackageConfig {
@@ -69,6 +74,11 @@ export interface Config {
   concurrency?: number;
   /** Docker Hub auth token */
   dockerToken?: string;
+  /**
+   * GitHub token. The CLI sends it as Authorization: Bearer on api.github.com.
+   * Raises the REST limit from 60/hour to 5000/hour. Not written by --init.
+   */
+  githubToken?: string;
 }
 
 export interface ComparisonResult {

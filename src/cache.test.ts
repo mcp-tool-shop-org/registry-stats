@@ -42,8 +42,14 @@ describe('loadConfig', () => {
   }
 
   it('returns null when no config file found', () => {
-    const result = loadConfig(join(tmpdir(), 'nonexistent-dir-xyz'));
-    expect(result).toBeNull();
+    const root = join(tmpdir(), `registry-stats-empty-${Date.now()}`);
+    mkdirSync(root);
+    try {
+      const result = loadConfig(join(root, 'missing'), root);
+      expect(result).toBeNull();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it('loads valid config from directory', () => {
@@ -116,6 +122,46 @@ describe('loadConfig', () => {
     setup('[]');
     try {
       expect(() => loadConfig(testDir)).toThrow(/must be a JSON object/);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('accepts cache, ttl, packages, and tokens', () => {
+    setup(JSON.stringify({
+      cache: true,
+      cacheTtlMs: 5000,
+      packages: { demo: { npm: 'demo' } },
+      dockerToken: 'dock',
+      githubToken: 'gh-token',
+    }));
+    try {
+      const result = loadConfig(testDir);
+      expect(result).toMatchObject({
+        cache: true,
+        cacheTtlMs: 5000,
+        packages: { demo: { npm: 'demo' } },
+        dockerToken: 'dock',
+        githubToken: 'gh-token',
+      });
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('ignores a blank githubToken and rejects bad token or package shapes', () => {
+    try {
+      setup('{ "githubToken": "   " }');
+      expect(loadConfig(testDir)!.githubToken).toBeUndefined();
+
+      setup('{ "githubToken": 1 }');
+      expect(() => loadConfig(testDir)).toThrow(/githubToken/);
+
+      setup('{ "dockerToken": 1 }');
+      expect(() => loadConfig(testDir)).toThrow(/dockerToken/);
+
+      setup('{ "packages": [] }');
+      expect(() => loadConfig(testDir)).toThrow(/packages/);
     } finally {
       cleanup();
     }

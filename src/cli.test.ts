@@ -141,6 +141,24 @@ describe('CLI', () => {
       expect(r.code).not.toBe(0);
       expect(r.stderr).toContain('--port must be a number between 1 and 65535');
     });
+
+    it('rejects a port that only starts with digits', async () => {
+      for (const raw of ['12abc', '1.5', '8080foo']) {
+        const r = await run(['serve', '--port', raw]);
+        expect(r.code).not.toBe(0);
+        expect(r.stderr).toContain('--port must be a number between 1 and 65535');
+      }
+    });
+
+    it('rejects a trailing --port or --host with no value', async () => {
+      const port = await run(['serve', '--port']);
+      expect(port.code).not.toBe(0);
+      expect(port.stderr).toContain('--port requires a value');
+
+      const host = await run(['serve', '--host']);
+      expect(host.code).not.toBe(0);
+      expect(host.stderr).toContain('--host requires a value');
+    });
   });
 
   // ─── Unknown flags (hits live API) ────────────────────────────────

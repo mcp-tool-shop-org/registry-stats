@@ -1,7 +1,8 @@
 import { createServer as httpCreateServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { stats, createCache, calc } from './index.js';
-import type { StatsOptions } from './types.js';
+import type { StatsCache, StatsOptions } from './types.js';
 import { RegistryError } from './types.js';
+import { bindRequestSignal } from './fetch.js';
 
 export interface ServerOptions {
   port?: number;
@@ -93,6 +94,13 @@ function error(res: ServerResponse, message: string, status = 400) {
   json(res, { error: message }, status);
 }
 
+/** RegistryError → HTTP. A 4xx is the caller's mistake and passes through.
+ *  Upstream 5xx and transport failures (status 0) are a bad gateway. */
+function httpStatusForRegistryError(statusCode: number): number {
+  if (statusCode >= 400 && statusCode < 500) return statusCode;
+  return 502;
+}
+
 function parseUrl(url: string): { path: string[]; query: Record<string, string> } {
   const [pathname, search] = url.split('?');
   const path = pathname.replace(/^\/api\//, '/').split('/').filter(Boolean);
@@ -106,13 +114,38 @@ function parseUrl(url: string): { path: string[]; query: Record<string, string> 
   return { path, query };
 }
 
-/** Wrap a promise with a timeout. Rejects with a timeout error after `ms` milliseconds. */
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+/**
+ * Run fn until it finishes or `ms` elapses. On timeout the abort signal bound
+ * for fn fires, so in-flight fetches and retry sleeps stop instead of continuing
+ * after the handler has already answered 504.
+ */
+function runBounded<T>(ms: number, fn: () => Promise<T>): Promise<T> {
+  const ac = new AbortController();
   return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('__TIMEOUT__')), ms);
-    promise.then(
-      (v) => { clearTimeout(timer); resolve(v); },
-      (e) => { clearTimeout(timer); reject(e); },
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      ac.abort();
+      reject(new Error('__TIMEOUT__'));
+    }, ms);
+    bindRequestSignal(ac.signal, fn).then(
+      (value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        ac.abort();
+        resolve(value);
+      },
+      (err) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        const timedOut = ac.signal.aborted;
+        ac.abort();
+        if (timedOut) reject(new Error('__TIMEOUT__'));
+        else reject(err);
+      },
     );
   });
 }
@@ -139,10 +172,20 @@ function getClientIp(req: IncomingMessage, trustProxy: boolean): string {
   return req.socket.remoteAddress ?? '0.0.0.0';
 }
 
+type HandlerOptions = Omit<StatsOptions, 'cache'> &
+  Pick<ServerOptions, 'corsOrigin' | 'rateLimitMax' | 'rateLimitWindowSeconds' | 'requestTimeoutMs' | 'trustProxy'> & {
+    /** A cache instance, or false to disable. Omitted means a fresh in-memory cache. */
+    cache?: StatsCache | false;
+  };
+
 /** Creates a request handler suitable for Node http.createServer or serverless adapters. */
-export function createHandler(opts?: StatsOptions & Pick<ServerOptions, 'corsOrigin' | 'rateLimitMax' | 'rateLimitWindowSeconds' | 'requestTimeoutMs' | 'trustProxy'>): Handler {
-  const options = { ...opts };
-  if (!options.cache) {
+export function createHandler(opts?: HandlerOptions): Handler {
+  const { cache: cacheOption, ...rest } = opts ?? {};
+  const options: StatsOptions = { ...rest };
+  // false is an explicit disable. A missing cache still gets the default.
+  if (cacheOption && cacheOption !== true) {
+    options.cache = cacheOption;
+  } else if (cacheOption !== false) {
     options.cache = createCache();
   }
 
@@ -205,7 +248,7 @@ export function createHandler(opts?: StatsOptions & Pick<ServerOptions, 'corsOri
       if (path[0] === 'stats') {
         if (path.length === 2) {
           const pkg = decodeURIComponent(path[1]);
-          const results = await withTimeout(stats.all(pkg, options), timeoutMs);
+          const results = await runBounded(timeoutMs, () => stats.all(pkg, options));
           // JSON.stringify of an array drops the .errors expando. Keep the
           // body a JSON array and send failures in a header when there are any.
           if (results.errors && results.errors.length > 0) {
@@ -217,7 +260,7 @@ export function createHandler(opts?: StatsOptions & Pick<ServerOptions, 'corsOri
         if (path.length >= 3) {
           const registry = path[1];
           const pkg = path.slice(2).join('/');
-          const result = await withTimeout(stats(registry, pkg, options), timeoutMs);
+          const result = await runBounded(timeoutMs, () => stats(registry, pkg, options));
           if (!result) {
             error(res, `Package "${pkg}" not found on ${registry}`, 404);
             return;
@@ -231,7 +274,7 @@ export function createHandler(opts?: StatsOptions & Pick<ServerOptions, 'corsOri
       if (path[0] === 'compare' && path.length >= 2) {
         const pkg = decodeURIComponent(path[1]);
         const registries = query.registries ? query.registries.split(',') : undefined;
-        const result = await withTimeout(stats.compare(pkg, registries, options), timeoutMs);
+        const result = await runBounded(timeoutMs, () => stats.compare(pkg, registries, options));
         json(res, result);
         return;
       }
@@ -246,7 +289,7 @@ export function createHandler(opts?: StatsOptions & Pick<ServerOptions, 'corsOri
           return;
         }
 
-        const data = await withTimeout(stats.range(registry, pkg, start, end, options), timeoutMs);
+        const data = await runBounded(timeoutMs, () => stats.range(registry, pkg, start, end, options));
 
         if (format === 'csv') {
           const safePkg = sanitizeFilename(pkg);
@@ -288,12 +331,7 @@ export function createHandler(opts?: StatsOptions & Pick<ServerOptions, 'corsOri
       if (e?.message === '__TIMEOUT__') {
         error(res, 'Gateway timeout', 504);
       } else if (e instanceof RegistryError) {
-        // Map registry errors: 429 → 429, 404 → 404, others → 502 (bad gateway)
-        const status = e.statusCode === 429 ? 429
-          : e.statusCode === 404 ? 404
-          : e.statusCode >= 500 ? 502
-          : 500;
-        error(res, e.message, status);
+        error(res, e.message, httpStatusForRegistryError(e.statusCode));
       } else {
         // Don't leak internal error details to the client
         error(res, 'Internal server error', 500);
@@ -328,7 +366,7 @@ export function serve(opts?: ServerOptions) {
   const port = opts?.port ?? 3000;
   const host = resolveServeHost(opts);
   const handler = createHandler({
-    cache: opts?.cache !== false ? createCache() : undefined,
+    cache: opts?.cache === false ? false : createCache(),
     corsOrigin: opts?.corsOrigin,
     rateLimitMax: opts?.rateLimitMax,
     rateLimitWindowSeconds: opts?.rateLimitWindowSeconds,

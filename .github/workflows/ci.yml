@@ -10,6 +10,7 @@ on:
       - "package-lock.json"
       - "tsconfig.json"
       - "tsup.config.ts"
+      - "vitest.config.ts"
       - ".github/workflows/ci.yml"
   pull_request:
     paths:
@@ -19,6 +20,7 @@ on:
       - "package-lock.json"
       - "tsconfig.json"
       - "tsup.config.ts"
+      - "vitest.config.ts"
       - ".github/workflows/ci.yml"
   workflow_dispatch:
 
@@ -43,6 +45,7 @@ jobs:
       # esbuild `overrides` pin (^0.28.1) + tsup 8.5 + vitest 4 — so the whole tree is
       # audited again. The published package still has ZERO runtime dependencies.
       - run: npm audit --audit-level=high
+      # Fails the job when line, statement, or function coverage is under 90%.
       - run: npm test
       - run: npm run build
       - run: npm pack --dry-run

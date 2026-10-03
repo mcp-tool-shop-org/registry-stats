@@ -83,6 +83,11 @@ describe('vscode provider (mocked)', () => {
     const result = await vscode.getStats('someone.broken-ext');
     expect(result).toBeNull();
   });
+
+  it('returns null when the marketplace rejects the query with 400', async () => {
+    mockFetch(async () => ({ status: 400, body: { message: 'bad query' } }));
+    await expect(vscode.getStats('not a query')).resolves.toBeNull();
+  });
 });
 
 describe('vscode provider (live)', () => {

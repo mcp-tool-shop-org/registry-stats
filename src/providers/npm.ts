@@ -1,4 +1,5 @@
 import type { RegistryProvider, PackageStats, DailyDownloads } from '../types.js';
+import { RegistryError } from '../types.js';
 import { fetchWithRetry, fetchDirect } from '../fetch.js';
 
 const API = 'https://api.npmjs.org/downloads';
@@ -28,7 +29,8 @@ export const npm: RegistryProvider = {
     // Single range call for last-month daily data — then derive day/week/month
     const end = new Date();
     const start = new Date(end);
-    start.setDate(start.getDate() - 30);
+    // 30 inclusive dates, ending today. -30 was 31 dates.
+    start.setDate(start.getDate() - 29);
 
     const data = await fetchWithRetry<RangeResponse>(
       `${API}/range/${fmt(start)}:${fmt(end)}/${encodeNpmPackage(pkg)}`, 'npm',
@@ -50,13 +52,20 @@ export const npm: RegistryProvider = {
   },
 
   async getRange(pkg: string, start: string, end: string): Promise<DailyDownloads[]> {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+    const startDate = parseUtcDay(start);
+    const endDate = parseUtcDay(end);
+    if (!startDate || !endDate) {
+      throw new RegistryError('npm', 400, `Invalid date range "${start}:${end}". Use YYYY-MM-DD.`);
+    }
+    if (startDate.getTime() > endDate.getTime()) {
+      throw new RegistryError('npm', 400, `Invalid date range "${start}:${end}". Start is after end.`);
+    }
     const maxDays = 549;
     const chunks: DailyDownloads[] = [];
 
     let cursor = startDate;
-    while (cursor < endDate) {
+    // <= so a one-day range (start === end) still fetches that day.
+    while (cursor.getTime() <= endDate.getTime()) {
       const chunkEnd = new Date(cursor);
       chunkEnd.setDate(chunkEnd.getDate() + maxDays - 1);
       const actualEnd = chunkEnd > endDate ? endDate : chunkEnd;
@@ -117,6 +126,15 @@ export async function npmBulkPoint(
 
 function fmt(d: Date): string {
   return d.toISOString().slice(0, 10);
+}
+
+/** Real UTC calendar day. Rejects "not-a-date", "2025-02-31", and "12abc". */
+function parseUtcDay(value: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return null;
+  if (date.toISOString().slice(0, 10) !== value) return null;
+  return date;
 }
 
 /**

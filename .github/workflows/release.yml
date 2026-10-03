@@ -7,7 +7,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -31,9 +31,31 @@ jobs:
             npm install
           fi
 
-      - run: npm run build --if-present
+      - name: Require build and test scripts, and match the release tag
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          node -e '
+            const p = require("./package.json");
+            if (!p.scripts || !p.scripts.build || !p.scripts.test) {
+              console.error("package.json must define build and test scripts");
+              process.exit(1);
+            }
+            const tag = process.env.RELEASE_TAG || "";
+            if (!tag) {
+              console.log("No release tag on this event; skipping version match");
+              process.exit(0);
+            }
+            const version = tag.startsWith("v") ? tag.slice(1) : tag;
+            if (p.version !== version) {
+              console.error(`package.json version ${p.version} does not match release tag ${tag}`);
+              process.exit(1);
+            }
+          '
 
-      - run: npm test --if-present
+      - run: npm run build
+
+      - run: npm test
 
       # Trusted Publishing (OIDC) requires npm >= 11.5.1; Node 22 bundles npm 10.9.x,
       # so upgrade the global npm before publishing.

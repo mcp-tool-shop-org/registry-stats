@@ -20,7 +20,8 @@ Usage: registry-stats [package] [options]
 
 Options:
   --registry, -r  Registry to query (npm, pypi, nuget, vscode, docker, github)
-                  Omit to query all registries
+                  Omit to query config registries, or every built-in registry
+                  when the config has no registries list
                   github: identifier is a repo slug, e.g. -r github owner/repo
   --mine          Discover and show stats for all npm packages by a maintainer
                   e.g. registry-stats --mine mikefrilot
@@ -175,6 +176,30 @@ function printMineTable(results: PackageStats[], maintainer: string) {
   console.log();
 }
 
+function requireValue(flag: string, args: string[], index: number, hint?: string, allowNegative = false): string {
+  const value = args[index + 1];
+  const looksLikeFlag = value === undefined || value.startsWith('--') || (!allowNegative && value.startsWith('-'));
+  if (looksLikeFlag) {
+    console.error(hint ?? `Error: ${flag} requires a value`);
+    process.exit(1);
+  }
+  return value;
+}
+
+function parsePort(raw: string): number {
+  // Reject 12abc, 1.5, and 8080foo. parseInt would accept those.
+  if (!/^[0-9]+$/.test(raw)) {
+    console.error('Error: --port must be a number between 1 and 65535');
+    process.exit(1);
+  }
+  const port = Number(raw);
+  if (port < 1 || port > 65535) {
+    console.error('Error: --port must be a number between 1 and 65535');
+    process.exit(1);
+  }
+  return port;
+}
+
 function buildOptions(config: Config | null): StatsOptions {
   const opts: StatsOptions = {};
   if (!config) return opts;
@@ -185,6 +210,8 @@ function buildOptions(config: Config | null): StatsOptions {
   }
   if (config.concurrency) opts.concurrency = config.concurrency;
   if (config.dockerToken) opts.dockerToken = config.dockerToken;
+  if (config.githubToken) opts.githubToken = config.githubToken;
+  if (config.registries && config.registries.length > 0) opts.registries = config.registries;
   return opts;
 }
 
@@ -262,7 +289,7 @@ async function runMine(maintainer: string, format: string, config: Config | null
   }
 }
 
-async function main() {
+export async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
   if (args.includes('--version') || args.includes('-V')) {
@@ -293,16 +320,21 @@ async function main() {
     let host: string | undefined;
     let cors: string | undefined;
     for (let i = 1; i < args.length; i++) {
-      if (args[i] === '--port' && args[i + 1]) {
-        port = parseInt(args[++i], 10);
-        if (Number.isNaN(port) || port < 1 || port > 65535) {
-          console.error('Error: --port must be a number between 1 and 65535');
-          process.exit(1);
-        }
-      } else if (args[i] === '--host' && args[i + 1]) {
-        host = args[++i];
-      } else if (args[i] === '--cors' && args[i + 1]) {
-        cors = args[++i];
+      if (args[i] === '--port') {
+        port = parsePort(requireValue('--port', args, i, undefined, true));
+        i++;
+      } else if (args[i] === '--host') {
+        host = requireValue('--host', args, i);
+        i++;
+      } else if (args[i] === '--cors') {
+        cors = requireValue('--cors', args, i);
+        i++;
+      } else if (args[i].startsWith('-')) {
+        console.error(`Error: unknown option ${args[i]}`);
+        process.exit(1);
+      } else {
+        console.error(`Error: unexpected argument "${args[i]}"`);
+        process.exit(1);
       }
     }
     serve({ port, host, corsOrigin: cors });
@@ -319,22 +351,22 @@ async function main() {
 
   const unknownFlags: string[] = [];
   for (let i = 0; i < args.length; i++) {
-    if ((args[i] === '--registry' || args[i] === '-r') && args[i + 1]) {
-      registry = args[++i];
-    } else if (args[i] === '--range' && args[i + 1]) {
-      range = args[++i];
-    } else if (args[i] === '--format' && args[i + 1]) {
-      format = args[++i];
+    if (args[i] === '--registry' || args[i] === '-r') {
+      registry = requireValue(args[i], args, i);
+      i++;
+    } else if (args[i] === '--range') {
+      range = requireValue('--range', args, i);
+      i++;
+    } else if (args[i] === '--format') {
+      format = requireValue('--format', args, i);
+      i++;
     } else if (args[i] === '--json') {
       format = 'json';
     } else if (args[i] === '--compare') {
       compare = true;
-    } else if (args[i] === '--mine' && args[i + 1]) {
-      mineUser = args[++i];
     } else if (args[i] === '--mine') {
-      // Bare --mine with no maintainer name is a usage error, not an unknown flag.
-      console.error('Error: --mine requires a maintainer name (e.g. registry-stats --mine yourname)');
-      process.exit(1);
+      mineUser = requireValue('--mine', args, i, 'Error: --mine requires a maintainer name (e.g. registry-stats --mine yourname)');
+      i++;
     } else if (!args[i].startsWith('-') && !pkg) {
       pkg = args[i];
     } else if (args[i].startsWith('-')) {
@@ -376,7 +408,7 @@ async function main() {
   try {
     // Comparison mode
     if (compare) {
-      const registries = registry ? [registry] : undefined;
+      const registries = registry ? [registry] : opts.registries;
       const result = await stats.compare(pkg, registries, opts);
 
       // Surface transient registry failures so an outage isn't mistaken for
@@ -457,7 +489,22 @@ async function main() {
   }
 }
 
-main().catch((e: any) => {
-  console.error(`Error: ${e.message}`);
-  process.exit(1);
-});
+// Importing this module from a test must not start the CLI. The bin and the
+// direct `node src/cli.ts` path still run it. Compare resolved paths so a
+// Windows file URL and argv[1] refer to the same file.
+function invokedDirectly(): boolean {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    return resolve(entry) === resolve(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (invokedDirectly()) {
+  main().catch((e: any) => {
+    console.error(`Error: ${e.message}`);
+    process.exit(1);
+  });
+}

@@ -130,7 +130,7 @@ Node 18 and later. The library uses native `fetch()` which was stabilized in Nod
 Each registry API exposes different levels of detail. npm provides daily/weekly/monthly counts plus up to 549 days of history. NuGet only gives an all-time total. This is a limitation of the upstream APIs, not registry-stats.
 
 **What happens if a registry is down or rate-limits me?**
-The library automatically retries with exponential backoff on 429 and 5xx errors, and respects `Retry-After` headers. If all retries fail, it throws a `RegistryError` with the status code. The `stats.all()` method uses `Promise.allSettled` and never throws — it returns results for whichever registries responded.
+The library automatically retries with exponential backoff on 429 and 5xx errors, and respects `Retry-After` headers up to 60 seconds. If all retries fail, it throws a `RegistryError` with the status code. `stats.all()` records a registry failure on `.errors` instead of rejecting. It still throws `RegistryError` when the package name itself is invalid.
 
 **Can I add a registry that is not built in?**
 Yes. Use `registerProvider()` with a custom `RegistryProvider` object. See the [Configuration](/registry-stats/handbook/configuration/) page.

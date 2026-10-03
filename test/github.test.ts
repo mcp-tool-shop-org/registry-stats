@@ -85,6 +85,7 @@ describe('github provider (mocked)', () => {
 
   it('rejects identifiers that are not owner/repo', async () => {
     const fetchMock = mockFetch(async () => ({ status: 200, body: [] }));
+    await expect(github.getStats('not-a-slug')).rejects.toMatchObject({ statusCode: 400 });
     await expect(github.getStats('not-a-slug')).rejects.toThrow(/expected "owner\/repo"/);
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -98,6 +99,35 @@ describe('github provider (mocked)', () => {
       await expect(github.getStats(name)).rejects.toThrow(`Invalid repository "${name}"`);
       expect(fetchMock).not.toHaveBeenCalled();
     }
+  });
+
+  it('sends a token, ignores a bad asset count, and stops when a later page is 404', async () => {
+    const page = Array.from({ length: 100 }, (_, i) => ({
+      tag_name: i === 0 ? '' : `v${i}`,
+      published_at: null,
+      assets: i === 1 ? undefined : [{ name: 'a', download_count: i === 2 ? 'nope' : 1 }],
+    }));
+    let auth: string | undefined;
+    globalThis.fetch = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const headers = init?.headers as Record<string, string> | undefined;
+      auth = headers?.Authorization;
+      const status = url.includes('page=2') ? 404 : 200;
+      const body = url.includes('page=2') ? { message: 'missing' } : page;
+      return {
+        ok: status >= 200 && status < 300,
+        status,
+        statusText: String(status),
+        headers: { get: () => null },
+        json: async () => body,
+      } as unknown as Response;
+    });
+
+    const result = await settleGithub(() => github.getStats('owner/repo', { githubToken: 'gh-token' }));
+    expect(auth).toBe('Bearer gh-token');
+    expect(result).not.toBeNull();
+    expect(result!.downloads.total).toBe(98);
+    expect(result!.extra).toMatchObject({ releases: 100, latestTag: 'v1' });
   });
 
   it('is registered and reachable via stats()', async () => {

@@ -1,9 +1,23 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import type { RegistryName } from './types.js';
 import { RegistryError } from './types.js';
 
 const RETRYABLE = new Set([429, 500, 502, 503, 504]);
 const MAX_RETRIES = 3;
 const BASE_DELAY = 1000; // 1 second
+/** A hostile or mistaken Retry-After cannot stall a caller for hours. */
+const MAX_RETRY_AFTER_MS = 60_000;
+
+const requestSignals = new AsyncLocalStorage<AbortSignal>();
+
+/**
+ * Bind an abort signal to every fetchWithRetry / fetchDirect call made by fn,
+ * including retry sleeps and registry slot waits. The HTTP handler uses this
+ * so a gateway timeout actually stops the upstream work.
+ */
+export function bindRequestSignal<T>(signal: AbortSignal, fn: () => Promise<T>): Promise<T> {
+  return requestSignals.run(signal, fn);
+}
 
 // --- Per-registry throttle (serialized via mutex) ---
 // Ensures minimum delay between actual requests to the same registry.
@@ -80,7 +94,14 @@ function acquireGithubSlot(init?: RequestInit): Promise<void> {
       resolve();
     };
     if (wait === 0) release();
-    else setTimeout(release, wait);
+    else {
+      const timer = setTimeout(release, wait);
+      const signal = requestSignals.getStore();
+      signal?.addEventListener('abort', () => {
+        clearTimeout(timer);
+        resolve();
+      }, { once: true });
+    }
   }));
   githubLane = ticket;
   return ticket;
@@ -92,8 +113,20 @@ function acquireSlot(registry: RegistryName, init?: RequestInit): Promise<void> 
   const minDelay = REGISTRY_DELAYS[registry] ?? DEFAULT_DELAY;
   const prev = registryLocks.get(registry) ?? Promise.resolve();
 
-  // Each caller waits for the previous to finish, then holds the slot for minDelay
-  const slot = prev.then(() => new Promise<void>((r) => setTimeout(r, minDelay)));
+  // Each caller waits for the previous to finish, then holds the slot for minDelay.
+  // An aborted request releases the timer so a timed-out handler does not keep waiting.
+  const slot = prev.then(() => new Promise<void>((r) => {
+    const signal = requestSignals.getStore();
+    if (signal?.aborted) {
+      r();
+      return;
+    }
+    const timer = setTimeout(r, minDelay);
+    signal?.addEventListener('abort', () => {
+      clearTimeout(timer);
+      r();
+    }, { once: true });
+  }));
   registryLocks.set(registry, slot);
 
   // Guard against unbounded growth from custom providers
@@ -119,12 +152,26 @@ async function fetchRetryCore<T>(
   let lastError: RegistryError | undefined;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const external = requestSignals.getStore();
+    if (external?.aborted) throw abortedError(registry, url);
+
     if (preRequest) await preRequest();
+    if (external?.aborted) throw abortedError(registry, url);
 
     let res: Response;
     try {
-      res = await fetch(url, { signal: AbortSignal.timeout(30_000), ...init });
+      // init.signal must not replace the timeout. Merge it with the 30s cap
+      // and the handler signal so any one of them aborts the socket.
+      res = await fetch(url, {
+        ...init,
+        signal: mergeSignals(30_000, [init?.signal, external]),
+      });
     } catch (err) {
+      // Only a handler-bound abort stops the retry loop. The fetch's own
+      // AbortSignal.timeout is a network timeout and stays retryable.
+      if (external?.aborted) {
+        throw abortedError(registry, url);
+      }
       // Network-level failures: DNS, connection refused, abort/timeout
       const message = err instanceof Error ? err.message : String(err);
       lastError = new RegistryError(registry, 0, `Network error: ${message} — ${url}`);
@@ -133,16 +180,23 @@ async function fetchRetryCore<T>(
       if (attempt === MAX_RETRIES) break;
 
       const backoff = BASE_DELAY * Math.pow(2, attempt);
-      await new Promise((r) => setTimeout(r, backoff));
+      await sleepOrStop(backoff, external, registry, url);
       continue;
     }
 
     if (res.status === 404) return null;
 
-    if (res.ok) return res.json() as Promise<T>;
+    if (res.ok) {
+      try {
+        return await res.json() as T;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        throw new RegistryError(registry, res.status, `Response was not valid JSON: ${message} — ${url}`);
+      }
+    }
 
-    const retryAfter = res.headers.get('retry-after');
-    const retryAfterSeconds = retryAfter ? parseInt(retryAfter, 10) : undefined;
+    const retryAfter = cappedRetryAfter(res.headers.get('retry-after'));
+    const retryAfterSeconds = retryAfter.seconds;
 
     lastError = new RegistryError(
       registry,
@@ -153,14 +207,79 @@ async function fetchRetryCore<T>(
 
     if (!RETRYABLE.has(res.status) || attempt === MAX_RETRIES) break;
 
-    // Use exponential backoff as minimum, even if Retry-After says 0
+    // Exponential backoff is the floor. Retry-After can raise it, never past the cap.
     const backoff = BASE_DELAY * Math.pow(2, attempt);
-    const retryAfterMs = retryAfterSeconds ? retryAfterSeconds * 1000 : 0;
-    const delay = Math.max(backoff, retryAfterMs);
-    await new Promise((r) => setTimeout(r, delay));
+    const delay = Math.max(backoff, retryAfter.delayMs);
+    await sleepOrStop(delay, external, registry, url);
   }
 
   throw lastError ?? new RegistryError(registry, 0, `Fetch failed after ${MAX_RETRIES} retries: ${url}`);
+}
+
+function abortedError(registry: RegistryName, url: string): RegistryError {
+  return new RegistryError(registry, 0, `Request aborted — ${url}`);
+}
+
+/** Whole seconds only. HTTP-date values and junk like "12abc" are ignored. Capped at 60s. */
+function cappedRetryAfter(header: string | null): { seconds?: number; delayMs: number } {
+  if (!header) return { delayMs: 0 };
+  const trimmed = header.trim();
+  if (!/^[0-9]+$/.test(trimmed)) return { delayMs: 0 };
+  const delayMs = Math.min(Number(trimmed) * 1000, MAX_RETRY_AFTER_MS);
+  return { seconds: Math.round(delayMs / 1000), delayMs };
+}
+
+function mergeSignals(timeoutMs: number, extra: Array<AbortSignal | undefined>): AbortSignal {
+  const signals = [AbortSignal.timeout(timeoutMs), ...extra.filter((s): s is AbortSignal => s != null)];
+  if (signals.length === 1) return signals[0];
+  if (typeof AbortSignal.any === 'function') return AbortSignal.any(signals);
+
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  for (const signal of signals) {
+    if (signal.aborted) {
+      controller.abort();
+      return controller.signal;
+    }
+    signal.addEventListener('abort', abort, { once: true });
+  }
+  return controller.signal;
+}
+
+async function sleepOrStop(ms: number, signal: AbortSignal | undefined, registry: RegistryName, url: string): Promise<void> {
+  try {
+    await sleep(ms, signal);
+  } catch (err) {
+    if (signal?.aborted || (err instanceof Error && err.name === 'AbortError')) {
+      throw abortedError(registry, url);
+    }
+    throw err;
+  }
+}
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  if (ms <= 0) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(abortError());
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(abortError());
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+function abortError(): Error {
+  const err = new Error('This operation was aborted');
+  err.name = 'AbortError';
+  return err;
 }
 
 /**

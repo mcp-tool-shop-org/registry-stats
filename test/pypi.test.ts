@@ -89,6 +89,16 @@ describe('pypi provider (mocked)', () => {
     expect(data[2]).toEqual({ date: '2025-01-03', downloads: 300 });
   });
 
+  it('getRange rejects a range that is not a day or runs backwards', async () => {
+    mockFetch(async () => ({
+      status: 200,
+      body: { data: [], package: 'requests', type: 'overall_downloads' },
+    }));
+    await expect(pypi.getRange!('requests', 'not-a-date', '2025-01-01')).rejects.toThrow(/Invalid date range/);
+    await expect(pypi.getRange!('requests', '2025-02-31', '2025-03-01')).rejects.toThrow(/Invalid date range/);
+    await expect(pypi.getRange!('requests', '2025-06-01', '2025-01-01')).rejects.toThrow(/Invalid date range/);
+  }, 15000);
+
   it('getRange returns empty array when API returns 404', async () => {
     mockFetch(async () => ({ status: 404 }));
     const data = await pypi.getRange!('nonexistent', '2025-01-01', '2025-01-07');

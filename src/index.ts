@@ -29,13 +29,13 @@ const VALID_PKG_NAME = /^[@a-zA-Z0-9][\w./@-]*$/;
  */
 function validatePackageName(pkg: string, registry: string): void {
   if (!pkg || typeof pkg !== 'string') {
-    throw new RegistryError(registry, 0, `Invalid package name: must be a non-empty string`);
+    throw new RegistryError(registry, 400, `Invalid package name: must be a non-empty string`);
   }
   if (pkg.includes('..') || pkg.includes('\\')) {
-    throw new RegistryError(registry, 0, `Invalid package name "${pkg}": path traversal not allowed`);
+    throw new RegistryError(registry, 400, `Invalid package name "${pkg}": path traversal not allowed`);
   }
   if (!VALID_PKG_NAME.test(pkg)) {
-    throw new RegistryError(registry, 0, `Invalid package name "${pkg}": contains illegal characters`);
+    throw new RegistryError(registry, 400, `Invalid package name "${pkg}": contains illegal characters`);
   }
 }
 
@@ -55,7 +55,18 @@ function createCache(): StatsCache {
       return entry.value;
     },
     set(key, value, ttlMs) {
-      store.set(key, { value, expiresAt: Date.now() + ttlMs });
+      const now = Date.now();
+      for (const [storedKey, entry] of store) {
+        if (now > entry.expiresAt) store.delete(storedKey);
+      }
+      store.set(key, { value, expiresAt: now + ttlMs });
+      // Drop the oldest insertions if a long process keeps writing new keys.
+      const maxEntries = 1000;
+      while (store.size > maxEntries) {
+        const oldest = store.keys().next().value;
+        if (oldest === undefined) break;
+        store.delete(oldest);
+      }
     },
   };
 }
@@ -167,7 +178,7 @@ async function stats(
   validatePackageName(pkg, registry);
   const provider = providers.get(registry);
   if (!provider) {
-    throw new RegistryError(registry, 0, `Unknown registry "${registry}". Use registerProvider() to add custom registries.`);
+    throw new RegistryError(registry, 400, `Unknown registry "${registry}". Use registerProvider() to add custom registries.`);
   }
 
   const cache = options?.cache;
@@ -199,12 +210,21 @@ stats.all = async function all(
   pkg: string,
   options?: StatsOptions,
 ): Promise<AllStatsResult> {
-  // Enforce the same package-name contract as stats() for every provider.
-  for (const p of providers.values()) {
+  // options.registries limits the fan-out. Omitted means every registered provider.
+  const selected = options?.registries;
+  const providerList = selected
+    ? selected.map((name) => {
+        const provider = providers.get(name);
+        if (!provider) {
+          throw new RegistryError(name, 400, `Unknown registry "${name}". Use registerProvider() to add custom registries.`);
+        }
+        return provider;
+      })
+    : [...providers.values()];
+
+  for (const p of providerList) {
     validatePackageName(pkg, p.name);
   }
-
-  const providerList = [...providers.values()];
   const settled = await Promise.allSettled(
     providerList.map((p) => stats(p.name, pkg, options)),
   );
@@ -231,7 +251,7 @@ stats.bulk = async function bulk(
 ): Promise<(PackageStats | null)[]> {
   const provider = providers.get(registry);
   if (!provider) {
-    throw new RegistryError(registry, 0, `Unknown registry "${registry}".`);
+    throw new RegistryError(registry, 400, `Unknown registry "${registry}".`);
   }
 
   // Enforce the package-name contract on every name up front, so the bulk
@@ -319,12 +339,12 @@ stats.range = async function range(
   validatePackageName(pkg, registry);
   const provider = providers.get(registry);
   if (!provider) {
-    throw new RegistryError(registry, 0, `Unknown registry "${registry}".`);
+    throw new RegistryError(registry, 400, `Unknown registry "${registry}".`);
   }
   if (!provider.getRange) {
     throw new RegistryError(
       registry,
-      0,
+      400,
       `${registry} does not support time-series data. Only npm and pypi support getRange().`,
     );
   }
