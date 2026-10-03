@@ -15,7 +15,9 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
-        builder.Services.AddSingleton<StatsService>();
+        // Factory keeps the optional root-directory argument off the container.
+        // A registered string would otherwise replace LocalApplicationData.
+        builder.Services.AddSingleton<StatsService>(_ => new StatsService());
         builder.Services.AddSingleton<MainPage>();
 
         return builder.Build();

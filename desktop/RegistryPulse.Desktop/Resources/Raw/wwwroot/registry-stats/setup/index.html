@@ -103,7 +103,8 @@ portfolio &rarr; registry-stats &rarr; snapshot &rarr; dashboard
 const baseUrl = "/registry-stats";
 
   // ── Shell config ──
-  const basePath = baseUrl || '/registry-stats/';
+  // baseUrl has no trailing slash; concatenation would request /registry-statsbranding.json.
+  const basePath = (baseUrl || "/registry-stats").replace(/\/+$/, "") + "/";
   const isDesktop = typeof window !== 'undefined' && !!window.chrome?.webview;
 
   function postBridge(action, payload) {
