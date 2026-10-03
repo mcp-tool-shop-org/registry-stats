@@ -33,33 +33,99 @@
       "kind": "part",
       "name": "test",
       "partLabel": "test"
+    },
+    {
+      "kind": "place",
+      "readers": [
+        "site"
+      ],
+      "target": "site/src/data/stats.json",
+      "writers": [
+        ".github",
+        "site"
+      ]
     }
   ],
   "changes": {
     "fileCounts": {
-      "added": 0,
-      "changed": 1,
+      "added": 7,
+      "changed": 56,
       "moved": 0,
-      "parts": 1,
+      "parts": 6,
       "removed": 0
     },
     "items": [
       {
         "kind": "door",
-        "sentence": "CI's pull request trigger no longer names `.github/workflows/ci.yml`, `package-lock.json`, `package.json`, `src/**`, `test/**`, `tsconfig.json` and `tsup.config.ts`.",
+        "sentence": "CI's push trigger now also names `vitest.config.ts`.",
         "subjects": [
           ".github/workflows/ci.yml"
         ]
       },
       {
+        "kind": "door",
+        "sentence": "CI now also runs src/cli.cover.test.ts and src/fetch.cover.test.ts.",
+        "subjects": [
+          ".github/workflows/ci.yml",
+          "src/cli.cover.test.ts",
+          "src/fetch.cover.test.ts"
+        ]
+      },
+      {
+        "kind": "door",
+        "sentence": "Daily Refresh now also runs src/cli.cover.test.ts and src/fetch.cover.test.ts.",
+        "subjects": [
+          ".github/workflows/daily-refresh.yml",
+          "src/cli.cover.test.ts",
+          "src/fetch.cover.test.ts"
+        ]
+      },
+      {
+        "kind": "door",
+        "sentence": "And 3 more changes to doors.",
+        "subjects": []
+      },
+      {
+        "kind": "landing",
+        "sentence": "site/public/data/packages.json is now also written by .github/workflows/daily-refresh.yml and .github/workflows/pages.yml.",
+        "subjects": [
+          "site/public/data/packages.json",
+          ".github/workflows/daily-refresh.yml",
+          ".github/workflows/pages.yml"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "site/public/data/stats.json is now also written by .github/workflows/daily-refresh.yml and .github/workflows/pages.yml.",
+        "subjects": [
+          "site/public/data/stats.json",
+          ".github/workflows/daily-refresh.yml",
+          ".github/workflows/pages.yml"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "site/src/data/history.json is now also written by .github/workflows/daily-refresh.yml and .github/workflows/pages.yml.",
+        "subjects": [
+          "site/src/data/history.json",
+          ".github/workflows/daily-refresh.yml",
+          ".github/workflows/pages.yml"
+        ]
+      },
+      {
+        "kind": "landing",
+        "sentence": "And 4 more new writers and readers of places.",
+        "subjects": []
+      },
+      {
         "kind": "counts",
-        "sentence": "1 file changed content, across 1 part.",
+        "sentence": "7 files added and 56 changed content, across 6 parts.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "ccdcd1374bfbc49d4c77bf18f1265745c64da64e",
-      "generatedAt": "2026-09-30T20:11:54.487Z"
+      "commit": "7bd013bf4d2a84f1c17307489c97afbc8667a7da",
+      "generatedAt": "2026-10-01T02:12:23.024Z"
     },
     "unchanged": false
   },
@@ -68,12 +134,13 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 0 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 0,
-  "commit": "7bd013bf4d2a84f1c17307489c97afbc8667a7da",
+  "commit": "56428378e4a1f927b2b553a04c2084c158ea86da",
   "defaultBranch": "main",
-  "derived": "8 parts, mostly TypeScript (35 files), C# (8), Astro (6), HTML (4), CSS (3) and JavaScript (2). Work enters through 7 doors; Daily Refresh and Desktop CI (MSIX) each reach 3 parts, and Daily Refresh is followed because it commits into the repository. It publishes to npm. It deploys a site to GitHub Pages. People run registry-stats. People import @mcptoolshop/registry-stats.",
+  "derived": "8 parts, mostly TypeScript (40 files), C# (9), Astro (6), HTML (4), CSS (3) and JavaScript (3). Work enters through 7 doors; Daily Refresh and Desktop CI (MSIX) each reach 3 parts, and Daily Refresh is followed because it commits into the repository. It publishes to npm. It deploys a site to GitHub Pages. People run registry-stats. People import @mcptoolshop/registry-stats.",
   "doors": [
     {
       "builds": [
+        "src/index.ts",
         "desktop/RegistryPulse.Desktop/RegistryPulse.Desktop.csproj"
       ],
       "checks": [],
@@ -103,7 +170,7 @@
         },
         {
           "boundary": "src",
-          "depth": 1,
+          "depth": 0,
           "files": 13
         }
       ],
@@ -150,27 +217,31 @@
         {
           "boundary": "src",
           "depth": 0,
-          "files": 18
+          "files": 21
         },
         {
           "boundary": "test",
           "depth": 0,
-          "files": 13
+          "files": 15
         }
       ],
       "runs": [
         "site/scripts/fetch-stats.mjs",
         "src/cache.test.ts",
         "src/calc.test.ts",
+        "src/cli.cover.test.ts",
         "src/cli.test.ts",
         "src/contract.test.ts",
+        "src/fetch.cover.test.ts",
         "src/retry.test.ts",
         "test/"
       ],
-      "runsCount": 7,
-      "runsMore": 16,
+      "runsCount": 9,
+      "runsMore": 20,
       "sends": [],
       "stages": [
+        "site/public/data/packages.json",
+        "site/public/data/stats.json",
         "site/src/data/history.json",
         "site/src/data/snapshots.json",
         "site/src/data/stats.json"
@@ -196,29 +267,31 @@
         {
           "boundary": "src",
           "depth": 0,
-          "files": 18
+          "files": 21
         },
         {
           "boundary": "test",
           "depth": 0,
-          "files": 13
+          "files": 15
         }
       ],
       "runs": [
         "src/cache.test.ts",
         "src/calc.test.ts",
+        "src/cli.cover.test.ts",
         "src/cli.test.ts",
         "src/contract.test.ts",
+        "src/fetch.cover.test.ts",
         "src/retry.test.ts",
         "test/"
       ],
-      "runsCount": 6,
-      "runsMore": 15,
+      "runsCount": 8,
+      "runsMore": 19,
       "sends": [],
       "stages": [],
       "triggers": [
         "on a pull request",
-        "on a push to main touching 7 paths",
+        "on a push to main touching 8 paths",
         "or by hand"
       ]
     },
@@ -263,7 +336,7 @@
         {
           "boundary": "site",
           "depth": 0,
-          "files": 13
+          "files": 14
         },
         {
           "boundary": "src",
@@ -272,13 +345,14 @@
         }
       ],
       "runs": [
+        "site/scripts/audit.mjs",
         "site/astro.config.mjs",
         "site/src/"
       ],
-      "runsCount": 2,
+      "runsCount": 3,
       "runsMore": 0,
       "sends": [
-        "commits site/src/data/snapshots.json and site/src/data/stats.json, then pushes, and deploys the site, except on a pull request"
+        "commits site/public/data/packages.json, site/public/data/stats.json, site/src/data/history.json, site/src/data/snapshots.json and site/src/data/stats.json, then pushes, and deploys the site, except on a pull request"
       ],
       "stages": [],
       "triggers": [
@@ -304,24 +378,26 @@
         {
           "boundary": "src",
           "depth": 0,
-          "files": 18
+          "files": 21
         },
         {
           "boundary": "test",
           "depth": 0,
-          "files": 13
+          "files": 15
         }
       ],
       "runs": [
         "src/cache.test.ts",
         "src/calc.test.ts",
+        "src/cli.cover.test.ts",
         "src/cli.test.ts",
         "src/contract.test.ts",
+        "src/fetch.cover.test.ts",
         "src/retry.test.ts",
         "test/"
       ],
-      "runsCount": 6,
-      "runsMore": 15,
+      "runsCount": 8,
+      "runsMore": 19,
       "sends": [
         "publishes to npm"
       ],
@@ -404,40 +480,47 @@
     {
       "place": "site/public/data/packages.json",
       "writers": [
+        ".github/workflows/daily-refresh.yml",
+        ".github/workflows/pages.yml",
         "site/scripts/fetch-stats.mjs"
       ]
     },
     {
       "place": "site/public/data/stats.json",
       "writers": [
+        ".github/workflows/daily-refresh.yml",
+        ".github/workflows/pages.yml",
         "site/scripts/fetch-stats.mjs"
       ]
     },
     {
-      "block": true,
       "place": "site/src/data/history.json",
       "writers": [
+        ".github/workflows/daily-refresh.yml",
+        ".github/workflows/pages.yml",
         "site/scripts/fetch-stats.mjs"
       ]
     },
     {
-      "block": true,
       "place": "site/src/data/snapshots.json",
       "writers": [
+        ".github/workflows/daily-refresh.yml",
+        ".github/workflows/pages.yml",
         "site/scripts/fetch-stats.mjs"
       ]
     },
     {
-      "block": true,
       "place": "site/src/data/stats.json",
       "writers": [
+        ".github/workflows/daily-refresh.yml",
+        ".github/workflows/pages.yml",
         "site/scripts/fetch-stats.mjs"
       ]
     }
   ],
-  "generatedAt": "2026-10-01T02:12:23.024Z",
+  "generatedAt": "2026-10-03T20:31:49.036Z",
   "limits": [
-    "8 reads go to a path their caller passes, not to this repository.",
+    "10 reads go to a path their caller passes, not to this repository.",
     "1 write and 3 reads go to the directory the command is run in (registry-stats.config.json), not to this repository.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
@@ -477,7 +560,6 @@
   "startDoor": ".github/workflows/desktop-ci.yml",
   "startHere": [
     ".github/workflows/desktop-ci.yml",
-    "site/scripts/fetch-stats.mjs",
     "src/index.ts",
     "src/providers/npm.ts",
     "src/fetch.ts",
@@ -485,21 +567,41 @@
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 18,
+  "testFiles": 22,
   "testedBy": {
-    "src": 17
+    "src": 21
   },
   "unnamedWrites": 0,
   "unread": [
     {
       "place": "site/public/data/packages.json",
       "writers": [
+        ".github/workflows/daily-refresh.yml",
+        ".github/workflows/pages.yml",
         "site/scripts/fetch-stats.mjs"
       ]
     },
     {
       "place": "site/public/data/stats.json",
       "writers": [
+        ".github/workflows/daily-refresh.yml",
+        ".github/workflows/pages.yml",
+        "site/scripts/fetch-stats.mjs"
+      ]
+    },
+    {
+      "place": "site/src/data/history.json",
+      "writers": [
+        ".github/workflows/daily-refresh.yml",
+        ".github/workflows/pages.yml",
+        "site/scripts/fetch-stats.mjs"
+      ]
+    },
+    {
+      "place": "site/src/data/snapshots.json",
+      "writers": [
+        ".github/workflows/daily-refresh.yml",
+        ".github/workflows/pages.yml",
         "site/scripts/fetch-stats.mjs"
       ]
     }
