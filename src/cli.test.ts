@@ -12,48 +12,18 @@ const PKG = JSON.parse(readFileSync(resolve(__dirname, '..', 'package.json'), 'u
 const LIVE = process.env.LIVE_API === '1';
 const liveIt = LIVE ? it : it.skip;
 
-// Relative imports use .js specifiers, which Node will not rewrite to .ts.
-// Parameter properties (RegistryError) need transform-types; strip-only throws.
-const TYPESCRIPT_RESOLVE_HOOK =
-  'data:text/javascript,' +
-  encodeURIComponent(`
-import { registerHooks } from "node:module";
-registerHooks({
-  resolve(specifier, context, nextResolve) {
-    if ((specifier.startsWith("./") || specifier.startsWith("../")) && specifier.endsWith(".js")) {
-      try {
-        return nextResolve(specifier.slice(0, -3) + ".ts", context);
-      } catch {
-        return nextResolve(specifier, context);
-      }
-    }
-    return nextResolve(specifier, context);
-  },
-});
-`);
-
 /**
- * Run the CLI from source with Node's own type runner. No shell, no npx, no tsx.
+ * Run the CLI with given args via tsx (source) subprocess.
+ * Uses tsx so tests work before `npm run build`.
  * Returns { stdout, stderr, code }.
  */
 async function run(args: string[]): Promise<{ stdout: string; stderr: string; code: number }> {
   try {
-    const { stdout, stderr } = await execFileAsync(
-      process.execPath,
-      [
-        '--experimental-strip-types',
-        '--experimental-transform-types',
-        '--import',
-        TYPESCRIPT_RESOLVE_HOOK,
-        CLI_SOURCE,
-        ...args,
-      ],
-      {
-        timeout: 30_000,
-        env: { ...process.env, NO_COLOR: '1' },
-        shell: false,
-      },
-    );
+    const { stdout, stderr } = await execFileAsync('npx', ['tsx', CLI_SOURCE, ...args], {
+      timeout: 30_000,
+      env: { ...process.env, NO_COLOR: '1' },
+      shell: true,
+    });
     return { stdout, stderr, code: 0 };
   } catch (e: any) {
     return {

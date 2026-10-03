@@ -46,17 +46,17 @@ afterEach(() => {
 describe('fetchWithRetry — network errors', () => {
   it('wraps DNS/network errors in RegistryError with statusCode 0', async () => {
     mockFetchError(new TypeError('fetch failed'));
-    expect.assertions(5);
-    const err = await fetchWithRetry('https://example.com', 'npm').then(
-      () => undefined,
-      (e: unknown) => e,
-    );
-    expect(err).toBeInstanceOf(RegistryError);
-    if (!(err instanceof RegistryError)) return;
-    expect(err.statusCode).toBe(0);
-    expect(err.registry).toBe('npm');
-    expect(err.message).toContain('Network error');
-    expect(err.message).toContain('fetch failed');
+    await expect(fetchWithRetry('https://example.com', 'npm')).rejects.toThrow(RegistryError);
+    try {
+      await fetchWithRetry('https://example.com', 'npm');
+    } catch (e) {
+      expect(e).toBeInstanceOf(RegistryError);
+      const re = e as RegistryError;
+      expect(re.statusCode).toBe(0);
+      expect(re.registry).toBe('npm');
+      expect(re.message).toContain('Network error');
+      expect(re.message).toContain('fetch failed');
+    }
   }, 30000);
 
   it('retries network errors before giving up', async () => {
@@ -69,16 +69,14 @@ describe('fetchWithRetry — network errors', () => {
   it('wraps AbortError (timeout) in RegistryError', async () => {
     const abort = new DOMException('signal timed out', 'AbortError');
     mockFetchError(abort);
-    expect.assertions(4);
-    const err = await fetchWithRetry('https://example.com', 'pypi').then(
-      () => undefined,
-      (e: unknown) => e,
-    );
-    expect(err).toBeInstanceOf(RegistryError);
-    if (!(err instanceof RegistryError)) return;
-    expect(err.statusCode).toBe(0);
-    expect(err.registry).toBe('pypi');
-    expect(err.message).toContain('Network error');
+    try {
+      await fetchWithRetry('https://example.com', 'pypi');
+    } catch (e) {
+      expect(e).toBeInstanceOf(RegistryError);
+      const re = e as RegistryError;
+      expect(re.statusCode).toBe(0);
+      expect(re.message).toContain('Network error');
+    }
   }, 30000);
 });
 
@@ -113,15 +111,13 @@ describe('fetchDirect', () => {
 
   it('wraps network errors in RegistryError', async () => {
     mockFetchError(new TypeError('network error'));
-    expect.assertions(3);
-    const err = await fetchDirect('https://example.com', 'docker').then(
-      () => undefined,
-      (e: unknown) => e,
-    );
-    expect(err).toBeInstanceOf(RegistryError);
-    if (!(err instanceof RegistryError)) return;
-    expect(err.statusCode).toBe(0);
-    expect(err.registry).toBe('docker');
+    await expect(fetchDirect('https://example.com', 'docker')).rejects.toThrow(RegistryError);
+    try {
+      await fetchDirect('https://example.com', 'docker');
+    } catch (e) {
+      expect(e).toBeInstanceOf(RegistryError);
+      expect((e as RegistryError).statusCode).toBe(0);
+    }
   }, 30000);
 
   it('does not throttle (no acquireSlot)', async () => {
