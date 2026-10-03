@@ -24,8 +24,6 @@ jobs:
     env:
       CONFIGURATION: Release
       APP_PROJECT: desktop/RegistryPulse.Desktop/RegistryPulse.Desktop.csproj
-      CERT_PATH: ${{ github.workspace }}\desktop\RegistryPulse.Desktop\ci-signing.pfx
-      CERT_PASSWORD: ${{ secrets.MSIX_CERT_PASSWORD }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -37,13 +35,17 @@ jobs:
       - uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2 # v5.3.0
         with:
           dotnet-version: '10.0.x'
-          dotnet-quality: 'preview'
 
       - name: Install MAUI workload
         run: dotnet workload install maui-windows
 
       - name: Run desktop tests
         run: dotnet test desktop/RegistryPulse.Tests/RegistryPulse.Tests.csproj -c Release
+
+      - name: Install and build library
+        run: |
+          npm ci
+          npm run build
 
       - name: Build web assets
         run: |
@@ -80,6 +82,9 @@ jobs:
 
       - name: Sign MSIX with signtool
         shell: pwsh
+        env:
+          CERT_PATH: ${{ github.workspace }}\desktop\RegistryPulse.Desktop\ci-signing.pfx
+          CERT_PASSWORD: ${{ secrets.MSIX_CERT_PASSWORD }}
         run: |
           $msix = Get-ChildItem -Path "${{ github.workspace }}" -Recurse -Filter *.msix | Select-Object -First 1
           if (-not $msix) { throw "No .msix found" }
