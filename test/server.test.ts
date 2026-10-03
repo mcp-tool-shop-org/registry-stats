@@ -24,6 +24,13 @@ vi.mock('../src/index.js', async (importOriginal) => {
 
   mockStats.all = async (pkg: string) => {
     if (pkg === 'timeout-pkg') return new Promise(() => {});
+    if (pkg === 'partial-failure') {
+      const out: any[] = [
+        { registry: 'npm', package: pkg, downloads: { lastMonth: 3000 }, fetchedAt: new Date().toISOString() },
+      ];
+      out.errors = [{ registry: 'pypi', statusCode: 503, message: 'unavailable' }];
+      return out;
+    }
     return [
       { registry: 'npm', package: pkg, downloads: { lastMonth: 3000 }, fetchedAt: new Date().toISOString() },
       { registry: 'pypi', package: pkg, downloads: { lastMonth: 1500 }, fetchedAt: new Date().toISOString() },
@@ -141,6 +148,21 @@ describe('GET /stats/:package (all registries)', () => {
     expect(body.length).toBeGreaterThanOrEqual(1);
     expect(body[0].registry).toBeDefined();
     expect(body[0].downloads).toBeDefined();
+  });
+
+  it('returns a JSON array and reports provider failures in X-Registry-Errors', async () => {
+    const res = await fetch(`http://localhost:${testServer.port}/stats/partial-failure`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(Array.isArray(body)).toBe(true);
+    expect(body).toEqual([
+      expect.objectContaining({ registry: 'npm', package: 'partial-failure' }),
+    ]);
+    const raw = res.headers.get('x-registry-errors');
+    expect(raw).toBeTruthy();
+    expect(JSON.parse(raw!)).toEqual([
+      { registry: 'pypi', statusCode: 503, message: 'unavailable' },
+    ]);
   });
 });
 
@@ -320,12 +342,26 @@ describe('CORS origin configuration', () => {
 // --- F-004: Content-Disposition sanitization ---
 describe('Content-Disposition sanitization', () => {
   it('sanitizes special characters in CSV filename', async () => {
-    // Package name with injection attempt
-    const res = await fetch(`http://localhost:${testServer.port}/range/npm/%22%3B%20injected/express?start=2025-01-01&end=2025-01-07&format=csv`);
+    // Path segments are not decoded before the filename is built, so a payload
+    // there never reaches sanitizeFilename. start/end are decoded by parseUrl.
+    const payload = '"\r\nX-Evil: yes"; injected';
+    const start = encodeURIComponent(payload);
+    const res = await fetch(
+      `http://localhost:${testServer.port}/range/npm/express?start=${start}&end=2025-01-07&format=csv`,
+    );
     expect(res.status).toBe(200);
     const disposition = res.headers.get('content-disposition');
-    // Should not contain raw quotes or semicolons
-    expect(disposition).not.toContain('"; injected');
+    // Quote, CR, LF, colon, semicolon, and spaces become underscores.
+    expect(disposition).toBe(
+      'attachment; filename="express-___X-Evil__yes___injected-2025-01-07.csv"',
+    );
+    expect(disposition).not.toMatch(/[\r\n]/);
+    const filename = disposition!.match(/^attachment; filename="([^"]*)"$/);
+    expect(filename).not.toBeNull();
+    expect(filename![1]).not.toMatch(/["\r\n;]/);
+    expect(filename![1]).toContain('X-Evil');
+    expect(filename![1]).toContain('injected');
+    await res.text();
   });
 });
 
@@ -399,6 +435,43 @@ describe('X-Forwarded-For trust (trustProxy)', () => {
       });
       // Distinct trusted client IPs → distinct buckets → still allowed.
       expect(res2.status).toBe(200);
+    } finally {
+      srv.server.close();
+    }
+  });
+
+  it('keys the limiter on the rightmost trimmed X-Forwarded-For hop', async () => {
+    // "spoofed, 203.0.113.5" must key on 203.0.113.5, not the attacker-controlled left hop.
+    const srv = await startTestServer({ rateLimitMax: 1, rateLimitWindowSeconds: 60, trustProxy: true });
+    try {
+      const res1 = await fetch(`http://localhost:${srv.port}/`, {
+        headers: { 'X-Forwarded-For': 'spoofed, 203.0.113.5' },
+      });
+      expect(res1.status).toBe(200);
+      // Same trusted hop, no space after the comma — fails if the hop is not trimmed.
+      const res2 = await fetch(`http://localhost:${srv.port}/`, {
+        headers: { 'X-Forwarded-For': 'also-spoofed,203.0.113.5' },
+      });
+      expect(res2.status).toBe(429);
+      // Leftmost value repeats "spoofed"; a new rightmost hop is a new client.
+      const res3 = await fetch(`http://localhost:${srv.port}/`, {
+        headers: { 'X-Forwarded-For': 'spoofed, 198.51.100.8' },
+      });
+      expect(res3.status).toBe(200);
+    } finally {
+      srv.server.close();
+    }
+  });
+
+  it('falls back to the socket when the trusted X-Forwarded-For header is blank', async () => {
+    const srv = await startTestServer({ rateLimitMax: 1, rateLimitWindowSeconds: 60, trustProxy: true });
+    try {
+      const res1 = await fetch(`http://localhost:${srv.port}/`);
+      expect(res1.status).toBe(200);
+      const res2 = await fetch(`http://localhost:${srv.port}/`, {
+        headers: { 'X-Forwarded-For': '   ,  ' },
+      });
+      expect(res2.status).toBe(429);
     } finally {
       srv.server.close();
     }

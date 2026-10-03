@@ -94,14 +94,23 @@ describe('fetchWithRetry', () => {
   });
 
   it('includes retryAfter in error when present', async () => {
-    mockFetch([{ status: 429, headers: { 'retry-after': '0' } }]);
-    try {
-      await fetchWithRetry('https://example.com', 'docker');
-    } catch (e: any) {
-      expect(e.retryAfter).toBe(0);
-      expect(e.statusCode).toBe(429);
-      expect(e.registry).toBe('docker');
-    }
+    // Four 429s exhaust the retry budget. A trailing 200 must not be reached:
+    // repeating the 429 forever would hide a success-on-an-extra-retry bug,
+    // and a 429 that returns null (like 404) must fail expect.assertions.
+    const mock = mockFetch([
+      { status: 429, headers: { 'retry-after': '0' } },
+      { status: 429, headers: { 'retry-after': '0' } },
+      { status: 429, headers: { 'retry-after': '0' } },
+      { status: 429, headers: { 'retry-after': '0' } },
+      { status: 200, body: { leaked: true } },
+    ]);
+    expect.assertions(2);
+    await expect(fetchWithRetry('https://example.com', 'docker')).rejects.toMatchObject({
+      retryAfter: 0,
+      statusCode: 429,
+      registry: 'docker',
+    });
+    expect(mock).toHaveBeenCalledTimes(4);
   }, 30000);
 
   it('passes RequestInit through to fetch', async () => {
