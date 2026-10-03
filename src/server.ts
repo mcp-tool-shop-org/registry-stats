@@ -182,8 +182,8 @@ type HandlerOptions = Omit<StatsOptions, 'cache'> &
 export function createHandler(opts?: HandlerOptions): Handler {
   const { cache: cacheOption, ...rest } = opts ?? {};
   const options: StatsOptions = { ...rest };
-  // false is an explicit disable. A missing cache still gets the default.
-  if (cacheOption && cacheOption !== true) {
+  // A StatsCache is used as-is. false disables. Omitted installs the default.
+  if (cacheOption) {
     options.cache = cacheOption;
   } else if (cacheOption !== false) {
     options.cache = createCache();
