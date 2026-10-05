@@ -1534,7 +1534,7 @@ const chatContext = !missing && data ? JSON.stringify({
             <div class="text-sm text-body leading-relaxed">
               <p class="mb-3">The pipeline runs each time you build the site (or on a schedule in CI):</p>
               <div class="flex flex-wrap items-center gap-2 text-xs font-mono">
-                <span class="rounded-md bg-surface-strong px-2 py-1 border border-edge">portfolio.txt</span>
+                <span class="rounded-md bg-surface-strong px-2 py-1 border border-edge">packages.json</span>
                 <span class="text-dim">&rarr;</span>
                 <span class="rounded-md bg-surface-strong px-2 py-1 border border-edge">fetch providers</span>
                 <span class="text-dim">&rarr;</span>
@@ -1546,7 +1546,7 @@ const chatContext = !missing && data ? JSON.stringify({
                 <span class="text-dim">&rarr;</span>
                 <span class="rounded-md bg-surface-strong px-2 py-1 border border-edge">static HTML</span>
               </div>
-              <p class="mt-3">The engine queries five registries in parallel: <strong>npm</strong> (weekly + 30-day range), <strong>PyPI</strong> (weekly), <strong>VS Code Marketplace</strong> (installs), <strong>NuGet</strong> (total), and <strong>Docker Hub</strong> (pulls). Each provider has retries with exponential back-off.</p>
+              <p class="mt-3">The engine queries six registries in parallel: <strong>npm</strong> (weekly + 30-day range), <strong>PyPI</strong> (weekly), <strong>VS Code Marketplace</strong> (installs), <strong>NuGet</strong> (total), <strong>Docker Hub</strong> (pulls), and <strong>GitHub Releases</strong> (owner/repo, cumulative asset downloads). Each provider has retries with exponential back-off. The tracked list is <code class="text-xs bg-surface-strong px-1 py-0.5 rounded">site/src/data/packages.json</code>.</p>
             </div>
           </div>
 
@@ -3079,7 +3079,10 @@ const chatContext = !missing && data ? JSON.stringify({
       if (!window.__rpCurrentData) window.__rpCurrentData = data;
       var existing = document.getElementById('updated-at');
       var buildTime = existing ? existing.getAttribute('data-fetched') : null;
-      if (buildTime && data.fetchedAt === buildTime) return;
+      if (buildTime && data.fetchedAt === buildTime) {
+        if (existing) existing.textContent = 'Updated ' + relTime(data.fetchedAt) + '.';
+        return;
+      }
       renderDashboard(data);
     }).catch(function () {
       // Runtime fetch failed — build-time data is still displayed. Silent fallback.

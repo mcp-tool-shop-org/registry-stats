@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - The desktop leaderboard and CSV export show the all-time `total`. Week and month stay npm and PyPI only.
 - The site leaderboard's first paint counts GitHub with the other all-time registries.
 - The security writeup says a `githubToken` you add to `registry-stats.config.json` stays in that file. The handbook says `serve()` binds loopback and `listen(port)` with no host binds every interface.
+- Setup coverage counts six registries. The README scorecard matches SCORECARD (46/50). The weekly Pages rebuild is Monday 07:00 UTC. Live refresh is a same-origin `stats.json` fetch.
+- A PyPI all-time total of 0 stays 0. Desktop GitHub refresh walks release pages. An npm series of 30 days gets a trend. Two refreshes cannot share one temp file. The baked "Updated 3h ago" label follows the real timestamp.
 
 ### Changed
 - Dashboard (`site/`, not published): each fetch phase has a 6-minute budget and the whole fetch 30 minutes. A rate-limited registry falls back to its previous stats, marked stale, instead of holding the deploy for an hour.

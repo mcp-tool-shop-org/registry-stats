@@ -102,6 +102,9 @@ public class StatsServiceTests
             var names = doc.RootElement.GetProperty("leaderboard").EnumerateArray().Select(row => row.GetProperty("name").GetString()).ToArray();
             Assert.Contains("left-pad", names);
             Assert.Contains("left-pad", doc.RootElement.GetProperty("narrative").GetString());
+            var trend = doc.RootElement.GetProperty("leaderboard").EnumerateArray().Single().GetProperty("trendPct");
+            Assert.Equal(JsonValueKind.Number, trend.ValueKind);
+            Assert.Equal(0, trend.GetDouble());
         }
         finally
         {
@@ -130,6 +133,48 @@ public class StatsServiceTests
             Assert.False(await service.RefreshAsync());
             Assert.Equal("No package stats were returned.", service.LastError);
             Assert.Equal("""{"kept":true}""", await File.ReadAllTextAsync(service.CachePath));
+        }
+        finally
+        {
+            DeleteTemp(root);
+        }
+    }
+
+    [Fact]
+    public async Task RefreshAsync_SumsGithubReleasesPastTheFirstPage()
+    {
+        var root = TempRoot();
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(root, "RegistryPulse", "config"));
+            await File.WriteAllTextAsync(
+                Path.Combine(root, "RegistryPulse", "config", "packages.json"),
+                """{"github":["mcp-tool-shop-org/registry-stats"]}""");
+
+            var service = new StatsService(root, new StubHandler
+            {
+                Respond = request =>
+                {
+                    var page2 = request.RequestUri!.Query.Contains("page=2", StringComparison.Ordinal);
+                    if (page2)
+                    {
+                        return Json(HttpStatusCode.OK, new[]
+                        {
+                            new { assets = new[] { new { download_count = 7 } } },
+                        });
+                    }
+
+                    return Json(HttpStatusCode.OK, Enumerable.Range(0, 100).Select(_ => new
+                    {
+                        assets = new[] { new { download_count = 1 } },
+                    }));
+                },
+            });
+
+            Assert.True(await service.RefreshAsync());
+            using var doc = JsonDocument.Parse(File.ReadAllBytes(service.CachePath));
+            var total = doc.RootElement.GetProperty("leaderboard").EnumerateArray().Single().GetProperty("total").GetInt64();
+            Assert.Equal(107, total);
         }
         finally
         {

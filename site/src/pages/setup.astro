@@ -172,7 +172,7 @@ const notice = Astro.url.searchParams.get('notice');
             </div>
             <div>
               <div class="text-dim/30 uppercase tracking-widest text-[9px] mb-0.5">Coverage</div>
-              <div class="text-heading font-mono" id="adv-coverage">0 / 5</div>
+              <div class="text-heading font-mono" id="adv-coverage">0 / 6</div>
             </div>
           </div>
           <div id="adv-paths" class="hidden mt-2.5 grid gap-3 sm:grid-cols-2 text-[11px]">
@@ -464,7 +464,7 @@ const notice = Astro.url.searchParams.get('notice');
     const totalPkgs = registries.reduce((n, r) => n + (Array.isArray(parsed[r]) ? parsed[r].length : 0), 0);
     const activeRegs = registries.filter(r => parsed[r]?.length).length;
 
-    advCoverage.textContent = activeRegs + ' / 5';
+    advCoverage.textContent = activeRegs + ' / ' + registries.length;
     editorStatus.textContent = totalPkgs + ' packages, ' + activeRegs + ' registries';
     setDot(cfgDot, cfgState, 'complete', 'Yes');
 

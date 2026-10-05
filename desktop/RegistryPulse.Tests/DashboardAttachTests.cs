@@ -47,7 +47,9 @@ public class BundledDashboardTests
         var html = File.ReadAllText(FindBundledDashboard());
         Assert.Contains(">Total</th>", html);
         Assert.Contains("fmt.format(Number(row.total || 0))", html);
-        Assert.Contains("Week and Month are npm and PyPI. Total is the all-time count.", html);
+        Assert.Contains("Total is all-time for NuGet, VS Code, Docker Hub, and GitHub.", html);
+        Assert.DoesNotContain("Updated 3h ago", html);
+        Assert.Contains("existing.textContent = 'Updated ' + relTime(data.fetchedAt)", html);
         Assert.Contains("Monthly downloads, npm and PyPI", html);
 
         DirectoryInfo? dir = new FileInfo(FindBundledDashboard()).Directory;

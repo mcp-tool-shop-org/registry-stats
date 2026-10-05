@@ -3,6 +3,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Linq;
+using System.Threading;
 
 namespace RegistryPulse.Desktop.Services;
 
@@ -15,6 +16,7 @@ public sealed class StatsService
 {
     private readonly string _cacheDir;
     private readonly HttpClient _http;
+    private readonly SemaphoreSlim _refreshGate = new(1, 1);
 
     private const string SourceUrl =
         "https://mcp-tool-shop-org.github.io/registry-stats/data/stats.json";
@@ -53,28 +55,36 @@ public sealed class StatsService
     /// </summary>
     public async Task<bool> RefreshAsync()
     {
-        LastError = null;
+        await _refreshGate.WaitAsync();
         try
         {
-            if (File.Exists(PackagesPath))
+            LastError = null;
+            try
             {
-                var portfolio = LoadPortfolio(await File.ReadAllTextAsync(PackagesPath));
-                if (portfolio.Error is not null)
+                if (File.Exists(PackagesPath))
                 {
-                    LastError = portfolio.Error;
-                    return false;
+                    var portfolio = LoadPortfolio(await File.ReadAllTextAsync(PackagesPath));
+                    if (portfolio.Error is not null)
+                    {
+                        LastError = portfolio.Error;
+                        return false;
+                    }
+                    if (portfolio.Packages.Count > 0)
+                        return await RefreshPortfolioResolvedAsync(portfolio.Packages);
                 }
-                if (portfolio.Packages.Count > 0)
-                    return await RefreshPortfolioResolvedAsync(portfolio.Packages);
-            }
 
-            return await RefreshPublishedAsync();
+                return await RefreshPublishedAsync();
+            }
+            catch (Exception ex)
+            {
+                LastError = ex.Message;
+                Debug.WriteLine($"[StatsService] RefreshAsync error: {ex.Message}");
+                return false;
+            }
         }
-        catch (Exception ex)
+        finally
         {
-            LastError = ex.Message;
-            Debug.WriteLine($"[StatsService] RefreshAsync error: {ex.Message}");
-            return false;
+            _refreshGate.Release();
         }
     }
 
@@ -280,18 +290,29 @@ public sealed class StatsService
         if (parts.Length != 2 || parts.Any(part => part is "" or "." or ".."))
             throw new InvalidOperationException($"Invalid repository \"{name}\". Expected owner/repo.");
 
-        var url = $"https://api.github.com/repos/{Uri.EscapeDataString(parts[0])}/{Uri.EscapeDataString(parts[1])}/releases?per_page=100";
-        using var doc = await GetJson(url, accept: "application/vnd.github+json");
-        if (doc is null || doc.RootElement.ValueKind != JsonValueKind.Array) return null;
-
+        const int pageSize = 100;
+        const int maxPages = 10;
         long total = 0;
-        foreach (var release in doc.RootElement.EnumerateArray())
+        for (var page = 1; page <= maxPages; page++)
         {
-            if (!release.TryGetProperty("assets", out var assets)) continue;
-            foreach (var asset in assets.EnumerateArray())
-                total += ReadLong(asset, "download_count");
+            var url = $"https://api.github.com/repos/{Uri.EscapeDataString(parts[0])}/{Uri.EscapeDataString(parts[1])}/releases?per_page={pageSize}&page={page}";
+            using var doc = await GetJson(url, accept: "application/vnd.github+json");
+            if (doc is null || doc.RootElement.ValueKind != JsonValueKind.Array)
+                return page == 1 ? null : new LeaderboardRow(name, "github", 0, 0, total, null);
+
+            var count = 0;
+            foreach (var release in doc.RootElement.EnumerateArray())
+            {
+                count++;
+                if (!release.TryGetProperty("assets", out var assets)) continue;
+                foreach (var asset in assets.EnumerateArray())
+                    total += ReadLong(asset, "download_count");
+            }
+            if (count < pageSize)
+                return new LeaderboardRow(name, "github", 0, 0, total, null);
         }
-        return new LeaderboardRow(name, "github", 0, 0, total, null);
+
+        throw new InvalidOperationException($"stopped after {maxPages} release pages");
     }
 
     private async Task<JsonDocument?> GetJson(string url, HttpMethod? method = null, string? body = null, string? accept = null)
@@ -367,9 +388,16 @@ public sealed class StatsService
     {
         var dir = Path.GetDirectoryName(path)!;
         Directory.CreateDirectory(dir);
-        var tmp = path + ".tmp";
-        await File.WriteAllBytesAsync(tmp, bytes);
-        File.Move(tmp, path, overwrite: true);
+        var tmp = path + "." + Guid.NewGuid().ToString("n") + ".tmp";
+        try
+        {
+            await File.WriteAllBytesAsync(tmp, bytes);
+            File.Move(tmp, path, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(tmp)) File.Delete(tmp);
+        }
     }
 
     private static (List<PortfolioPackage> Packages, string? Error) LoadPortfolio(string text)
@@ -522,7 +550,7 @@ public sealed class StatsService
                 month = row.Month,
                 total = row.Total,
                 range30 = row.Range30,
-                trendPct = (double?)null,
+                trendPct = TrendPct(row.Range30),
             }),
             sparkline30 = haveSpark ? spark : Array.Empty<long>(),
             errors,
@@ -534,6 +562,20 @@ public sealed class StatsService
                 packages = Array.Empty<object>(),
             },
         };
+    }
+
+    private static double? TrendPct(int[]? range30)
+    {
+        if (range30 is not { Length: 30 }) return null;
+        long previous = 0;
+        long current = 0;
+        for (var i = 0; i < 7; i++)
+        {
+            previous += range30[16 + i];
+            current += range30[23 + i];
+        }
+        if (previous == 0) return null;
+        return Math.Round((current - previous) * 100.0 / previous, 1);
     }
 
     private static long ReadLong(JsonElement element, string name)

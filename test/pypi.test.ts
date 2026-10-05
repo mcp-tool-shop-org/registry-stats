@@ -59,6 +59,32 @@ describe('pypi provider (mocked)', () => {
     expect(result!.fetchedAt).toBeTruthy();
   });
 
+  it('keeps a real zero all-time total', async () => {
+    mockFetch(async (url: string) => {
+      if (url.includes('/overall')) {
+        return {
+          status: 200,
+          body: {
+            data: [{ category: 'without_mirrors', date: '2025-01-01', downloads: 0 }],
+            package: 'empty-pkg',
+            type: 'overall_downloads',
+          },
+        };
+      }
+      return {
+        status: 200,
+        body: {
+          data: { last_day: 0, last_week: 0, last_month: 0 },
+          package: 'empty-pkg',
+          type: 'recent_downloads',
+        },
+      };
+    });
+
+    const result = await pypi.getStats('empty-pkg');
+    expect(result!.downloads.total).toBe(0);
+  });
+
   it('getStats returns null when both endpoints return 404', async () => {
     mockFetch(async () => ({ status: 404 }));
     const result = await pypi.getStats('nonexistent-pkg');

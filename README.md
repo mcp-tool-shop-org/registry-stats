@@ -58,9 +58,9 @@ A self-updating stats dashboard lives at [`/dashboard/`](https://mcp-tool-shop-o
 - **Package health scores** — 0–100 composite score (activity + consistency + growth + stability) with letter grades per package
 - **Yearly progress tracking** — persistent history layer accumulates monthly per-package and weekly portfolio aggregates; portfolio trend chart with per-registry stacking
 - **Pulse panel** — split view of Established Movers (≥ 50 downloads/wk) and Emerging & New packages, with inline 7-day sparklines, absolute + percentage deltas, baseline context, and a one-line executive summary
-- **Live refresh** — on-demand client-side fetch from npm and PyPI APIs with progress indicator; results cached in sessionStorage (5 min TTL) so tab switches are instant
+- **Live refresh** — the page re-fetches same-origin `data/stats.json` when that file is newer than the build. It does not call the npm or PyPI APIs from the browser. `sessionStorage` holds the optional GitHub PAT, not a stats cache.
 - **Export reports** — dropdown next to the Refresh button offering three formats: **Exec PDF** (via jsPDF), **LLM JSONL** (typed records for AI ingestion), and **Dev Markdown** (GFM tables)
-- **Leaderboard** — 132 packages ranked by weekly downloads with inline 30-day sparklines and smart trend badges
+- **Leaderboard** — 268 tracked ids in `packages.json` (168 npm, 43 PyPI, 6 VS Code, 27 NuGet, 24 GitHub), ranked by downloads with inline 30-day sparklines and smart trend badges
 - **Setup page** — portfolio editor with validation, registry-sync companion section, and pipeline overview
 - **Leaderboard search** — instant text filter for finding packages by name or registry
 - **Keyboard navigation** — arrow keys to cycle between tabs
@@ -68,7 +68,7 @@ A self-updating stats dashboard lives at [`/dashboard/`](https://mcp-tool-shop-o
 - **Dark / light theme** — follows system preference
 - **Mobile responsive** — hamburger menu for small screens
 
-Data is refreshed daily by CI (06:00 UTC) and the full site is rebuilt weekly (Mondays 06:00 UTC). Live refresh pulls the latest numbers directly from registry APIs on demand. Configure tracked packages in `site/src/data/packages.json`.
+Data is refreshed daily by CI (06:00 UTC) and the full site is rebuilt weekly (Mondays 07:00 UTC). The dashboard re-fetches same-origin `data/stats.json`. Configure tracked packages in `site/src/data/packages.json`.
 
 ## AI Inference Engine
 
@@ -124,7 +124,7 @@ const result = inferPortfolio(leaderboard, { gini: 0.6, npmPct: 85 });
 A native Windows app that wraps the dashboard in a local WebView2 shell:
 
 - **Offline-capable** — ships bundled HTML/CSS/JS; works without internet
-- **Live refresh** — fetches `stats.json` from GitHub Pages on demand
+- **Live refresh** — with no saved portfolio, downloads the GitHub Pages `stats.json`. With a saved portfolio, sends each name to the registry that holds it and does not upload the portfolio file.
 - **CSV export** — export leaderboard data with one click
 - **MSIX packaged** — built and signed in CI via `desktop-ci.yml`
 
@@ -310,10 +310,12 @@ import { createHandler, serve } from '@mcptoolshop/registry-stats';
 // Option 1: Quick start
 serve({ port: 3000 });
 
-// Option 2: Bring your own server
+// Option 2: Bring your own server.
+// listen(port) with no host binds every interface. This sample stays on loopback.
+// createHandler defaults Access-Control-Allow-Origin to *. Pass corsOrigin to narrow it.
 import { createServer } from 'node:http';
 const handler = createHandler();
-createServer(handler).listen(3000);
+createServer(handler).listen(3000, '127.0.0.1');
 ```
 
 ## Custom Registries
@@ -380,11 +382,11 @@ See [SECURITY.md](SECURITY.md) for vulnerability reporting.
 | Category | Score |
 |----------|-------|
 | A. Security | 10 |
-| B. Error Handling | 10 |
+| B. Error Handling | 8 |
 | C. Operator Docs | 10 |
-| D. Shipping Hygiene | 10 |
+| D. Shipping Hygiene | 8 |
 | E. Identity (soft) | 10 |
-| **Overall** | **50/50** |
+| **Overall** | **46/50** |
 
 > Full audit: [SHIP_GATE.md](SHIP_GATE.md) · [SCORECARD.md](SCORECARD.md)
 

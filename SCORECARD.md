@@ -14,7 +14,7 @@
 | C. Operator Docs | 10/10 | Comprehensive README; 8-page Starlight handbook; CHANGELOG; --help accurate |
 | D. Shipping Hygiene | 8/10 | `npm test` and `npm run build`. No single `verify` script. Version matches the 3.4.0 tag. CI dependency scanning. MSIX desktop builds. |
 | E. Identity (soft) | 10/10 | Logo, translations (7 languages + English source), landing page, handbook, GitHub topics |
-| **Overall** | **50/50** | |
+| **Overall** | **46/50** | The rows above sum to 46. B and D are 8 because the CLI exits only 0 or 1 and there is no single verify script. | |
 
 ## History
 

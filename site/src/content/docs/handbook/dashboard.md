@@ -16,7 +16,7 @@ The dashboard is a self-updating stats application deployed to GitHub Pages.
 - **Actionable advice** — severity-tagged cards (critical/warning/info/success) with urgency levels, specific action steps, and affected package lists
 - **Package health scores** — 0-100 composite score (activity + consistency + growth + stability) with letter grades per package
 - **Yearly progress tracking** — persistent history layer accumulates monthly per-package and weekly portfolio aggregates; portfolio trend chart with per-registry stacking
-- **Live refresh** — on-demand fetch from npm and PyPI APIs with session caching
+- **Live refresh** — the page re-fetches same-origin `data/stats.json`. It does not call the npm or PyPI APIs from the browser.
 - **Export reports** — PDF (jsPDF), JSONL (for AI ingestion), and Markdown (GFM tables)
 - **Leaderboard** — packages ranked by weekly downloads with 30-day sparklines and smart trend badges
 - **Dark/light theme** — follows system preference
@@ -65,7 +65,7 @@ All Chart.js charts support:
 
 ## Data pipeline
 
-Two CI schedules keep the dashboard current: a daily data refresh (`daily-refresh.yml` at 06:00 UTC) and a full site rebuild and deploy (`pages.yml` on Mondays at 06:00 UTC). The live refresh feature also pulls the latest numbers directly from registry APIs on demand. Configure tracked packages in `site/src/data/packages.json`.
+Two CI schedules keep the dashboard current: a daily data refresh (`daily-refresh.yml` at 06:00 UTC) and a full site rebuild and deploy (`pages.yml` on Mondays at 07:00 UTC). The page re-fetches same-origin `data/stats.json`. Configure tracked packages in `site/src/data/packages.json`.
 
 Historical data accumulates in `site/src/data/history.json`, tracking monthly per-package aggregates and weekly portfolio totals (up to 2 years).
 

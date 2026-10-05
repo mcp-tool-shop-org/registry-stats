@@ -45,7 +45,7 @@ export const pypi: RegistryProvider = {
       registry: 'pypi',
       package: pkg,
       downloads: {
-        total: total || undefined,
+        total: total ?? undefined,
         lastDay: recent?.data.last_day,
         lastWeek: recent?.data.last_week,
         lastMonth: recent?.data.last_month,
