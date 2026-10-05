@@ -255,7 +255,9 @@ public sealed class StatsService
         if (extensions.GetArrayLength() == 0) return null;
         var ext = extensions[0];
         var publisher = ext.GetProperty("publisher").GetProperty("publisherName").GetString() ?? "";
-        var extensionName = ext.GetProperty("extensionName").GetString() ?? name;
+        var extensionName = ext.GetProperty("extensionName").GetString() ?? "";
+        var id = publisher + "." + extensionName;
+        if (!string.Equals(id, name, StringComparison.OrdinalIgnoreCase)) return null;
         long installs = 0;
         if (ext.TryGetProperty("statistics", out var stats))
         {
@@ -265,7 +267,7 @@ public sealed class StatsService
                     installs = ReadLong(stat, "value");
             }
         }
-        return new LeaderboardRow($"{publisher}.{extensionName}", "vscode", 0, 0, installs, null);
+        return new LeaderboardRow(id, "vscode", 0, 0, installs, null);
     }
 
     private async Task<LeaderboardRow?> FetchDocker(string name)

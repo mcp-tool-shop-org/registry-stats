@@ -102,6 +102,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run fetch-stats
 
+      # fetch-stats exits 0 on degraded so daily-refresh can warn. Pages must not
+      # publish that snapshot. Failing here skips both artifact uploads.
+      - name: Refuse a zero-week snapshot
+        if: github.event_name != 'pull_request'
+        working-directory: site
+        run: node --input-type=module -e "import { readFileSync } from 'node:fs'; const q = JSON.parse(readFileSync('src/data/stats.json','utf8')).dataQuality; if (q === 'degraded' || q === 'unusable') { console.error('stats.json dataQuality is ' + q); process.exit(1); }"
+
       - name: Upload fresh data for the commit-back job
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

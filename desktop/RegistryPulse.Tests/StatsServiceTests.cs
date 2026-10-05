@@ -183,6 +183,52 @@ public class StatsServiceTests
     }
 
     [Fact]
+    public async Task RefreshAsync_KeepsAVscodeExtensionOnlyWhenTheIdMatches()
+    {
+        var root = TempRoot();
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(root, "RegistryPulse", "config"));
+            await File.WriteAllTextAsync(
+                Path.Combine(root, "RegistryPulse", "config", "packages.json"),
+                """{"vscode":["ms-dotnettools.csharp","other.not-csharp"]}""");
+
+            var service = new StatsService(root, new StubHandler
+            {
+                Respond = _ => Json(HttpStatusCode.OK, new
+                {
+                    results = new[]
+                    {
+                        new
+                        {
+                            extensions = new[]
+                            {
+                                new
+                                {
+                                    publisher = new { publisherName = "ms-dotnettools" },
+                                    extensionName = "csharp",
+                                    statistics = new[] { new { statisticName = "install", value = 999 } },
+                                },
+                            },
+                        },
+                    },
+                }),
+            });
+
+            Assert.True(await service.RefreshAsync());
+            using var doc = JsonDocument.Parse(File.ReadAllBytes(service.CachePath));
+            var row = doc.RootElement.GetProperty("leaderboard").EnumerateArray().Single();
+            Assert.Equal("ms-dotnettools.csharp", row.GetProperty("name").GetString());
+            Assert.Equal(999, row.GetProperty("total").GetInt64());
+            Assert.Equal(0, doc.RootElement.GetProperty("totals").GetProperty("month").GetInt64());
+        }
+        finally
+        {
+            DeleteTemp(root);
+        }
+    }
+
+    [Fact]
     public async Task RefreshAsync_KeepsAllTimeTotalsOutOfTheMonthFigure()
     {
         var root = TempRoot();

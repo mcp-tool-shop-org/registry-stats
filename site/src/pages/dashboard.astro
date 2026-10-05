@@ -3081,6 +3081,12 @@ const chatContext = !missing && data ? JSON.stringify({
       var buildTime = existing ? existing.getAttribute('data-fetched') : null;
       if (buildTime && data.fetchedAt === buildTime) {
         if (existing) existing.textContent = 'Updated ' + relTime(data.fetchedAt) + '.';
+        var freshness = document.getElementById('health-freshness');
+        if (freshness && data.confidence) {
+          var ok = Object.values(data.confidence).filter(function (c) { return c === 'ok'; }).length;
+          var total = Object.keys(data.confidence).length;
+          freshness.textContent = 'Freshness: updated ' + relTime(data.fetchedAt) + ' \u2022 ' + ok + '/' + total + ' registries OK';
+        }
         return;
       }
       renderDashboard(data);

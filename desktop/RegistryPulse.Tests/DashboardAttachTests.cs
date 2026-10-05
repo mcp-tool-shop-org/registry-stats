@@ -49,7 +49,11 @@ public class BundledDashboardTests
         Assert.Contains("fmt.format(Number(row.total || 0))", html);
         Assert.Contains("Total is all-time for NuGet, VS Code, Docker Hub, and GitHub.", html);
         Assert.DoesNotContain("Updated 3h ago", html);
+        Assert.DoesNotContain("3h ago", html);
         Assert.Contains("existing.textContent = 'Updated ' + relTime(data.fetchedAt)", html);
+        Assert.Contains("freshness.textContent = 'Freshness: updated ' + relTime(data.fetchedAt)", html);
+        Assert.Contains("The assistant sends the injected snapshot through the local Ollama daemon, which can proxy a cloud model.", html);
+        Assert.DoesNotContain("no cloud storage", html);
         Assert.Contains("Monthly downloads, npm and PyPI", html);
 
         DirectoryInfo? dir = new FileInfo(FindBundledDashboard()).Directory;
