@@ -17,6 +17,7 @@ export { loadConfig, defaultConfig, starterConfig } from './config.js';
 export { createHandler, serve } from './server.js';
 export type { ServerOptions } from './server.js';
 export { forecast, detectAnomalies, segmentTrends, detectSeasonality, computeMomentum, generateRecommendations, computeYearlyProgress, computeHealthScore, generateActionableAdvice, inferPortfolio } from './inference.js';
+export { dailyToRange30 } from './providers/npm.js';
 export type { ForecastPoint, Anomaly, TrendSegment, Recommendation, PackageInference, PortfolioInference, MonthlyAggregate, YearlyProgress, PackageHealthScore, ActionableAdvice } from './inference.js';
 
 // --- Package name validation ---

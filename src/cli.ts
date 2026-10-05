@@ -20,6 +20,7 @@ Usage: registry-stats [package] [options]
 
 Options:
   --registry, -r  Registry to query (npm, pypi, nuget, vscode, docker, github)
+                  Repeat -r, or pass a comma-separated list (-r npm,pypi)
                   Omit to query config registries. With no registries list,
                   GitHub is included only when the name is owner/repo
                   github: identifier is a repo slug, e.g. -r github owner/repo
@@ -51,7 +52,10 @@ Subcommands:
 Examples:
   registry-stats express
   registry-stats express -r npm
+  registry-stats express -r npm,pypi
+  registry-stats express -r npm -r pypi
   registry-stats express --compare
+  registry-stats express --compare -r npm,pypi
   registry-stats --mine mikefrilot
   registry-stats --mine mikefrilot --format json
   registry-stats express -r npm --range 2025-01-01:2025-06-30 --format csv
@@ -66,6 +70,18 @@ function formatNumber(n: number | undefined): string {
   if (n === undefined) return '-';
   return n.toLocaleString('en-US');
 }
+
+/** One extras-line field. Skips missing values. A real 0 is printed. */
+function extraField(label: string, value: unknown): string | undefined {
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return undefined;
+    return `${label}: ${formatNumber(value)}`;
+  }
+  if (typeof value === 'string' && value.trim() !== '') return `${label}: ${value}`;
+  return undefined;
+}
+
+const PAGE_CAP_NOTE = 'total stopped at the page cap and is not the full sum';
 
 /** Wider of the header and the cells, plus one space so the next column cannot touch. */
 function columnWidth(header: string, cells: readonly string[]): number {
@@ -106,8 +122,15 @@ function printStats(s: PackageStats) {
     if (s.extra.stars !== undefined) extras.push(`stars: ${formatNumber(s.extra.stars as number)}`);
     if (s.extra.rating !== undefined) extras.push(`rating: ${(s.extra.rating as number).toFixed(1)}`);
     if (s.extra.version !== undefined) extras.push(`v${s.extra.version}`);
+    for (const key of ['latestTag', 'releases', 'assets', 'lastUpdated', 'displayName', 'trending', 'trendingDaily', 'trendingWeekly', 'trendingMonthly'] as const) {
+      const field = extraField(key, s.extra[key]);
+      if (field) extras.push(field);
+    }
     if (extras.length > 0) {
       parts.push(`           ${extras.join('  ')}`);
+    }
+    if (s.extra.truncated === true) {
+      parts.push(`           note: ${PAGE_CAP_NOTE}`);
     }
   }
 
@@ -149,6 +172,10 @@ function printComparison(result: ComparisonResult) {
     const m = metrics[row];
     const values = formatted.map((cells, i) => cells[row].padStart(colWidths[i]));
     console.log(`  ${labels[m].padEnd(metricWidth)}${values.join('')}`);
+  }
+  const capped = regs.filter(([, s]) => s.extra?.truncated === true).map(([name]) => name);
+  if (capped.length > 0) {
+    console.log(`  note: ${capped.join(', ')} ${PAGE_CAP_NOTE}`);
   }
   console.log();
 }
@@ -450,7 +477,8 @@ export async function main(): Promise<void> {
 
   // Parse flags
   let pkg: string | undefined;
-  let registry: string | undefined;
+  /** Set only when -r / --registry was passed. Pieces are trimmed; empties dropped. */
+  let registryArgs: string[] | undefined;
   let range: string | undefined;
   let format = 'table';
   let compare = false;
@@ -463,7 +491,9 @@ export async function main(): Promise<void> {
   const unknownFlags: string[] = [];
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--registry' || args[i] === '-r') {
-      registry = requireValue(args[i], args, i);
+      const value = requireValue(args[i], args, i);
+      const parts = value.split(',').map((part) => part.trim()).filter((part) => part.length > 0);
+      registryArgs = registryArgs ? registryArgs.concat(parts) : parts;
       i++;
     } else if (args[i] === '--range') {
       range = requireValue('--range', args, i);
@@ -528,7 +558,7 @@ export async function main(): Promise<void> {
   try {
     // Comparison mode
     if (compare) {
-      const registries = registry ? [registry] : opts.registries;
+      const registries = registryArgs ?? opts.registries;
       const result = await stats.compare(pkg, registries, opts);
 
       // Surface transient registry failures so an outage isn't mistaken for
@@ -552,9 +582,13 @@ export async function main(): Promise<void> {
       return;
     }
 
-    // Range mode
+    // Range mode. One registry only; a list is an error, not a silent first name.
     if (range) {
-      const reg = registry ?? 'npm';
+      if (registryArgs && registryArgs.length > 1) {
+        console.error('Error: --range accepts one registry');
+        process.exit(1);
+      }
+      const reg = registryArgs?.[0] ?? 'npm';
       const [start, end] = range.split(':');
       if (!start || !end) {
         console.error('Error: --range must be start:end (e.g. 2025-01-01:2025-06-30)');
@@ -579,10 +613,10 @@ export async function main(): Promise<void> {
         }
         console.log(`\n  Total: ${formatNumber(calc.total(data))}  Avg/day: ${formatNumber(Math.round(calc.avg(data)))}  Trend: ${t.direction} (${t.changePercent > 0 ? '+' : ''}${t.changePercent}%)`);
       }
-    } else if (registry) {
-      const result = await stats(registry, pkg, opts);
+    } else if (registryArgs && registryArgs.length === 1) {
+      const result = await stats(registryArgs[0], pkg, opts);
       if (!result) {
-        console.error(`Package "${pkg}" not found on ${registry}`);
+        console.error(`Package "${pkg}" not found on ${registryArgs[0]}`);
         process.exit(1);
       }
       if (format === 'json') {
@@ -592,7 +626,9 @@ export async function main(): Promise<void> {
         printStats(result);
       }
     } else {
-      const results = await stats.all(pkg, opts);
+      // More than one name, or an explicit empty list, applies to this call only.
+      const allOpts = registryArgs ? { ...opts, registries: [...registryArgs] } : opts;
+      const results = await stats.all(pkg, allOpts);
 
       // Surface transient registry failures so an outage isn't mistaken for
       // "package absent" (mirrors the per-registry warning in runConfigPackages).

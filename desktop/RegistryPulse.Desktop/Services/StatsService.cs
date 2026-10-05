@@ -70,6 +70,16 @@ public sealed class StatsService
     }
 
     /// <summary>
+    /// Deletes the saved packages file and leaves the stats cache alone.
+    /// The next <see cref="RefreshAsync"/> then takes the published snapshot path.
+    /// </summary>
+    public void DeleteSavedPortfolio()
+    {
+        if (File.Exists(PackagesPath))
+            File.Delete(PackagesPath);
+    }
+
+    /// <summary>
     /// Refresh the local snapshot. Returns true when a valid stats document was written.
     /// </summary>
     public async Task<bool> RefreshAsync()

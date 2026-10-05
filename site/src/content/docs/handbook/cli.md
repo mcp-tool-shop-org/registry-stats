@@ -24,12 +24,12 @@ registry-stats
 
 | Flag | Description |
 |------|-------------|
-| `-r, --registry` | Registry to query: `npm`, `pypi`, `nuget`, `vscode`, `docker`, `github` (`owner/repo`) |
+| `-r, --registry` | Registry to query: `npm`, `pypi`, `nuget`, `vscode`, `docker`, `github` (`owner/repo`). Repeat the flag, or pass a comma-separated list. `--range` takes one registry. |
 | `--mine <username>` | Discover all npm packages by a maintainer and show stats |
 | `--json` | Raw JSON output (shorthand for `--format json`) |
 | `--range <start>:<end>` | Time series (YYYY-MM-DD format) |
 | `--format json\|csv\|chart` | Output format (default: `table`) |
-| `--compare` | Compare across all registries |
+| `--compare` | Compare across registries. With no `-r`, that is the registries the command already queries. With `-r`, only that list. |
 | `--init` | Create a config file |
 | `-V, --version` | Show version |
 | `-h, --help` | Show help |

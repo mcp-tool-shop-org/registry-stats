@@ -138,6 +138,8 @@ const result = inferPortfolio(leaderboard, { gini: 0.6, npmPct: 85 });
 
 `serve()` binds `127.0.0.1` unless `host` is set. `createHandler()` sends `Access-Control-Allow-Origin: *` unless `corsOrigin` is set. `createServer(handler).listen(port)` with no host binds every interface, so the sample below pins loopback.
 
+`serve()` and `createHandler()` take `rateLimitMax` (default 60), `rateLimitWindowSeconds` (default 60), `requestTimeoutMs` (default 30000), and `trustProxy` (default false). When `trustProxy` is false, the limiter uses the socket address. When it is true, the client is the rightmost trimmed `X-Forwarded-For` hop. When `requestTimeoutMs` elapses, the handler returns 504 Gateway timeout and aborts the upstream work. The CLI `serve` subcommand does not expose flags for these four.
+
 ```typescript
 import { createHandler, serve } from '@mcptoolshop/registry-stats';
 

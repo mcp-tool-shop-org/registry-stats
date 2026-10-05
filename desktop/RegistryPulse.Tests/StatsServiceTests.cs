@@ -457,6 +457,99 @@ public class StatsServiceTests
         }
     }
 
+    [Fact]
+    public async Task RefreshAsync_UsesThePublishedSnapshot_AfterTheSavedPortfolioIsRemoved()
+    {
+        var root = TempRoot();
+        try
+        {
+            const string published = """{"fetchedAt":"2026-03-01T11:15:30.138Z","totals":{"packages":1,"week":2,"month":3}}""";
+            var requested = new List<string>();
+            var service = new StatsService(root, new StubHandler
+            {
+                Respond = request =>
+                {
+                    var url = request.RequestUri!.ToString();
+                    lock (requested) requested.Add(url);
+                    if (url.Contains("github.io", StringComparison.OrdinalIgnoreCase))
+                        return Text(HttpStatusCode.OK, published);
+                    return Json(HttpStatusCode.OK, new { downloads = Array.Empty<object>() });
+                },
+            });
+
+            Directory.CreateDirectory(Path.GetDirectoryName(service.PackagesPath)!);
+            await File.WriteAllTextAsync(service.PackagesPath, """{"npm":["left-pad"]}""");
+            Directory.CreateDirectory(Path.GetDirectoryName(service.CachePath)!);
+            await File.WriteAllTextAsync(service.CachePath, """{"kept":true}""");
+            Assert.True(service.HasSavedPortfolio());
+
+            service.DeleteSavedPortfolio();
+            service.DeleteSavedPortfolio();
+
+            Assert.False(File.Exists(service.PackagesPath));
+            Assert.False(service.HasSavedPortfolio());
+            Assert.Equal("""{"kept":true}""", await File.ReadAllTextAsync(service.CachePath));
+
+            Assert.True(await service.RefreshAsync());
+            Assert.Contains(requested, url => url.Contains("github.io", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(requested, url => url.Contains("api.npmjs.org", StringComparison.Ordinal));
+            Assert.Equal(published, await File.ReadAllTextAsync(service.CachePath));
+            Assert.DoesNotContain("left-pad", await File.ReadAllTextAsync(service.CachePath));
+            Assert.DoesNotContain("Saved portfolio", await File.ReadAllTextAsync(service.CachePath));
+        }
+        finally
+        {
+            DeleteTemp(root);
+        }
+    }
+
+    [Fact]
+    public void FromStatsJson_KeepsLeaderboardOrder_AndWritesTrendAsTheNumberOrNa()
+    {
+        var json = """
+        {
+          "leaderboard": [
+            {"name":"low","registry":"npm","week":1,"month":2,"total":3,"trendPct":584.7826086956521},
+            {"name":"=cmd","registry":"pypi","week":9,"month":8,"total":7,"trendPct":null},
+            {"name":"@scope/pkg","registry":"nuget","week":4,"month":5,"total":6,"trendPct":-7.5},
+            {"name":"say \"hi\"","registry":"+reg","week":0,"month":0,"total":1,"trendPct":0},
+            {"name":"\tsecret","registry":"docker","week":1,"month":1,"total":1,"trendPct":null},
+            {"name":"\rhidden","registry":"github","week":2,"month":2,"total":2,"trendPct":null},
+            {"name":"plain","registry":"npm","week":3,"month":3,"total":3},
+            {"name":"tagged","registry":"npm","week":1,"month":1,"total":1,"trendPct":"New"}
+          ]
+        }
+        """;
+
+        var csv = LeaderboardCsv.FromStatsJson(Encoding.UTF8.GetBytes(json));
+        Assert.NotNull(csv);
+        Assert.Equal(string.Join('\n', new[]
+        {
+            "\"Rank\",\"Package\",\"Registry\",\"Week\",\"Month\",\"Total\",\"Trend\"",
+            "\"1\",\"low\",\"npm\",\"1\",\"2\",\"3\",\"584.7826086956521\"",
+            "\"2\",\"'=cmd\",\"pypi\",\"9\",\"8\",\"7\",\"n/a\"",
+            "\"3\",\"'@scope/pkg\",\"nuget\",\"4\",\"5\",\"6\",\"'-7.5\"",
+            "\"4\",\"say \"\"hi\"\"\",\"'+reg\",\"0\",\"0\",\"1\",\"0\"",
+            "\"5\",\"'\tsecret\",\"docker\",\"1\",\"1\",\"1\",\"n/a\"",
+            "\"6\",\"'\rhidden\",\"github\",\"2\",\"2\",\"2\",\"n/a\"",
+            "\"7\",\"plain\",\"npm\",\"3\",\"3\",\"3\",\"n/a\"",
+            "\"8\",\"tagged\",\"npm\",\"1\",\"1\",\"1\",\"n/a\"",
+            "",
+        }), csv);
+        Assert.DoesNotContain("New", csv);
+    }
+
+    [Fact]
+    public void FromStatsJson_ReturnsNull_WhenThereIsNoLeaderboard()
+    {
+        Assert.Null(LeaderboardCsv.FromStatsJson(null));
+        Assert.Null(LeaderboardCsv.FromStatsJson([]));
+        Assert.Null(LeaderboardCsv.FromStatsJson("not-json"u8.ToArray()));
+        Assert.Null(LeaderboardCsv.FromStatsJson(Encoding.UTF8.GetBytes("[]")));
+        Assert.Null(LeaderboardCsv.FromStatsJson(Encoding.UTF8.GetBytes("{\"leaderboard\":[]}")));
+        Assert.Null(LeaderboardCsv.FromStatsJson(Encoding.UTF8.GetBytes("{\"leaderboard\":[1,\"x\"]}")));
+    }
+
     private static HttpResponseMessage Json(HttpStatusCode status, object body)
     {
         var json = JsonSerializer.Serialize(body);

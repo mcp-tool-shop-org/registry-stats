@@ -366,6 +366,20 @@ npm run site:dev
 npm run site:build
 ```
 
+### Desktop app
+
+Windows, with the .NET 10 SDK. Run `npm run site:build` first so `site/dist` exists. The project copies that onto the output `wwwroot/registry-stats`.
+
+```bash
+dotnet workload install maui-windows
+npm run site:build
+dotnet build desktop/RegistryPulse.Desktop/RegistryPulse.Desktop.csproj
+# or
+dotnet publish desktop/RegistryPulse.Desktop/RegistryPulse.Desktop.csproj
+```
+
+The signed MSIX is a CI artifact from `desktop-ci.yml`. It is not a GitHub Release download and it is not the Store upload.
+
 ## Security & Data Scope
 
 | Aspect | Detail |

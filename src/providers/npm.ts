@@ -42,11 +42,17 @@ export const npm: RegistryProvider = {
     const lastDay = days[days.length - 1]?.downloads ?? 0;
     const lastWeek = days.slice(-7).reduce((s, d) => s + d.downloads, 0);
     const lastMonth = days.reduce((s, d) => s + d.downloads, 0);
+    // Same rows the sums used. A real 0 stays 0. Not the point API.
+    const daily: DailyDownloads[] = days.map((d) => ({
+      date: d.day,
+      downloads: d.downloads,
+    }));
 
     return {
       registry: 'npm',
       package: pkg,
       downloads: { lastDay, lastWeek, lastMonth },
+      extra: { daily },
       fetchedAt: new Date().toISOString(),
     };
   },
@@ -87,6 +93,21 @@ export const npm: RegistryProvider = {
     return chunks;
   },
 };
+
+/**
+ * Downloads from extra.daily, in row order, for inferPortfolio's range30.
+ * A real 0 stays 0. Missing daily is null (empty forecast, momentum 0).
+ */
+export function dailyToRange30(extra: { daily?: unknown } | null | undefined): number[] | null {
+  if (!extra || typeof extra !== 'object' || !Array.isArray(extra.daily)) return null;
+  const series: number[] = [];
+  for (const row of extra.daily) {
+    if (!row || typeof row !== 'object') continue;
+    const downloads = (row as { downloads?: unknown }).downloads;
+    if (typeof downloads === 'number' && Number.isFinite(downloads)) series.push(downloads);
+  }
+  return series;
+}
 
 /**
  * Bulk-fetch last-month stats for multiple unscoped packages in a single API call.

@@ -137,6 +137,7 @@ const notice = Astro.url.searchParams.get('notice');
             <div class="border-t border-edge p-3">
               <p class="text-[10px] text-muted mb-2.5" id="fetch-instructions">Retrieve current metrics from selected registries.</p>
               <button id="btn-fetch" class="w-full rounded border border-edge px-2.5 py-1.5 text-[11px] font-medium text-muted transition-colors" disabled>Refresh Portfolio Data</button>
+              <button id="btn-published" class="hidden mt-1.5 w-full rounded border border-edge px-2.5 py-1.5 text-[11px] font-medium text-muted hover:text-heading hover:bg-surface-strong transition-colors">Use published snapshot</button>
               <div id="fetch-status" class="mt-1.5 text-[10px] font-mono text-muted"></div>
               <div id="fetch-output" class="mt-1.5 hidden rounded border border-edge p-2 font-mono text-[10px] text-dim/60 max-h-24 overflow-y-auto whitespace-pre-wrap" style="background: color-mix(in srgb, var(--color-surface) 92%, black 8%);"></div>
             </div>
@@ -345,6 +346,7 @@ const notice = Astro.url.searchParams.get('notice');
   const fetchOutput = document.getElementById('fetch-output');
   const fetchStatus = document.getElementById('fetch-status');
   const btnFetch = document.getElementById('btn-fetch');
+  const btnPublished = document.getElementById('btn-published');
   const btnDashboard = document.getElementById('btn-dashboard');
   const stepDashboard = document.getElementById('step-dashboard');
 
@@ -386,6 +388,8 @@ const notice = Astro.url.searchParams.get('notice');
 
   // ── Init ──
   async function init() {
+    if (isDesktop && btnPublished) btnPublished.classList.remove('hidden');
+
     if (!isDesktop) {
       document.getElementById('fetch-instructions').textContent =
         'In the desktop application this is automated. On the web, run npm run fetch-stats locally.';
@@ -561,6 +565,20 @@ const notice = Astro.url.searchParams.get('notice');
     }
   }
 
+  function usePublishedSnapshot() {
+    if (!isDesktop) return;
+    if (btnPublished) btnPublished.disabled = true;
+    setDot(snapDot, snapState, 'active', 'Refreshing');
+    btnFetch.disabled = true;
+    btnFetch.textContent = 'Refreshing...';
+    btnFetch.classList.remove('bg-action', 'text-action-text', 'border-transparent', 'hover:bg-action-hover');
+    btnFetch.classList.add('border-edge', 'text-muted');
+    fetchOutput.classList.remove('hidden');
+    fetchOutput.textContent = '';
+    fetchStatus.textContent = 'Retrieving the published snapshot...';
+    postBridge('clearPackagesJson');
+  }
+
   // ── Desktop bridge ──
   if (isDesktop) {
     window.chrome.webview.addEventListener('message', (e) => {
@@ -578,6 +596,7 @@ const notice = Astro.url.searchParams.get('notice');
           break;
         case 'fetchComplete':
           btnFetch.textContent = 'Refresh Portfolio Data';
+          if (btnPublished) btnPublished.disabled = false;
           if (msg.ok) {
             fetchStatus.textContent = 'Data refreshed.';
             fetchOutput.textContent += '\nMetrics updated.';
@@ -644,6 +663,7 @@ const notice = Astro.url.searchParams.get('notice');
   document.getElementById('btn-download').addEventListener('click', downloadFile);
   document.getElementById('btn-export-branding').addEventListener('click', exportBranding);
   btnFetch.addEventListener('click', refreshData);
+  if (btnPublished) btnPublished.addEventListener('click', usePublishedSnapshot);
 
   init();
 </script>

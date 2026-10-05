@@ -299,19 +299,27 @@ public partial class MainPage : ContentPage, IDisposable
                     }
                     break;
 
-                case "fetchNow":
-                    var refreshLine = _stats.HasSavedPortfolio()
-                        ? "Fetching the saved portfolio from the registries..."
-                        : "Downloading stats from GitHub Pages...";
-                    sender.PostWebMessageAsJson(JsonSerializer.Serialize(new { action = "fetchProgress", line = refreshLine }));
-                    var ok = await _stats.RefreshAsync();
-                    sender.PostWebMessageAsJson(JsonSerializer.Serialize(new
+                case "clearPackagesJson":
+                    try
                     {
-                        action = "fetchComplete",
-                        ok,
-                        error = ok ? null : _stats.LastError,
-                    }));
-                    if (ok) SendStatus(sender);
+                        _stats.DeleteSavedPortfolio();
+                    }
+                    catch (Exception ex)
+                    {
+                        sender.PostWebMessageAsJson(JsonSerializer.Serialize(new
+                        {
+                            action = "fetchComplete",
+                            ok = false,
+                            error = ex.Message,
+                        }));
+                        break;
+                    }
+
+                    await RunFetchNowAsync(sender);
+                    break;
+
+                case "fetchNow":
+                    await RunFetchNowAsync(sender);
                     break;
 
                 case "getBranding":
@@ -345,6 +353,22 @@ public partial class MainPage : ContentPage, IDisposable
                 Debug.WriteLine($"[MainPage] WebMessage error-reply failed: {postEx.Message}");
             }
         }
+    }
+
+    private async Task RunFetchNowAsync(CoreWebView2 sender)
+    {
+        var refreshLine = _stats.HasSavedPortfolio()
+            ? "Fetching the saved portfolio from the registries..."
+            : "Downloading stats from GitHub Pages...";
+        sender.PostWebMessageAsJson(JsonSerializer.Serialize(new { action = "fetchProgress", line = refreshLine }));
+        var ok = await _stats.RefreshAsync();
+        sender.PostWebMessageAsJson(JsonSerializer.Serialize(new
+        {
+            action = "fetchComplete",
+            ok,
+            error = ok ? null : _stats.LastError,
+        }));
+        if (ok) SendStatus(sender);
     }
 
     private void SendStatus(CoreWebView2 sender)
@@ -474,6 +498,27 @@ public partial class MainPage : ContentPage, IDisposable
     private async void OnExportCsvClicked(object? sender, EventArgs e)
     {
 #if WINDOWS
+        if (File.Exists(_stats.CachePath))
+        {
+            var csv = LeaderboardCsv.FromStatsJson(_stats.GetCachedStatsBytes());
+            if (csv is null)
+            {
+                await DisplayAlertAsync("Export", "No leaderboard data to export.", "OK");
+                return;
+            }
+
+            try
+            {
+                await SaveLeaderboardCsvAsync(csv);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MainPage] Export CSV error: {ex.Message}");
+                await DisplayAlertAsync("Export", "Couldn't save the CSV.", "OK");
+            }
+            return;
+        }
+
         var handler = DashboardWebView.Handler;
         if (handler?.PlatformView is Microsoft.UI.Xaml.Controls.WebView2 webView2)
         {
@@ -521,6 +566,28 @@ public partial class MainPage : ContentPage, IDisposable
         }
 #endif
     }
+
+#if WINDOWS
+    private async Task SaveLeaderboardCsvAsync(string csv)
+    {
+        var picker = new Windows.Storage.Pickers.FileSavePicker();
+        if (Application.Current?.Windows.FirstOrDefault()?.Handler?.PlatformView is not Microsoft.UI.Xaml.Window window)
+        {
+            await DisplayAlertAsync("Export", "Couldn't open a save dialog.", "OK");
+            return;
+        }
+
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+        picker.SuggestedFileName = "registry-stats-" + DateTime.UtcNow.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        picker.FileTypeChoices.Add("CSV", new List<string> { ".csv" });
+
+        var file = await picker.PickSaveFileAsync();
+        if (file is null) return;
+
+        await Windows.Storage.FileIO.WriteBytesAsync(file, Encoding.UTF8.GetBytes(csv));
+    }
+#endif
 
     private async void OnAboutClicked(object? sender, EventArgs e)
     {
