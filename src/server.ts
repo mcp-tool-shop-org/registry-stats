@@ -28,6 +28,12 @@ export interface ServerOptions {
    * the end; the leftmost value is attacker-supplied.
    */
   trustProxy?: boolean;
+  /** Forwarded onto StatsOptions so serve honors the config file. */
+  githubToken?: string;
+  dockerToken?: string;
+  /** Allowlist, including empty (query nothing). Omitted means every provider. */
+  registries?: string[];
+  cacheTtlMs?: number;
 }
 
 /** Resolve the bind host for serve(), defaulting to loopback. */
@@ -94,6 +100,16 @@ function error(res: ServerResponse, message: string, status = 400) {
   json(res, { error: message }, status);
 }
 
+/** Operator log for a 500. The response body stays generic. */
+function logServerError(err: unknown): void {
+  const name = err instanceof Error ? err.name : 'Error';
+  const message = err instanceof Error ? err.message : String(err);
+  const registry = err instanceof RegistryError ? String(err.registry) : '';
+  console.error(registry
+    ? `registry-stats: ${name} (${registry}): ${message}`
+    : `registry-stats: ${name}: ${message}`);
+}
+
 /** RegistryError → HTTP. A 4xx is the caller's mistake and passes through.
  *  Upstream 5xx and transport failures (status 0) are a bad gateway. */
 function httpStatusForRegistryError(statusCode: number): number {
@@ -101,6 +117,10 @@ function httpStatusForRegistryError(statusCode: number): number {
   return 502;
 }
 
+/**
+ * Split the path and decode the query string. Path segments stay encoded;
+ * the handler decodes them inside the URIError catch so a bad path is 400.
+ */
 function parseUrl(url: string): { path: string[]; query: Record<string, string> } {
   const [pathname, search] = url.split('?');
   const path = pathname.replace(/^\/api\//, '/').split('/').filter(Boolean);
@@ -229,13 +249,13 @@ export function createHandler(opts?: HandlerOptions): Handler {
     }
 
     try {
-      // parseUrl runs decodeURIComponent on the path/query; a malformed
-      // percent-sequence throws URIError. Keep it inside the try so a bad
-      // request maps to 400 instead of crashing the handler.
+      // parseUrl decodes the query only. Path segments are decoded here so a
+      // malformed percent-sequence in the path or the query is a 400.
       let path: string[];
       let query: Record<string, string>;
       try {
         ({ path, query } = parseUrl(req.url ?? '/'));
+        path = path.map((segment) => decodeURIComponent(segment));
       } catch (e) {
         if (e instanceof URIError) {
           error(res, 'Malformed URL', 400);
@@ -249,7 +269,7 @@ export function createHandler(opts?: HandlerOptions): Handler {
       // A scoped npm name contains a slash. /stats/@scope/name is one package,
       // not registry "@scope". /stats/npm/@scope/name stays a single registry.
       if (path[0] === 'stats') {
-        const segments = path.slice(1).map((segment) => decodeURIComponent(segment));
+        const segments = path.slice(1);
         const scopedPackage = segments.length > 1 && segments[0].startsWith('@');
         if (segments.length === 1 || scopedPackage) {
           const pkg = segments.join('/');
@@ -278,8 +298,10 @@ export function createHandler(opts?: HandlerOptions): Handler {
       // GET /compare/:package?registries=npm,pypi
       // Join every segment so /compare/@scope/name keeps the scoped name.
       if (path[0] === 'compare' && path.length >= 2) {
-        const pkg = path.slice(1).map((segment) => decodeURIComponent(segment)).join('/');
-        const registries = query.registries ? query.registries.split(',') : undefined;
+        const pkg = path.slice(1).join('/');
+        const registries = query.registries
+          ? query.registries.split(',').map((name) => name.trim()).filter((name) => name.length > 0)
+          : undefined;
         const result = await runBounded(timeoutMs, () => stats.compare(pkg, registries, options));
         json(res, result);
         return;
@@ -339,7 +361,9 @@ export function createHandler(opts?: HandlerOptions): Handler {
       } else if (e instanceof RegistryError) {
         error(res, e.message, httpStatusForRegistryError(e.statusCode));
       } else {
-        // Don't leak internal error details to the client
+        // Don't leak internal error details to the client. The operator
+        // still gets the name, message, and registry on stderr.
+        logServerError(e);
         error(res, 'Internal server error', 500);
       }
     }
@@ -352,7 +376,8 @@ export function createHandler(opts?: HandlerOptions): Handler {
   return async (req, res) => {
     try {
       await handle(req, res);
-    } catch {
+    } catch (err) {
+      logServerError(err);
       try {
         if (res.headersSent) {
           res.end();
@@ -378,9 +403,20 @@ export function serve(opts?: ServerOptions) {
     rateLimitWindowSeconds: opts?.rateLimitWindowSeconds,
     requestTimeoutMs: opts?.requestTimeoutMs,
     trustProxy: opts?.trustProxy,
+    githubToken: opts?.githubToken,
+    dockerToken: opts?.dockerToken,
+    registries: opts?.registries,
+    cacheTtlMs: opts?.cacheTtlMs,
   });
 
   const server = httpCreateServer(handler);
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    const line = err.code === 'EADDRINUSE'
+      ? `port ${port} is already in use`
+      : `cannot listen on ${host}:${port}: ${err.message}`;
+    console.error(line);
+    process.exit(1);
+  });
   server.listen(port, host, () => {
     console.log(`registry-stats server listening on http://${host}:${port}`);
     console.log(`\nEndpoints:`);

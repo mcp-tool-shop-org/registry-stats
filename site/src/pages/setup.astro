@@ -533,6 +533,7 @@ const notice = Astro.url.searchParams.get('notice');
   }
 
   function refreshData() {
+    const priorSnap = snapState.textContent;
     setDot(snapDot, snapState, 'active', 'Refreshing');
     btnFetch.disabled = true;
     btnFetch.textContent = 'Refreshing...';
@@ -552,6 +553,11 @@ const notice = Astro.url.searchParams.get('notice');
         '  npm run fetch-stats\n' +
         '  npm run build\n\n' +
         'The desktop application provides automated data refresh.';
+      btnFetch.textContent = 'Refresh Portfolio Data';
+      updateButtonEmphasis(true);
+      if (priorSnap === 'Current') setDot(snapDot, snapState, 'complete', 'Current');
+      else if (priorSnap === 'Failed') setDot(snapDot, snapState, 'error', 'Failed');
+      else setDot(snapDot, snapState, 'pending', priorSnap || 'None');
     }
   }
 
@@ -576,6 +582,8 @@ const notice = Astro.url.searchParams.get('notice');
             fetchStatus.textContent = 'Data refreshed.';
             fetchOutput.textContent += '\nMetrics updated.';
             unlockDashboard();
+            btnFetch.disabled = false;
+            updateButtonEmphasis(true);
           } else {
             fetchStatus.textContent = 'Refresh failed.';
             fetchOutput.textContent += '\nError: ' + (msg.error || 'Unknown error.');

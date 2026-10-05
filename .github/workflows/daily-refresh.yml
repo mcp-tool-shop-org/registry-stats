@@ -18,7 +18,6 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: read
-      issues: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -46,9 +45,8 @@ jobs:
       - name: Fetch live stats
         id: fetch
         working-directory: site
-        # This job's token cannot push (contents: read; issues: write is for the
-        # stale-data issue). With it, GitHub release requests use the 800ms
-        # authenticated lane instead of the 60s one.
+        # This job's token cannot push (contents: read). With it, GitHub release
+        # requests use the 800ms authenticated lane instead of the 60s one.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run fetch-stats
@@ -70,10 +68,35 @@ jobs:
             if (doc.dataQuality === "degraded") console.log("::warning::stats.json dataQuality is degraded");
           '
 
-      # Surface any failure (fetch crash or stale data) as a single tracked issue
-      # so a silently-failing daily run is visible without spamming new issues.
+      # ── Quality Gate ──────────────────────────────────────────
+      - name: Run tests
+        run: npm test
+
+      - name: Upload fresh data for the commit-back job
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fresh-stats
+          path: |
+            site/src/data/stats.json
+            site/src/data/snapshots.json
+            site/src/data/history.json
+            site/public/data/stats.json
+            site/public/data/packages.json
+          if-no-files-found: error
+          retention-days: 1
+
+  # issues: write lives only here, so npm ci and fetch-stats never see a token
+  # that can open, comment, or close issues.
+  track-failure:
+    needs: refresh
+    if: always() && needs.refresh.result == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
       - name: Open/update tracking issue on failure
-        if: failure()
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
@@ -96,23 +119,6 @@ jobs:
                 title, body, labels: ['daily-refresh'],
               });
             }
-
-      # ── Quality Gate ──────────────────────────────────────────
-      - name: Run tests
-        run: npm test
-
-      - name: Upload fresh data for the commit-back job
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: fresh-stats
-          path: |
-            site/src/data/stats.json
-            site/src/data/snapshots.json
-            site/src/data/history.json
-            site/public/data/stats.json
-            site/public/data/packages.json
-          if-no-files-found: error
-          retention-days: 1
 
   # contents: write is only on this job, so npm and fetch-stats never see a token
   # that can push. Branch protection rejecting a [skip ci] commit is expected and

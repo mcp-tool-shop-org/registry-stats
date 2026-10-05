@@ -7,7 +7,7 @@ sidebar:
 
 ## What is registry-stats?
 
-registry-stats is a TypeScript tool that pulls download statistics from six registries — npm, PyPI, NuGet, the VS Code Marketplace, Docker Hub, and GitHub Releases — through a single interface. A plain package name is sent to every built-in registry; GitHub Releases wants an `owner/repo` slug. Instead of checking each site yourself, you run one command or call one API and get consolidated results.
+registry-stats is a TypeScript tool that pulls download statistics from six registries — npm, PyPI, NuGet, the VS Code Marketplace, Docker Hub, and GitHub Releases — through a single interface. A plain package name is sent to npm, PyPI, NuGet, the VS Code Marketplace, and Docker Hub. GitHub Releases is included when the name is an `owner/repo` slug, or when the registries list names `github`. Instead of checking each site yourself, you run one command or call one API and get consolidated results.
 
 It ships as an npm package (`@mcptoolshop/registry-stats`) with three surfaces: a CLI for quick terminal lookups, a programmatic API for automation, and a REST server for integrating with other tools. There is also a web dashboard with AI-powered analytics and a native Windows desktop app.
 
@@ -53,7 +53,7 @@ Run your first query:
 registry-stats express -r npm
 ```
 
-This fetches download stats for the `express` package from npm and prints them as a table. Omit `-r` to query every built-in registry with that name. GitHub Releases is one of them and wants an `owner/repo` slug, so a plain name is an error from `github` and the other registries still return:
+This fetches download stats for the `express` package from npm and prints them as a table. Omit `-r` to query the built-in registries with that name. GitHub Releases is included only when the name is an `owner/repo` slug, so `express` does not query GitHub and is not a GitHub error. Name the registry when you want that one host:
 
 ```bash
 registry-stats express

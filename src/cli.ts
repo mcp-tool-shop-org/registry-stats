@@ -3,7 +3,7 @@ import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { stats, createCache, calc } from './index.js';
 import type { RegistryFailure } from './index.js';
-import { serve } from './server.js';
+import { serve, type ServerOptions } from './server.js';
 import { loadConfig, starterConfig } from './config.js';
 import type { PackageStats, StatsOptions, Config, ComparisonResult } from './types.js';
 
@@ -20,8 +20,8 @@ Usage: registry-stats [package] [options]
 
 Options:
   --registry, -r  Registry to query (npm, pypi, nuget, vscode, docker, github)
-                  Omit to query config registries, or every built-in registry
-                  when the config has no registries list
+                  Omit to query config registries. With no registries list,
+                  GitHub is included only when the name is owner/repo
                   github: identifier is a repo slug, e.g. -r github owner/repo
   --mine          Discover and show stats for all npm packages by a maintainer
                   e.g. registry-stats --mine mikefrilot
@@ -211,7 +211,9 @@ function buildOptions(config: Config | null): StatsOptions {
   if (config.concurrency) opts.concurrency = config.concurrency;
   if (config.dockerToken) opts.dockerToken = config.dockerToken;
   if (config.githubToken) opts.githubToken = config.githubToken;
-  if (config.registries && config.registries.length > 0) opts.registries = config.registries;
+  // A present array is the allowlist, including empty (query nothing).
+  // Only a missing registries field means every provider.
+  if (Array.isArray(config.registries)) opts.registries = config.registries;
   return opts;
 }
 
@@ -337,7 +339,15 @@ export async function main(): Promise<void> {
         process.exit(1);
       }
     }
-    serve({ port, host, corsOrigin: cors });
+    const config = loadConfig();
+    const fromConfig = buildOptions(config);
+    const serverOpts: ServerOptions = { port, host, corsOrigin: cors };
+    if (config?.cache === false) serverOpts.cache = false;
+    if (fromConfig.githubToken) serverOpts.githubToken = fromConfig.githubToken;
+    if (fromConfig.dockerToken) serverOpts.dockerToken = fromConfig.dockerToken;
+    if (fromConfig.registries) serverOpts.registries = fromConfig.registries;
+    if (fromConfig.cacheTtlMs != null) serverOpts.cacheTtlMs = fromConfig.cacheTtlMs;
+    serve(serverOpts);
     return;
   }
 
@@ -414,6 +424,15 @@ export async function main(): Promise<void> {
       // Surface transient registry failures so an outage isn't mistaken for
       // "package absent" (mirrors the per-registry warning in runConfigPackages).
       warnRegistryFailures(result.errors);
+
+      // An empty map is a total miss in table mode and in --json. Do not print
+      // the object: a caller that only checks the status would treat it as success.
+      // Warnings stay on stderr. A partial success still prints the object,
+      // errors included. Configured-package JSON is a different path.
+      if (Object.keys(result.registries).length === 0) {
+        console.error(`Package "${result.package}" not found on any registry`);
+        process.exit(1);
+      }
 
       if (format === 'json') {
         console.log(JSON.stringify(result, null, 2));

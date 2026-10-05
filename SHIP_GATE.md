@@ -22,7 +22,7 @@
 
 ## B. Error Handling
 
-- [x] `[all]` Errors follow the Structured Error Shape: `code`, `message`, `hint`, `cause?`, `retryable?` — typed error responses with retry logic
+- [x] `[all]` Thrown errors are `RegistryError` with `registry`, `statusCode`, `message`, and optional `retryAfter`. Retry uses exponential backoff. There is no `code`, `hint`, `cause`, or `retryable` field.
 - [ ] `[cli]` Exit codes: 0 ok · 1 user error · 2 runtime error · 3 partial success — the CLI exits 0 or 1. A partial registry failure warns on stderr and still exits 0. There is no exit 2 or 3.
 - [x] `[cli]` No raw stack traces without `--debug`
 - [ ] `[mcp]` SKIP: not an MCP server

@@ -18,6 +18,8 @@ registry-stats <package>
 registry-stats
 ```
 
+`registry-stats <package>` includes GitHub Releases when the name is `owner/repo`. A plain name skips GitHub and is not reported as a GitHub error. An explicit registries list that names `github` still queries it, and a plain name is then an error from github only.
+
 ## Options
 
 | Flag | Description |

@@ -32,7 +32,7 @@ npm     | express
 registry-stats express
 ```
 
-With no config file this queries every built-in registry. npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub answer a plain package name. GitHub Releases is included too, and a plain name is not an `owner/repo` slug, so that one registry reports an error while the others return.
+With no config file this queries every built-in registry except GitHub Releases. npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub answer a plain package name. GitHub Releases is included when the name is `owner/repo`. A plain name does not query GitHub and is not reported as a GitHub error.
 
 ## Other registries
 

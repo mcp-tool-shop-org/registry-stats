@@ -202,7 +202,11 @@ public sealed class StatsService
         }
         catch (Exception ex)
         {
-            errors.Add($"{item.Registry}:{item.Name}: {ex.Message}");
+            // Four FetchOne tasks share this list. List<T>.Add is not safe across them.
+            lock (errors)
+            {
+                errors.Add($"{item.Registry}:{item.Name}: {ex.Message}");
+            }
             return null;
         }
     }
@@ -406,7 +410,7 @@ public sealed class StatsService
         return true;
     }
 
-    private static async Task WriteAtomicAsync(string path, byte[] bytes)
+    internal static async Task WriteAtomicAsync(string path, byte[] bytes)
     {
         var dir = Path.GetDirectoryName(path)!;
         Directory.CreateDirectory(dir);

@@ -42,7 +42,7 @@ Docker Hub images use the format `namespace/repo` (e.g., `library/node`). Report
 
 GitHub repositories use the format `owner/repo` (e.g., `mcp-tool-shop-org/prism-verify`). Reports the cumulative download count of all uploaded release assets — binaries, checksums, and SBOMs — summed across every release, plus the release/asset counts and latest tag.
 
-GitHub only counts **manually-uploaded assets**; it does not report downloads of the auto-generated source `zipball`/`tarball`, so a repo with source-only releases reports `0`. Like NuGet and VS Code, the count is all-time cumulative, so weekly deltas are derived from snapshot diffing between runs. Set `githubToken` in `registry-stats.config.json` (or pass `githubToken` on `StatsOptions`) to raise the API rate limit from 60 to 5000 requests/hour. The CLI reads that field and sends it as `Authorization: Bearer`. `--init` does not write a token.
+GitHub only counts **manually-uploaded assets**; it does not report downloads of the auto-generated source `zipball`/`tarball`, so a repo with source-only releases reports `0`. The count is an all-time asset-download total, and the dashboard shows that total. It does not publish a weekly figure for GitHub. Set `githubToken` in `registry-stats.config.json` (or pass `githubToken` on `StatsOptions`) to raise the API rate limit from 60 to 5000 requests/hour. The CLI reads that field and sends it as `Authorization: Bearer`. `--init` does not write a token.
 
 ## Adding custom registries
 

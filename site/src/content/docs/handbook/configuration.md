@@ -93,7 +93,7 @@ await stats('cargo', 'serde');
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `registries` | `string[]` | Every built-in registry | Registries the CLI queries when `-r` is omitted. `defaultConfig()` lists npm, PyPI, NuGet, VS Code, and Docker Hub. Add `github` to include GitHub Releases. |
+| `registries` | `string[]` | npm, pypi, nuget, vscode, docker | Names `defaultConfig()` and `--init` write. The CLI copies a non-empty list into the query, so that starter list does not include GitHub Releases until you add `github`. A missing config file, or a config that omits `registries`, queries every built-in provider. GitHub Releases is included only when the package name is `owner/repo`. |
 | `packages` | `object` | `{}` | Map of display names to registry-specific package IDs |
 | `cache` | `boolean` | `true` | Enable in-memory caching |
 | `cacheTtlMs` | `number` | `300000` | Cache TTL in milliseconds (5 minutes) |

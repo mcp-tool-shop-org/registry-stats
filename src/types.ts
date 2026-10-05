@@ -50,8 +50,8 @@ export interface StatsOptions {
   /** Cache TTL in milliseconds (default: 300000 = 5 min) */
   cacheTtlMs?: number;
   /**
-   * When set, stats.all queries only these registries.
-   * Omitted means every registered provider.
+   * When set, stats.all queries only these registries, including an empty
+   * list (query nothing). Omitted means every registered provider.
    */
   registries?: string[];
   /**

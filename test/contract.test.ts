@@ -4,21 +4,23 @@ import { pypi } from '../src/providers/pypi.js';
 import { nuget } from '../src/providers/nuget.js';
 import { vscode } from '../src/providers/vscode.js';
 import { docker } from '../src/providers/docker.js';
+import { github } from '../src/providers/github.js';
 import type { RegistryProvider, PackageStats } from '../src/types.js';
 
 const LIVE = process.env.LIVE_API === '1';
 const liveIt = LIVE ? it : it.skip;
 
-const testCases: { provider: RegistryProvider; pkg: string; hasRange: boolean }[] = [
+const testCases: { provider: RegistryProvider; pkg: string; missing?: string; hasRange: boolean }[] = [
   { provider: npm, pkg: 'express', hasRange: true },
   { provider: pypi, pkg: 'requests', hasRange: true },
   { provider: nuget, pkg: 'Newtonsoft.Json', hasRange: false },
   { provider: vscode, pkg: 'esbenp.prettier-vscode', hasRange: false },
   { provider: docker, pkg: 'library/node', hasRange: false },
+  { provider: github, pkg: 'mcp-tool-shop-org/prism-verify', missing: 'no-such-owner/no-such-repo-xyz-999', hasRange: false },
 ];
 
 describe('provider contract', () => {
-  for (const { provider, pkg, hasRange } of testCases) {
+  for (const { provider, pkg, missing, hasRange } of testCases) {
     describe(provider.name, () => {
       it('has a name', () => {
         expect(typeof provider.name).toBe('string');
@@ -51,7 +53,7 @@ describe('provider contract', () => {
       }, 15000);
 
       liveIt('getStats returns null for nonexistent package', async () => {
-        const result = await provider.getStats('this-package-absolutely-does-not-exist-xyz-999');
+        const result = await provider.getStats(missing ?? 'this-package-absolutely-does-not-exist-xyz-999');
         expect(result).toBeNull();
       }, 15000);
     });

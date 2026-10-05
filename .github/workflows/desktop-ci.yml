@@ -20,6 +20,8 @@ concurrency:
 jobs:
   build-msix:
     runs-on: windows-latest
+    permissions:
+      contents: read
 
     env:
       CONFIGURATION: Release
@@ -47,12 +49,31 @@ jobs:
           npm ci
           npm run build
 
-      - name: Build web assets
-        run: |
-          cd site
-          npm ci
-          npm run fetch-stats
-          npm run build
+      - name: Install site dependencies
+        working-directory: site
+        run: npm ci
+
+      - name: Audit site dependencies
+        working-directory: site
+        run: node scripts/audit.mjs
+
+      # Read-only job token. GitHub release requests use the authenticated
+      # lane. The token stays on this step only, not on npm ci.
+      - name: Fetch live stats
+        working-directory: site
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run fetch-stats
+
+      # Fail only on degraded or unusable. Stale rows do not set dataQuality.
+      - name: Refuse a degraded or unusable snapshot
+        working-directory: site
+        shell: bash
+        run: node --input-type=module -e "import { readFileSync } from 'node:fs'; const q = JSON.parse(readFileSync('src/data/stats.json','utf8')).dataQuality; if (q === 'degraded' || q === 'unusable') { console.error('stats.json dataQuality is ' + q); process.exit(1); }"
+
+      - name: Build site
+        working-directory: site
+        run: npm run build
 
       - name: Generate self-signed cert (CI)
         id: cert

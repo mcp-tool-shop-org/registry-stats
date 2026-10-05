@@ -62,6 +62,46 @@ describe('StatsOptions.signal', () => {
     expect(Date.now() - started).toBeLessThan(5_000);
   });
 
+  it('aborts npm bulk during the point Retry-After, before week and day', async () => {
+    const urls: string[] = [];
+    const ac = new AbortController();
+    globalThis.fetch = async (input: RequestInfo | URL) => {
+      urls.push(String(input));
+      if (urls.length === 1) setTimeout(() => ac.abort(), 40);
+      return new Response('', { status: 429, statusText: 'Too Many Requests', headers: { 'retry-after': '60' } });
+    };
+    await expect(stats.bulk('npm', ['express', 'koa'], { signal: ac.signal })).rejects.toThrow(/aborted/);
+    expect(urls).toHaveLength(1);
+    expect(urls[0]).toContain('/point/last-month/');
+    expect(urls.some((url) => url.includes('last-week') || url.includes('last-day'))).toBe(false);
+  }, 5_000);
+
+  it('aborts stats.range during getRange and does not fetch again', async () => {
+    const urls: string[] = [];
+    const ac = new AbortController();
+    globalThis.fetch = async (input: RequestInfo | URL) => {
+      urls.push(String(input));
+      if (urls.length === 1) setTimeout(() => ac.abort(), 40);
+      return new Response('', { status: 429, statusText: 'Too Many Requests', headers: { 'retry-after': '60' } });
+    };
+    await expect(stats.range('npm', 'express', '2025-01-01', '2025-01-03', { signal: ac.signal })).rejects.toThrow(/aborted/);
+    expect(urls).toHaveLength(1);
+    expect(urls[0]).toContain('/downloads/range/');
+  }, 5_000);
+
+  it('aborts stats.mine during the search fetch and does not fetch again', async () => {
+    const urls: string[] = [];
+    const ac = new AbortController();
+    globalThis.fetch = async (input: RequestInfo | URL) => {
+      urls.push(String(input));
+      if (urls.length === 1) setTimeout(() => ac.abort(), 40);
+      return new Response('', { status: 429, statusText: 'Too Many Requests', headers: { 'retry-after': '60' } });
+    };
+    await expect(stats.mine('someone', { signal: ac.signal })).rejects.toThrow(/aborted/);
+    expect(urls).toHaveLength(1);
+    expect(urls[0]).toContain('registry.npmjs.org/-/v1/search');
+  }, 5_000);
+
   it('leaves calls without a signal unchanged', async () => {
     globalThis.fetch = async () =>
       new Response(JSON.stringify({ data: [{ id: 'Serilog', totalDownloads: 7, version: '4.0.0' }] }),

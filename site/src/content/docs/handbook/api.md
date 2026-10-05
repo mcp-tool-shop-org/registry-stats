@@ -130,7 +130,8 @@ const advice = generateActionableAdvice(packages, healthScores, { gini: 0.6, npm
 
 // Full portfolio analysis (the main entry point)
 const result = inferPortfolio(leaderboard, { gini: 0.6, npmPct: 85 });
-// → { packages, forecastTotal7, riskScore, portfolioMomentum, recommendations, healthScores, actionableAdvice }
+// → { packages, forecastTotal7, riskScore, diversityTrend, portfolioMomentum, recommendations, healthScores, actionableAdvice }
+// diversityTrend is 'improving' | 'stable' | 'declining'
 ```
 
 ## REST server

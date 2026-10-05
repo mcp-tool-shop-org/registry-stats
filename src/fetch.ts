@@ -10,6 +10,12 @@ const MAX_RETRY_AFTER_MS = 60_000;
 
 const requestSignals = new AsyncLocalStorage<AbortSignal>();
 
+/** Filled in by fetchWithRetry when the caller needs status and headers (Link). */
+export interface ResponseCapture {
+  status: number;
+  headers: Headers;
+}
+
 /**
  * Bind an abort signal to every fetchWithRetry / fetchDirect call made by fn,
  * including retry sleeps and registry slot waits. The HTTP handler uses this
@@ -149,15 +155,19 @@ async function fetchRetryCore<T>(
   registry: RegistryName,
   init: RequestInit | undefined,
   preRequest?: () => Promise<void>,
+  capture?: ResponseCapture,
 ): Promise<T | null> {
   let lastError: RegistryError | undefined;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     const external = requestSignals.getStore();
-    if (external?.aborted) throw abortedError(registry, url);
+    // init.signal is a caller cancel. The handler signal is the same kind.
+    // AbortSignal.timeout(30s) aborts only the merged fetch signal, so a
+    // timeout stays retryable and a cancel does not sleep or retry.
+    if (init?.signal?.aborted || external?.aborted) throw abortedError(registry, url);
 
     if (preRequest) await preRequest();
-    if (external?.aborted) throw abortedError(registry, url);
+    if (init?.signal?.aborted || external?.aborted) throw abortedError(registry, url);
 
     let res: Response;
     try {
@@ -165,12 +175,10 @@ async function fetchRetryCore<T>(
       // and the handler signal so any one of them aborts the socket.
       res = await fetch(url, {
         ...init,
-        signal: mergeSignals(30_000, [init?.signal, external]),
+        signal: mergeSignals(30_000, [init?.signal ?? undefined, external]),
       });
     } catch (err) {
-      // Only a handler-bound abort stops the retry loop. The fetch's own
-      // AbortSignal.timeout is a network timeout and stays retryable.
-      if (external?.aborted) {
+      if (init?.signal?.aborted || external?.aborted) {
         throw abortedError(registry, url);
       }
       // Network-level failures: DNS, connection refused, abort/timeout
@@ -181,8 +189,13 @@ async function fetchRetryCore<T>(
       if (attempt === MAX_RETRIES) break;
 
       const backoff = BASE_DELAY * Math.pow(2, attempt);
-      await sleepOrStop(backoff, external, registry, url);
+      await sleepOrStop(backoff, callerAbortSignal(init?.signal ?? undefined, external), registry, url);
       continue;
+    }
+
+    if (capture) {
+      capture.status = res.status;
+      capture.headers = res.headers;
     }
 
     if (res.status === 404) return null;
@@ -211,7 +224,7 @@ async function fetchRetryCore<T>(
     // Exponential backoff is the floor. Retry-After can raise it, never past the cap.
     const backoff = BASE_DELAY * Math.pow(2, attempt);
     const delay = Math.max(backoff, retryAfter.delayMs);
-    await sleepOrStop(delay, external, registry, url);
+    await sleepOrStop(delay, callerAbortSignal(init?.signal ?? undefined, external), registry, url);
   }
 
   throw lastError ?? new RegistryError(registry, 0, `Fetch failed after ${MAX_RETRIES} retries: ${url}`);
@@ -219,6 +232,31 @@ async function fetchRetryCore<T>(
 
 function abortedError(registry: RegistryName, url: string): RegistryError {
   return new RegistryError(registry, 0, `Request aborted — ${url}`);
+}
+
+/**
+ * Signal that stops a retry sleep. Caller cancel and the handler signal only.
+ * The 30s timeout is not included, so a timeout does not cut the backoff
+ * as if the caller had cancelled.
+ */
+function callerAbortSignal(
+  user: AbortSignal | undefined | null,
+  external: AbortSignal | undefined,
+): AbortSignal | undefined {
+  if (!user) return external;
+  if (!external) return user;
+  if (typeof AbortSignal.any === 'function') return AbortSignal.any([user, external]);
+
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  for (const signal of [user, external]) {
+    if (signal.aborted) {
+      controller.abort();
+      return controller.signal;
+    }
+    signal.addEventListener('abort', abort, { once: true });
+  }
+  return controller.signal;
 }
 
 /** Whole seconds only. HTTP-date values and junk like "12abc" are ignored. Capped at 60s. */
@@ -292,8 +330,9 @@ export async function fetchWithRetry<T>(
   url: string,
   registry: RegistryName,
   init?: RequestInit,
+  capture?: ResponseCapture,
 ): Promise<T | null> {
-  return fetchRetryCore<T>(url, registry, init, () => acquireSlot(registry, init));
+  return fetchRetryCore<T>(url, registry, init, () => acquireSlot(registry, init), capture);
 }
 
 /**

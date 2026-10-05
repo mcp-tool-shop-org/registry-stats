@@ -13,7 +13,7 @@ export const config: SiteConfig = {
     badge: 'Zero dependencies · Node 18+',
     headline: 'Six registries,',
     headlineAccent: 'one AI-powered platform.',
-    description: 'Engine, Pulse AI co-pilot with voice output, seven interactive charts with zoom/pan, AI inference (health scores, forecasts, actionable advice), smart growth engine, and desktop app — all from one repo. Query npm, PyPI, NuGet, VS Code Marketplace, Docker Hub, and GitHub Releases through a single CLI, API, or live dashboard.',
+    description: 'Engine, Pulse AI co-pilot with voice output, seven charts (zoom and pan on the 30-day trend and the portfolio trend), AI inference (health scores, forecasts, actionable advice), smart growth engine, and desktop app — all from one repo. Query npm, PyPI, NuGet, VS Code Marketplace, Docker Hub, and GitHub Releases through a single CLI, API, or live dashboard.',
     primaryCta: { href: '/registry-stats/dashboard/', label: 'Open dashboard' },
     secondaryCta: { href: 'handbook/', label: 'Read the Handbook' },
     previews: [
@@ -32,7 +32,7 @@ export const config: SiteConfig = {
       features: [
         { title: 'Engine', desc: 'TypeScript library + CLI + REST server. Published to npm. Zero dependencies, native fetch().' },
         { title: 'Pulse AI Co-pilot', desc: 'Conversational AI with voice output (4 voices, auto-speak), fullscreen mode, GitHub org data connector, streaming responses, and model selector. Powered by Ollama.' },
-        { title: 'Dashboard', desc: 'Tabbed Astro app with seven interactive Chart.js visualizations (zoom/pan, click-to-drill-down), AI inference panel, export reports (PDF / JSONL / Markdown), and built-in help guide.' },
+        { title: 'Dashboard', desc: 'Tabbed Astro app with seven Chart.js charts. Zoom and pan are on the 30-day trend and the portfolio trend. Click-to-drill-down is on the 30-day trend. AI inference panel, export reports (PDF / JSONL / Markdown), and built-in help guide.' },
         { title: 'Desktop', desc: 'WinUI 3 + WebView2 native Windows app. Offline-capable, live stats refresh, CSV export.' },
         { title: 'Six registries', desc: 'npm, PyPI, NuGet, VS Code Marketplace, Docker Hub, and GitHub Releases — all through one interface.' },
         { title: 'Smart Growth', desc: 'Baseline threshold, percentage cap, and damped velocity formula eliminate misleading percentages from small-denominator distortion.' },
@@ -74,7 +74,7 @@ const npm = await stats('npm', 'express');
         {
           title: 'All registries at once',
           code: `const results = await stats.all('express');
-// Successes come back as an array. An invalid name throws RegistryError.`,
+// Successes come back as an array. Failures are on .errors. An invalid name throws RegistryError.`,
         },
         {
           title: 'Time series + trend',
@@ -106,7 +106,7 @@ registry-stats serve --port 3000`,
       subtitle: 'Core functions and utilities.',
       apis: [
         { signature: 'stats(registry, package, options?)', description: 'Fetch stats from a single registry. Returns PackageStats | null.' },
-        { signature: 'stats.all(package)', description: 'Query all registries at once. Returns the successes. An invalid name throws RegistryError.' },
+        { signature: 'stats.all(package)', description: 'Query all registries at once. Returns the successes. A registry that fails is on .errors and is not in that list. An invalid name throws RegistryError.' },
         { signature: 'stats.bulk(registry, packages)', description: 'Fetch stats for multiple packages from one registry, concurrency-limited.' },
         { signature: 'stats.range(registry, package, start, end)', description: 'Fetch daily download counts (npm + PyPI only).' },
         { signature: 'stats.compare(package, registries?)', description: 'Compare the same package across multiple registries side-by-side.' },

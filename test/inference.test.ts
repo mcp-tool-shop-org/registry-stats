@@ -320,6 +320,28 @@ describe('inferPortfolio', () => {
     expect(result.healthScores[0]).toHaveProperty('grade');
     expect(Array.isArray(result.actionableAdvice)).toBe(true);
   });
+
+  it('weights same-named rows by registry instead of the first name match', () => {
+    const npmSeries = [...new Array(23).fill(1), ...new Array(7).fill(100)];
+    const pypiSeries = [...new Array(23).fill(100), ...new Array(7).fill(1)];
+    const npmMomentum = computeMomentum(npmSeries);
+    const pypiMomentum = computeMomentum(pypiSeries);
+    const weighted = Math.round((npmMomentum * 1000 + pypiMomentum * 10) / 1010);
+    const nameOnly = Math.round((npmMomentum * 1000 + pypiMomentum * 1000) / 1010);
+    expect(weighted).not.toBe(nameOnly);
+
+    const result = inferPortfolio([
+      { name: 'express', registry: 'npm', week: 1000, range30: npmSeries, trendPct: 10 },
+      { name: 'express', registry: 'pypi', week: 10, range30: pypiSeries, trendPct: -10 },
+    ]);
+
+    expect(result.portfolioMomentum).toBe(weighted);
+    const pypiHealth = result.healthScores.find((score) => score.registry === 'pypi');
+    const withOwnMomentum = computeHealthScore('express', 'pypi', pypiSeries, pypiMomentum);
+    const withNpmMomentum = computeHealthScore('express', 'pypi', pypiSeries, npmMomentum);
+    expect(withOwnMomentum.score).not.toBe(withNpmMomentum.score);
+    expect(pypiHealth).toEqual(withOwnMomentum);
+  });
 });
 
 // ── diversityTrend (inf-FT02): half-window Gini comparison ─────────
@@ -446,6 +468,21 @@ describe('computeYearlyProgress', () => {
     const result = computeYearlyProgress('test-pkg', 'npm', monthlyHistory);
     expect(result.previousYearTotal).toBe(400);
     expect(result.yoyGrowthPct).toBeGreaterThan(0);
+  });
+
+  it('compares YoY on shared months when the previous year has all 12', () => {
+    const monthlyHistory: Record<string, { week: number; month: number; total: number; lastUpdated: string }> = {};
+    for (let month = 1; month <= 12; month++) {
+      const key = `${prevYear}-${String(month).padStart(2, '0')}`;
+      monthlyHistory[key] = { week: 25, month: 100, total: 100, lastUpdated: '' };
+    }
+    monthlyHistory[`${currentYear}-01`] = { week: 25, month: 100, total: 100, lastUpdated: '' };
+    monthlyHistory[`${currentYear}-02`] = { week: 25, month: 100, total: 200, lastUpdated: '' };
+
+    const result = computeYearlyProgress('flat-pkg', 'npm', monthlyHistory);
+    expect(result.previousYearTotal).toBe(1200);
+    expect(result.currentYearTotal).toBe(200);
+    expect(result.yoyGrowthPct).toBe(0);
   });
 
   it('returns null YoY when no previous year data', () => {
@@ -733,10 +770,15 @@ describe('numerical correctness', () => {
   });
 
   it('segmentTrends keeps only the last 1000 points of a longer series', () => {
-    const long = Array.from({ length: 1001 }, (_, i) => i);
+    const sentinel = -1_000_000;
+    const long = [sentinel, ...Array.from({ length: 1000 }, (_, i) => i + 1)];
+    expect(long).toHaveLength(1001);
     const segments = segmentTrends(long, 5);
-    expect(segments.length).toBeGreaterThan(0);
-    expect(segments[segments.length - 1].end).toBeLessThan(1000);
+    expect(segments).toHaveLength(1);
+    expect(segments[0].start).toBe(0);
+    expect(segments[0].end).toBe(999);
+    expect(segments[0].slope).toBe(1);
+    expect(segments[0].magnitude).toBe(999);
   });
 
   it('segmentTrends correctly labels a perfectly flat series as flat', () => {

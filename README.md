@@ -40,8 +40,8 @@ Zero runtime dependencies. Uses native `fetch()`. Node 18+.
 
 | Layer | What it does |
 |-------|-------------|
-| **Engine** | TypeScript library + CLI + REST server + AI inference. Query six registries — npm, PyPI, NuGet, the VS Code Marketplace, Docker Hub, and GitHub Releases — with one interface. A plain package name queries every built-in registry; GitHub Releases wants an owner/repo slug. Published to npm as `@mcptoolshop/registry-stats`. |
-| **Dashboard** | Astro-powered web app with AI inference panel (health scores, forecasts, actionable advice), Pulse AI co-pilot (streaming voice, web search, fullscreen, GitHub data connectors), seven interactive charts with zoom/pan, live refresh, export reports (PDF / JSONL / Markdown), and tabbed Help guide. Rebuilt daily by CI; refreshable on demand. |
+| **Engine** | TypeScript library + CLI + REST server + AI inference. Query six registries — npm, PyPI, NuGet, the VS Code Marketplace, Docker Hub, and GitHub Releases — with one interface. A plain package name queries npm, PyPI, NuGet, the VS Code Marketplace, and Docker Hub. GitHub Releases is included when the name is owner/repo, or when the registries list names github. Published to npm as `@mcptoolshop/registry-stats`. |
+| **Dashboard** | Astro-powered web app with AI inference panel (health scores, forecasts, actionable advice), Pulse AI co-pilot (streaming voice, web search, fullscreen, GitHub data connectors), seven charts (scroll zoom and pan on the 30-day trend and the portfolio trend only), live refresh, export reports (PDF / JSONL / Markdown), and tabbed Help guide. Daily CI fetches the dashboard data. The site is rebuilt weekly, Mondays 07:00 UTC. |
 | **Desktop** | WinUI 3 + WebView2 native Windows app. Bundles the dashboard offline, fetches live stats on demand. |
 
 ## Dashboard
@@ -50,8 +50,8 @@ A self-updating stats dashboard lives at [`/dashboard/`](https://mcp-tool-shop-o
 
 - **Tabbed interface** — Home, Analytics, Leaderboard, and Help tabs
 - **Pulse AI co-pilot** — Ollama-powered conversational assistant with streaming voice synthesis (speaks as the LLM streams, 4 voices via [mcp-voice-soundboard](https://github.com/mcp-tool-shop-org/mcp-voice-soundboard)), web search (Wikipedia + optional SearXNG), auto-speak, fullscreen mode, GitHub org data connector, model selector, and conversation memory
-- **Executive snapshot** — health score (0–100), diversity index, weekly change, total downloads across all registries
-- **Seven interactive charts** — 30-day trend (aggregate / per-registry / top-5 toggles + click-to-drill-down + scroll zoom/pan), registry share (polar area), portfolio risk (histogram + Gini & P90), top-10 momentum, velocity tracker with sparklines, 30-day heatmap with spike detection (>2σ), and portfolio trend (stacked area, yearly)
+- **Executive snapshot** — health score (0–100), diversity index, and weekly change. The weekly and monthly download sums are npm and PyPI. VS Code, NuGet, Docker, and GitHub contribute their all-time total, not those two sums.
+- **Seven interactive charts** — 30-day trend (aggregate / per-registry / top-5 toggles + click-to-drill-down), registry share (polar area), portfolio risk (histogram + Gini & P90), top-10 momentum, velocity tracker with sparklines, 30-day heatmap with spike detection (>2σ), and portfolio trend (stacked area, yearly). Scroll zoom and pan are on the 30-day trend and the portfolio trend only.
 - **Smart growth engine** — handles small-denominator distortion with baseline threshold, percentage cap, and damped velocity formula
 - **AI Inference Panel** — portfolio momentum (-100 to +100), risk score, 7-day forecast with confidence intervals, automated recommendations, actionable advice with severity/urgency levels, and package health scoreboard (A–F grades)
 - **Actionable advice** — severity-tagged advice cards (critical/warning/info/success) with urgency levels, specific action steps, and affected package lists
@@ -60,7 +60,7 @@ A self-updating stats dashboard lives at [`/dashboard/`](https://mcp-tool-shop-o
 - **Pulse panel** — split view of Established Movers (≥ 50 downloads/wk) and Emerging & New packages, with inline 7-day sparklines, absolute + percentage deltas, baseline context, and a one-line executive summary
 - **Live refresh** — the page re-fetches same-origin `data/stats.json` when that file is newer than the build. It does not call the npm or PyPI APIs from the browser. `sessionStorage` holds the optional GitHub PAT, not a stats cache.
 - **Export reports** — dropdown next to the Refresh button offering three formats: **Exec PDF** (via jsPDF), **LLM JSONL** (typed records for AI ingestion), and **Dev Markdown** (GFM tables)
-- **Leaderboard** — 268 tracked ids in `packages.json` (168 npm, 43 PyPI, 6 VS Code, 27 NuGet, 24 GitHub), ranked by downloads with inline 30-day sparklines and smart trend badges
+- **Leaderboard** — 268 tracked ids in `packages.json` (168 npm, 43 PyPI, 6 VS Code, 27 NuGet, 24 GitHub), ranked by the Downloads column: week for npm and PyPI, all-time for VS Code, NuGet, Docker, and GitHub. The 30-day sparkline is the npm series. Smart trend badges avoid misleading percentages for low-volume packages.
 - **Setup page** — portfolio editor with validation, registry-sync companion section, and pipeline overview
 - **Leaderboard search** — instant text filter for finding packages by name or registry
 - **Keyboard navigation** — arrow keys to cycle between tabs
@@ -104,7 +104,8 @@ const progress = computeYearlyProgress('my-pkg', 'npm', monthlyHistory);
 
 // Full portfolio analysis (now includes health scores + actionable advice)
 const result = inferPortfolio(leaderboard, { gini: 0.6, npmPct: 85 });
-// → { packages, forecastTotal7, riskScore, portfolioMomentum, recommendations, healthScores, actionableAdvice }
+// → { packages, forecastTotal7, riskScore, diversityTrend, portfolioMomentum, recommendations, healthScores, actionableAdvice }
+// diversityTrend is 'improving' | 'stable' | 'declining'
 ```
 
 | Capability | Method | What it does |
@@ -206,7 +207,7 @@ Create a `registry-stats.config.json` in your project root (or run `registry-sta
 }
 ```
 
-Run `registry-stats` with no arguments to fetch stats for all configured packages. The CLI walks up from cwd to find the nearest config file. The `registries` array above is the default five. Add `"github"` to include GitHub Releases; those packages are `owner/repo` slugs. With no config file, a package query uses every built-in registry, and GitHub reports an error for a name that is not a slug.
+Run `registry-stats` with no arguments to fetch stats for all configured packages. The CLI walks up from cwd to find the nearest config file. The `registries` array above is the default five. Add `"github"` to include GitHub Releases; those packages are `owner/repo` slugs. With no config file, a package query uses every built-in registry except GitHub Releases, unless the name is owner/repo. Naming github in the registries list still queries it, and a plain name is then an error from that registry.
 
 The config is also available programmatically:
 
@@ -230,8 +231,8 @@ const nuget = await stats('nuget', 'Newtonsoft.Json');
 const vscode = await stats('vscode', 'esbenp.prettier-vscode');
 const docker = await stats('docker', 'library/node');
 
-// All registries at once. Provider failures stay off the success list.
-// An invalid name throws RegistryError before any request.
+// All registries at once. Provider failures stay off the success list
+// and are listed on .errors. An invalid name throws RegistryError before any request.
 const all = await stats.all('express');
 
 // Bulk — multiple packages, concurrency-limited (default: 5)
@@ -275,6 +276,7 @@ await stats('npm', 'express', { cache });  // cache hit
 | `nuget` | `Newtonsoft.Json` | No | total |
 | `vscode` | `publisher.extension` | No | total (installs), rating, trends |
 | `docker` | `namespace/repo` | No | total (pulls), stars |
+| `github` | `owner/repo` | No | total (asset downloads), releases, assets, latest tag |
 
 ## Built-in Reliability
 

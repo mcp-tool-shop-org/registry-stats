@@ -277,7 +277,7 @@ describe('CLI main (in process)', () => {
     expect(h.createCache).not.toHaveBeenCalled();
     const opts = h.stats.mock.calls[0][2] as Record<string, unknown>;
     expect(opts.cache).toBeUndefined();
-    expect(opts.registries).toBeUndefined();
+    expect(opts.registries).toEqual([]);
     expect(opts.githubToken).toBeUndefined();
     expect(h.stats).toHaveBeenCalledWith('pypi', 'left-pad', opts);
   });
@@ -346,7 +346,9 @@ describe('CLI main (in process)', () => {
       errors: [{ registry: 'nuget', statusCode: 0, message: 'x' }],
     });
     const warned = await invoke(['left-pad', '--compare', '--json']);
+    expect(warned.code).toBe(0);
     expect(warned.stdout).toContain('"registries"');
+    expect(warned.stdout).toContain('"errors"');
     expect(warned.stderr).toContain('failed to fetch nuget');
 
     h.stats.compare.mockResolvedValue({
@@ -358,6 +360,30 @@ describe('CLI main (in process)', () => {
     expect(empty.code).toBe(1);
     expect(empty.stderr).toContain('not found on any registry');
     expect(h.stats.compare).toHaveBeenCalledWith('left-pad', ['npm'], expect.anything());
+
+    // F-a12ff03e: --json must not print a success object for an empty comparison.
+    h.stats.compare.mockResolvedValue({
+      package: 'left-pad',
+      registries: {},
+      fetchedAt: full.fetchedAt,
+      errors: [],
+    });
+    const emptyJson = await invoke(['left-pad', '--compare', '--json']);
+    expect(emptyJson.code).toBe(1);
+    expect(emptyJson.stderr).toContain('not found on any registry');
+    expect(emptyJson.stdout.trim()).toBe('');
+
+    h.stats.compare.mockResolvedValue({
+      package: 'left-pad',
+      registries: {},
+      fetchedAt: full.fetchedAt,
+      errors: [{ registry: 'npm', statusCode: 503, message: 'down' }],
+    });
+    const missed = await invoke(['left-pad', '--compare', '--json']);
+    expect(missed.code).toBe(1);
+    expect(missed.stderr).toContain('failed to fetch npm');
+    expect(missed.stderr).toContain('not found on any registry');
+    expect(missed.stdout.trim()).toBe('');
   });
 
   it('prints a range as a table, csv, chart, or json, and rejects a bad range', async () => {

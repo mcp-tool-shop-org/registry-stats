@@ -25,6 +25,20 @@ afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
+/** The pypi gap is 2.2s. If the first of the pair rejects, the second call is still queued. */
+function trackPypiFetches(): { fetches: number; drain: () => Promise<void> } {
+  const gate = {
+    fetches: 0,
+    async drain() {
+      const start = Date.now();
+      while (gate.fetches < 2 && Date.now() - start < 3_000) {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+    },
+  };
+  return gate;
+}
+
 describe('pypi provider (mocked)', () => {
   it('getStats returns structured result for valid package', async () => {
     mockFetch(async (url) => {
@@ -83,6 +97,56 @@ describe('pypi provider (mocked)', () => {
 
     const result = await pypi.getStats('empty-pkg');
     expect(result!.downloads.total).toBe(0);
+  });
+
+  it('keeps recent downloads when the overall request fails', async () => {
+    const gate = trackPypiFetches();
+    mockFetch(async (url) => {
+      gate.fetches += 1;
+      if (url.includes('/overall')) return { status: 400, body: { message: 'overall down' } };
+      return {
+        status: 200,
+        body: { data: { last_day: 3, last_week: 9, last_month: 40 }, package: 'requests', type: 'recent_downloads' },
+      };
+    });
+
+    try {
+      const result = await pypi.getStats('requests');
+      expect(result).not.toBeNull();
+      expect(result!.downloads.lastDay).toBe(3);
+      expect(result!.downloads.lastWeek).toBe(9);
+      expect(result!.downloads.lastMonth).toBe(40);
+      expect(result!.downloads.total).toBeUndefined();
+    } finally {
+      await gate.drain();
+    }
+  });
+
+  it('keeps the overall total when the recent request fails', async () => {
+    const gate = trackPypiFetches();
+    mockFetch(async (url) => {
+      gate.fetches += 1;
+      if (url.includes('/recent')) return { status: 400, body: { message: 'recent down' } };
+      return {
+        status: 200,
+        body: {
+          data: [{ category: 'without_mirrors', date: '2025-01-01', downloads: 12 }],
+          package: 'requests',
+          type: 'overall_downloads',
+        },
+      };
+    });
+
+    try {
+      const result = await pypi.getStats('requests');
+      expect(result).not.toBeNull();
+      expect(result!.downloads.total).toBe(12);
+      expect(result!.downloads.lastDay).toBeUndefined();
+      expect(result!.downloads.lastWeek).toBeUndefined();
+      expect(result!.downloads.lastMonth).toBeUndefined();
+    } finally {
+      await gate.drain();
+    }
   });
 
   it('getStats returns null when both endpoints return 404', async () => {

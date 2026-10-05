@@ -11,7 +11,7 @@ The dashboard is a self-updating stats application deployed to GitHub Pages.
 
 - **Tabbed interface** — Home, Analytics, Leaderboard, and Help tabs
 - **Executive snapshot** — health score (0-100), diversity index, weekly change, total downloads
-- **Seven interactive charts** — 30-day trend (aggregate / per-registry / top-5 toggles + click-to-drill-down + scroll zoom/pan), registry share (polar area), portfolio risk (histogram + Gini & P90), top-10 momentum, velocity tracker with sparklines, 30-day heatmap with spike detection (>2σ), and portfolio trend (stacked area, yearly)
+- **Seven interactive charts** — 30-day trend (aggregate / per-registry / top-5 toggles + click-to-drill-down), registry share (polar area), portfolio risk (histogram + Gini & P90), top-10 momentum, velocity tracker with sparklines, 30-day heatmap with spike detection (>2σ), and portfolio trend (stacked area, yearly). Scroll zoom and pan are on the 30-day trend and the portfolio trend only.
 - **AI Inference Panel** — portfolio momentum, risk score, 7-day forecast, automated recommendations, actionable advice with severity/urgency levels, and package health scoreboard (A-F grades)
 - **Actionable advice** — severity-tagged cards (critical/warning/info/success) with urgency levels, specific action steps, and affected package lists
 - **Package health scores** — 0-100 composite score (activity + consistency + growth + stability) with letter grades per package
@@ -55,13 +55,11 @@ The dashboard handles small-denominator distortion with:
 
 ## Interactive charts
 
-All Chart.js charts support:
+Scroll zoom, drag pan, and pinch zoom are on the 30-day trend chart and the portfolio trend chart (chartjs-plugin-zoom and Hammer.js). Registry share, the portfolio risk histogram, and the top-10 chart do not zoom.
 
-- **Scroll zoom/pan** — mouse wheel to zoom, drag to pan (via chartjs-plugin-zoom)
-- **Pinch zoom** — touch devices supported via Hammer.js
-- **Reset Zoom** button to return to default view
-- **Click-to-drill-down** — click the trend chart to cycle through aggregate, per-registry, and top-5 modes
-- **Anomaly tooltips** — hover over anomaly markers for z-score details
+- **Reset Zoom** is on the 30-day trend chart only
+- **Click-to-drill-down** — click the 30-day trend chart to cycle through aggregate, per-registry, and top-5 modes
+- **Anomaly tooltips** — hover over anomaly markers on that trend chart for z-score details
 
 ## Data pipeline
 

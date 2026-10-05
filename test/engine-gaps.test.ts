@@ -110,16 +110,24 @@ describe('stats.range without a cache', () => {
 
 describe('createCache limits', () => {
   it('sweeps expired entries on write and drops the oldest past 1000', () => {
-    const cache = createCache();
-    cache.set('old', point, -1);
-    cache.set('fresh', point, 60_000);
-    expect(cache.get('old')).toBeUndefined();
-    expect(cache.get('fresh')).toEqual(point);
+    const swept = createCache();
+    swept.set('live', point, 60_000);
+    swept.set('expired', point, -1);
+    for (let i = 0; i < 999; i++) {
+      swept.set(`n${i}`, { ...point, package: `n${i}` } as PackageStats, 60_000);
+    }
+    expect(swept.get('live')).toEqual(point);
+    expect(swept.get('n0')?.package).toBe('n0');
+    expect(swept.get('n998')?.package).toBe('n998');
 
+    const cache = createCache();
+    cache.set('fresh', point, 60_000);
     for (let i = 0; i < 1001; i++) {
       cache.set(`k${i}`, { ...point, package: `p${i}` } as PackageStats, 60_000);
     }
     expect(cache.get('fresh')).toBeUndefined();
+    expect(cache.get('k0')).toBeUndefined();
+    expect(cache.get('k1')?.package).toBe('p1');
     expect(cache.get('k1000')?.package).toBe('p1000');
   });
 });

@@ -1,4 +1,5 @@
 import type { RegistryProvider, PackageStats } from '../types.js';
+import { RegistryError } from '../types.js';
 import { fetchWithRetry } from '../fetch.js';
 
 const SEARCH_API = 'https://azuresearch-usnc.nuget.org/query';
@@ -17,9 +18,12 @@ export const nuget: RegistryProvider = {
     }>(url, 'nuget');
 
     if (!json) return null;
+    if (!Array.isArray(json.data)) {
+      throw new RegistryError('nuget', 502, 'nuget response did not include a data array');
+    }
 
     const match = json.data.find(
-      (d) => d.id.toLowerCase() === pkg.toLowerCase(),
+      (d) => typeof d?.id === 'string' && d.id.toLowerCase() === pkg.toLowerCase(),
     );
 
     if (!match) return null;

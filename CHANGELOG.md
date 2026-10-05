@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `registry-stats --json` exits 1 when every configured package misses, same as the table. The dashboard help describes the JSON portfolio, the Data Health marks, and a desktop reload. A registry filled from the previous snapshot is partial, not ok.
 - Shared PDF and Markdown reports show the all-time total for VS Code, NuGet, Docker, and GitHub. A package is marked New only when its row says so. The handbook says an empty `GET /stats/:package` body plus `X-Registry-Errors` is an outage.
 - The weekly share chart and the 30-day per-registry lines stay on npm and PyPI. The leaderboard order matches the Downloads column. A VS Code marketplace hit is kept only when the id matches. The desktop refresh names the portfolio fetch, and a failed refresh shows the stored cause. The bundled dashboard fills the Total column from the snapshot.
+- `registry-stats <pkg> --compare --json` exits 1 when every registry misses. A plain package name skips GitHub Releases unless the name is `owner/repo`. Weekly and monthly dashboard totals are labeled npm and PyPI. The breakdown chart no longer calls the all-time bars weekly. Help no longer says every package is ranked by weekly downloads.
 
 ### Changed
 - Dashboard (`site/`, not published): each fetch phase has a 6-minute budget and the whole fetch 30 minutes. A rate-limited registry falls back to its previous stats, marked stale, instead of holding the deploy for an hour.

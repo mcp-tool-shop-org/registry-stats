@@ -109,10 +109,12 @@ describe('github provider (mocked)', () => {
     }));
     let auth: string | undefined;
     const urls: string[] = [];
+    const seenHeaders: Record<string, string>[] = [];
     globalThis.fetch = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
       urls.push(url);
       const headers = init?.headers as Record<string, string> | undefined;
+      if (headers) seenHeaders.push(headers);
       auth = headers?.Authorization;
       const status = url.includes('page=2') ? 404 : 200;
       const body = url.includes('page=2') ? { message: 'missing' } : page;
@@ -127,11 +129,55 @@ describe('github provider (mocked)', () => {
 
     const result = await settleGithub(() => github.getStats('owner/repo', { githubToken: 'gh-token' }));
     expect(auth).toBe('Bearer gh-token');
+    expect(seenHeaders.length).toBeGreaterThan(0);
+    for (const headers of seenHeaders) {
+      expect(headers['User-Agent']).toBe('registry-stats');
+      expect(headers.Accept).toBe('application/vnd.github+json');
+      expect(headers['X-GitHub-Api-Version']).toBe('2022-11-28');
+    }
     expect(urls.some((url) => url.includes('page=1'))).toBe(true);
     expect(urls.some((url) => url.includes('page=2'))).toBe(true);
     expect(result).not.toBeNull();
     expect(result!.downloads.total).toBe(98);
     expect(result!.extra).toMatchObject({ releases: 100, latestTag: 'v1' });
+  });
+
+  it('requests at most 10 full pages when a token makes the gap 800ms', async () => {
+    const urls: string[] = [];
+    let headers: Record<string, string> | undefined;
+    globalThis.fetch = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      urls.push(url);
+      headers = init?.headers as Record<string, string> | undefined;
+      const page = Number(new URL(url).searchParams.get('page'));
+      const body = page <= 10
+        ? Array.from({ length: 100 }, (_, i) => ({
+          tag_name: `v${page}.${i}`,
+          published_at: null,
+          assets: [{ name: 'a', download_count: 1 }],
+        }))
+        : [];
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        headers: { get: () => null },
+        json: async () => body,
+      } as unknown as Response;
+    });
+
+    const result = await settleGithub(() => github.getStats('owner/repo', { githubToken: 'gh-token' }));
+    expect(urls.map((url) => new URL(url).searchParams.get('page'))).toEqual(
+      ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
+    );
+    expect(headers).toMatchObject({
+      'User-Agent': 'registry-stats',
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      Authorization: 'Bearer gh-token',
+    });
+    expect(result).not.toBeNull();
+    expect(result!.downloads.total).toBe(1000);
   });
 
   it('is registered and reachable via stats()', async () => {

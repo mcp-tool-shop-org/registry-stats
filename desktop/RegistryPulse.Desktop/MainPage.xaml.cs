@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using RegistryPulse.Desktop.Services;
 #if WINDOWS
@@ -285,7 +286,7 @@ public partial class MainPage : ContentPage, IDisposable
                         using (JsonDocument.Parse(content)) { } // Throws if not valid JSON
 
                         Directory.CreateDirectory(ConfigDir);
-                        await File.WriteAllTextAsync(PackagesPath, content);
+                        await StatsService.WriteAtomicAsync(PackagesPath, Encoding.UTF8.GetBytes(content));
                         sender.PostWebMessageAsJson(JsonSerializer.Serialize(new { action = "saveResult", ok = true }));
                     }
                     catch (Exception ex)
@@ -439,15 +440,19 @@ public partial class MainPage : ContentPage, IDisposable
                     new { action = "fetchProgress", line = "Refreshing…" }));
 
                 var success = await _stats.RefreshAsync();
+                var failure = success ? null : _stats.LastError;
 
                 core.PostWebMessageAsJson(JsonSerializer.Serialize(
-                    new { action = "fetchComplete", ok = success }));
+                    new { action = "fetchComplete", ok = success, error = failure }));
 
                 if (success)
                     core.Reload();
                 else
                     await DisplayAlertAsync("Refresh Failed",
-                        "Could not fetch fresh stats. Showing cached data.", "OK");
+                        string.IsNullOrWhiteSpace(failure)
+                            ? "Could not fetch fresh stats. Showing cached data."
+                            : "Could not fetch fresh stats. Showing cached data. " + failure,
+                        "OK");
             }
         }
 #endif

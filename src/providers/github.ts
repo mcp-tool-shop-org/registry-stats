@@ -1,6 +1,6 @@
 import type { RegistryProvider, PackageStats, StatsOptions } from '../types.js';
 import { RegistryError } from '../types.js';
-import { fetchWithRetry } from '../fetch.js';
+import { fetchWithRetry, type ResponseCapture } from '../fetch.js';
 
 const API = 'https://api.github.com/repos';
 const PER_PAGE = 100;
@@ -17,6 +17,18 @@ interface GitHubRelease {
   tag_name: string;
   published_at: string | null;
   assets: GitHubAsset[];
+}
+
+/** True when a GitHub Link header lists rel=next (or the given rel). */
+function linkHasRel(header: string | null, rel: string): boolean {
+  if (!header) return false;
+  for (const part of header.split(',')) {
+    const quoted = /rel="([^"]+)"/i.exec(part);
+    const bare = /rel=([^;,\s]+)/i.exec(part);
+    const value = quoted?.[1] ?? bare?.[1];
+    if (value?.split(/\s+/).includes(rel)) return true;
+  }
+  return false;
 }
 
 /**
@@ -62,9 +74,12 @@ export const github: RegistryProvider = {
     let latestTag: string | undefined;
     let found = false;
 
+    let truncated = false;
+
     for (let page = 1; page <= MAX_PAGES; page++) {
       const url = `${API}/${safe}/releases?per_page=${PER_PAGE}&page=${page}`;
-      const releases = await fetchWithRetry<GitHubRelease[]>(url, 'github', { headers });
+      const capture: ResponseCapture = { status: 0, headers: new Headers() };
+      const releases = await fetchWithRetry<GitHubRelease[]>(url, 'github', { headers }, capture);
 
       // 404 on the first page means the repo doesn't exist (vs. an existing repo
       // with zero releases, which returns an empty array and a valid total of 0).
@@ -72,19 +87,35 @@ export const github: RegistryProvider = {
         if (page === 1) return null;
         break;
       }
+      if (!Array.isArray(releases)) {
+        throw new RegistryError('github', 502, `Releases response was not an array — ${url}`);
+      }
       found = true;
       if (releases.length === 0) break;
 
       for (const rel of releases) {
+        if (!rel || typeof rel !== 'object') continue;
         releaseCount++;
         if (latestTag === undefined && rel.tag_name) latestTag = rel.tag_name;
-        for (const asset of rel.assets ?? []) {
+        const assets = Array.isArray(rel.assets) ? rel.assets : [];
+        for (const asset of assets) {
           assetCount++;
-          totalDownloads += typeof asset.download_count === 'number' ? asset.download_count : 0;
+          totalDownloads += typeof asset?.download_count === 'number' ? asset.download_count : 0;
         }
       }
 
-      if (releases.length < PER_PAGE) break;
+      // Link rel="next" wins over the page length. A full page with no Link
+      // header may have more. Stopping at MAX_PAGES in either case is a
+      // partial sum, marked truncated instead of a complete total.
+      const link = capture.headers.get('link');
+      const hasNext = linkHasRel(link, 'next');
+      const linkPresent = typeof link === 'string' && link.length > 0;
+      const more = hasNext || (!linkPresent && releases.length >= PER_PAGE);
+      if (!more) break;
+      if (page === MAX_PAGES) {
+        truncated = true;
+        break;
+      }
     }
 
     if (!found) return null;
@@ -99,6 +130,7 @@ export const github: RegistryProvider = {
         releases: releaseCount,
         assets: assetCount,
         latestTag,
+        ...(truncated ? { truncated: true } : {}),
       },
       fetchedAt: new Date().toISOString(),
     };

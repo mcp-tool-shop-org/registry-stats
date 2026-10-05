@@ -1,4 +1,4 @@
-import { describe, it, expect, afterAll, vi, beforeEach } from 'vitest';
+import { describe, it, expect, afterAll, afterEach, beforeAll, vi } from 'vitest';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { createHandler, createRateLimiter } from '../src/server.js';
 
@@ -76,13 +76,22 @@ function startTestServer(handlerOpts?: Parameters<typeof createHandler>[0]) {
 
 let testServer: Awaited<ReturnType<typeof startTestServer>>;
 
+beforeAll(async () => {
+  // The file issues dozens of GETs on one limiter. A high cap keeps a new
+  // case, or a retry, from turning a later 200 into an unrelated 429.
+  testServer = await startTestServer({ rateLimitMax: 10_000 });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 afterAll(() => {
   testServer?.server.close();
 });
 
 describe('REST API server', () => {
   it('returns endpoint list at /', async () => {
-    testServer = await startTestServer();
     const res = await fetch(`http://localhost:${testServer.port}/`);
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -125,11 +134,17 @@ describe('REST API server', () => {
   });
 
   it('compares a package across registries', async () => {
+    const compare = vi.spyOn(stats, 'compare');
     const res = await fetch(`http://localhost:${testServer.port}/compare/express?registries=npm`);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.package).toBe('express');
     expect(body.registries).toBeDefined();
+    expect(compare).toHaveBeenCalledWith('express', ['npm'], expect.anything());
+
+    const both = await fetch(`http://localhost:${testServer.port}/compare/express?registries=npm,pypi`);
+    expect(both.status).toBe(200);
+    expect(compare).toHaveBeenLastCalledWith('express', ['npm', 'pypi'], expect.anything());
   });
 
   it('keeps a scoped npm name intact on compare and on all-registries', async () => {
@@ -227,6 +242,27 @@ describe('GET /range success paths', () => {
     expect(body.labels).toBeInstanceOf(Array);
     expect(body.datasets).toBeInstanceOf(Array);
     expect(body.datasets[0].data).toBeInstanceOf(Array);
+  });
+
+  it('decodes percent-encoded package and registry segments the way /stats does', async () => {
+    const range = vi.spyOn(stats, 'range');
+    const scoped = await fetch(
+      `http://127.0.0.1:${testServer.port}/range/npm/@scope%2Fname?start=2025-01-01&end=2025-01-07`,
+    );
+    expect(scoped.status).toBe(200);
+    expect(range).toHaveBeenCalledWith('npm', '@scope/name', '2025-01-01', '2025-01-07', expect.anything());
+
+    const encodedRegistry = await fetch(
+      `http://127.0.0.1:${testServer.port}/range/%6epm/express?start=2025-01-01&end=2025-01-07`,
+    );
+    expect(encodedRegistry.status).toBe(200);
+    expect(range).toHaveBeenLastCalledWith('npm', 'express', '2025-01-01', '2025-01-07', expect.anything());
+
+    const statsRes = await fetch(`http://127.0.0.1:${testServer.port}/stats/%6epm/express`);
+    expect(statsRes.status).toBe(200);
+    const body = await statsRes.json();
+    expect(body.registry).toBe('npm');
+    expect(body.package).toBe('express');
   });
 });
 
@@ -441,6 +477,16 @@ describe('malformed query string handling', () => {
     } finally {
       process.off('unhandledRejection', onUnhandled);
     }
+  });
+
+  it('returns 400 Malformed URL for a bad percent-sequence in a path segment', async () => {
+    const statsRes = await fetch(`http://127.0.0.1:${testServer.port}/stats/%`);
+    expect(statsRes.status).toBe(400);
+    expect(await statsRes.json()).toEqual({ error: 'Malformed URL' });
+
+    const compareRes = await fetch(`http://127.0.0.1:${testServer.port}/compare/%ZZ`);
+    expect(compareRes.status).toBe(400);
+    expect(await compareRes.json()).toEqual({ error: 'Malformed URL' });
   });
 });
 

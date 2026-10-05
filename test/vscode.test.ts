@@ -27,25 +27,32 @@ afterEach(() => {
 
 describe('vscode provider (mocked)', () => {
   it('getStats returns structured result for valid extension', async () => {
-    mockFetch(async () => ({
-      status: 200,
-      body: {
-        results: [{
-          extensions: [{
-            extensionName: 'prettier-vscode',
-            publisher: { publisherName: 'esbenp' },
-            displayName: 'Prettier',
-            statistics: [
-              { statisticName: 'install', value: 30000000 },
-              { statisticName: 'averagerating', value: 4.5 },
-              { statisticName: 'ratingcount', value: 1000 },
-            ],
+    let posted: { filters?: { criteria?: { filterType?: number; value?: string }[] }[]; flags?: number } | undefined;
+    mockFetch(async (_url, init) => {
+      posted = JSON.parse(String(init?.body));
+      return {
+        status: 200,
+        body: {
+          results: [{
+            extensions: [{
+              extensionName: 'prettier-vscode',
+              publisher: { publisherName: 'esbenp' },
+              displayName: 'Prettier',
+              statistics: [
+                { statisticName: 'install', value: 30000000 },
+                { statisticName: 'averagerating', value: 4.5 },
+                { statisticName: 'ratingcount', value: 1000 },
+              ],
+            }],
           }],
-        }],
-      },
-    }));
+        },
+      };
+    });
 
     const result = await vscode.getStats('esbenp.prettier-vscode');
+    expect(posted?.filters?.[0]?.criteria?.[0]?.filterType).toBe(7);
+    expect(posted?.filters?.[0]?.criteria?.[0]?.value).toBe('esbenp.prettier-vscode');
+    expect((posted?.flags ?? 0) & 0x100).toBe(0x100);
     expect(result).not.toBeNull();
     expect(result!.registry).toBe('vscode');
     expect(result!.package).toBe('esbenp.prettier-vscode');
@@ -64,21 +71,27 @@ describe('vscode provider (mocked)', () => {
   });
 
   it('getStats returns null when the first hit is a different extension', async () => {
-    mockFetch(async () => ({
-      status: 200,
-      body: {
-        results: [{
-          extensions: [{
-            extensionName: 'other',
-            publisher: { publisherName: 'someone' },
-            displayName: 'Other',
-            statistics: [{ statisticName: 'install', value: 9 }],
+    let posted: { filters?: { criteria?: { value?: string }[] }[]; flags?: number } | undefined;
+    mockFetch(async (_url, init) => {
+      posted = JSON.parse(String(init?.body));
+      return {
+        status: 200,
+        body: {
+          results: [{
+            extensions: [{
+              extensionName: 'other',
+              publisher: { publisherName: 'someone' },
+              displayName: 'Other',
+              statistics: [{ statisticName: 'install', value: 9 }],
+            }],
           }],
-        }],
-      },
-    }));
+        },
+      };
+    });
 
     const result = await vscode.getStats('esbenp.prettier-vscode');
+    expect(posted?.filters?.[0]?.criteria?.[0]?.value).toBe('esbenp.prettier-vscode');
+    expect((posted?.flags ?? 0) & 0x100).toBe(0x100);
     expect(result).toBeNull();
   });
 

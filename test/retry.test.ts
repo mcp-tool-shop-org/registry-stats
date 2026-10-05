@@ -125,8 +125,41 @@ describe('fetchWithRetry', () => {
       headers: { 'Content-Type': 'application/json' },
       body: '{}',
     }));
-    // Verify AbortSignal.timeout is merged in
-    const callArgs = mock.mock.calls[0][1] as any;
-    expect(callArgs.signal).toBeDefined();
+  });
+
+  it('aborts the fetch signal from the caller signal and from the 30s timeout', async () => {
+    const mock = mockFetch([{ status: 200, body: {} }]);
+    const timeout = new AbortController();
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout').mockImplementation((ms: number) => {
+      expect(ms).toBe(30_000);
+      return timeout.signal;
+    });
+    try {
+      const caller = new AbortController();
+      await fetchWithRetry('https://example.com', 'npm', { signal: caller.signal });
+      const fetchSignal = (mock.mock.calls[0][1] as RequestInit).signal as AbortSignal;
+      expect(fetchSignal.aborted).toBe(false);
+      expect(caller.signal.aborted).toBe(false);
+      caller.abort();
+      expect(fetchSignal.aborted).toBe(true);
+
+      timeoutSpy.mockClear();
+      mock.mockClear();
+      const callerLive = new AbortController();
+      const timeoutFired = new AbortController();
+      timeoutSpy.mockImplementation((ms: number) => {
+        expect(ms).toBe(30_000);
+        return timeoutFired.signal;
+      });
+      await fetchWithRetry('https://example.com', 'npm', { signal: callerLive.signal });
+      const merged = (mock.mock.calls[0][1] as RequestInit).signal as AbortSignal;
+      expect(callerLive.signal.aborted).toBe(false);
+      expect(merged.aborted).toBe(false);
+      timeoutFired.abort();
+      expect(merged.aborted).toBe(true);
+      expect(callerLive.signal.aborted).toBe(false);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
   });
 });

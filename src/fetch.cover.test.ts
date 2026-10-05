@@ -156,13 +156,10 @@ describe('fetch edges', () => {
     await expect(fetchDirect('https://example.test/merge', 'npm', { signal: user.signal })).resolves.toEqual({ ok: true });
 
     user.abort();
-    let sawAborted = false;
-    globalThis.fetch = vi.fn(async (_input: unknown, init?: RequestInit) => {
-      sawAborted = init?.signal?.aborted === true;
-      return response(200, { ok: true });
-    });
-    await expect(fetchDirect('https://example.test/merge-aborted', 'npm', { signal: user.signal })).resolves.toEqual({ ok: true });
-    expect(sawAborted).toBe(true);
+    const fetchMock = vi.fn(async () => response(200, { ok: true }));
+    globalThis.fetch = fetchMock;
+    await expect(fetchDirect('https://example.test/merge-aborted', 'npm', { signal: user.signal })).rejects.toBeInstanceOf(RegistryError);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('wraps a non-Error fetch failure as a network error', async () => {

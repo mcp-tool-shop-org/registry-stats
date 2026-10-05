@@ -52,6 +52,36 @@ describe('nuget provider (mocked)', () => {
     const result = await nuget.getStats('NonexistentPackage');
     expect(result).toBeNull();
   });
+
+  it('encodes packageid and returns null when the hit is a different id', async () => {
+    const pkg = 'a&b c..d';
+    let captured = '';
+    mockFetch(async (url) => {
+      captured = url;
+      return {
+        status: 200,
+        body: {
+          data: [{ id: pkg, totalDownloads: 4, version: '1.2.3' }],
+        },
+      };
+    });
+
+    const result = await nuget.getStats(pkg);
+    const query = new URL(captured).searchParams;
+    expect(query.get('q')).toBe(`packageid:${pkg}`);
+    expect(captured).toContain(`packageid:${encodeURIComponent(pkg)}`);
+    expect(captured).not.toContain('packageid:a&b');
+    expect(result).not.toBeNull();
+    expect(result!.downloads.total).toBe(4);
+
+    mockFetch(async () => ({
+      status: 200,
+      body: {
+        data: [{ id: 'Other.Package', totalDownloads: 9, version: '1.0.0' }],
+      },
+    }));
+    expect(await nuget.getStats('Newtonsoft.Json')).toBeNull();
+  });
 });
 
 describe('nuget provider (live)', () => {

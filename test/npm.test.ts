@@ -28,26 +28,39 @@ afterEach(() => {
 
 describe('npm provider (mocked)', () => {
   it('getStats returns structured result for valid package', async () => {
-    mockFetch(async () => ({
-      status: 200,
-      body: {
-        downloads: Array.from({ length: 30 }, (_, i) => ({
-          day: `2025-01-${String(i + 1).padStart(2, '0')}`,
-          downloads: 1000 + i,
-        })),
-        start: '2025-01-01',
-        end: '2025-01-30',
-        package: 'express',
-      },
+    let captured = '';
+    const days = Array.from({ length: 30 }, (_, i) => ({
+      day: `2025-01-${String(i + 1).padStart(2, '0')}`,
+      downloads: 1000 + i,
     }));
+    mockFetch(async (url) => {
+      captured = url;
+      return {
+        status: 200,
+        body: {
+          downloads: days,
+          start: '2025-01-01',
+          end: '2025-01-30',
+          package: 'express',
+        },
+      };
+    });
+
+    const now = new Date();
+    const end = now.toISOString().slice(0, 10);
+    const startDate = new Date(now);
+    startDate.setUTCDate(startDate.getUTCDate() - 29);
+    const start = startDate.toISOString().slice(0, 10);
 
     const result = await npm.getStats('express');
+    expect(captured).toContain(`/range/${start}:${end}/express`);
     expect(result).not.toBeNull();
     expect(result!.registry).toBe('npm');
     expect(result!.package).toBe('express');
+    // Last mocked day, sum of the last 7 (1023..1029), sum of all 30 (1000..1029).
     expect(result!.downloads.lastDay).toBe(1029);
-    expect(result!.downloads.lastWeek).toBeGreaterThan(0);
-    expect(result!.downloads.lastMonth).toBeGreaterThan(0);
+    expect(result!.downloads.lastWeek).toBe(7182);
+    expect(result!.downloads.lastMonth).toBe(30435);
     expect(result!.fetchedAt).toBeTruthy();
   });
 
@@ -136,19 +149,33 @@ describe('npm provider (mocked)', () => {
     expect(capturedUrl).toContain(encodeURIComponent('x/../../-/v1/search?text=foo'));
   });
 
-  it('npmBulkPoint batches requests when exceeding 128 packages', async () => {
-    const packages = Array.from({ length: 200 }, (_, i) => `pkg-${i}`);
-    const bulkBody: Record<string, unknown> = {};
-    for (const p of packages) {
-      bulkBody[p] = { downloads: 1, start: '2025-01-01', end: '2025-01-31', package: p };
-    }
+  it('npmBulkPoint batches at 128 names and puts only the remainder on the second call', async () => {
+    const names128 = Array.from({ length: 128 }, (_, i) => `pkg-${i}`);
+    const names129 = [...names128, 'pkg-128'];
+    const urls: string[] = [];
 
-    mockFetch(async () => ({ status: 200, body: bulkBody }));
+    mockFetch(async (url) => {
+      urls.push(url);
+      const joined = new URL(url).pathname.split('/point/last-month/')[1] ?? '';
+      const body: Record<string, unknown> = {};
+      for (const name of joined.split(',').filter(Boolean)) {
+        const decoded = decodeURIComponent(name);
+        body[decoded] = { downloads: 1, start: '2025-01-01', end: '2025-01-31', package: decoded };
+      }
+      return { status: 200, body };
+    });
 
-    const result = await npmBulkPoint(packages);
-    // Should have called fetch twice (128 + 72)
-    expect((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(2);
-    expect(result.size).toBeGreaterThan(0);
+    const one = await npmBulkPoint(names128);
+    expect(urls).toHaveLength(1);
+    expect(batchNames(urls[0])).toEqual(names128);
+    expect(one.size).toBe(128);
+
+    urls.length = 0;
+    const two = await npmBulkPoint(names129);
+    expect(urls).toHaveLength(2);
+    expect(batchNames(urls[0])).toEqual(names129.slice(0, 128));
+    expect(batchNames(urls[1])).toEqual(['pkg-128']);
+    expect(two.size).toBe(129);
   });
 
   it('URL-encodes scoped package names in API path', async () => {
@@ -161,6 +188,11 @@ describe('npm provider (mocked)', () => {
     await npm.getStats('@scope/name');
   });
 });
+
+function batchNames(url: string): string[] {
+  const joined = new URL(url).pathname.split('/point/last-month/')[1] ?? '';
+  return joined.split(',').filter(Boolean).map((name) => decodeURIComponent(name));
+}
 
 describe('npm provider (live)', () => {
   liveIt('fetches stats for a known package', async () => {

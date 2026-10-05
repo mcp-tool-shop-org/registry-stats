@@ -161,6 +161,35 @@ public class StatsServiceTests
     }
 
     [Fact]
+    public async Task RefreshAsync_RecordsBothThrownFetchesInOneBatch()
+    {
+        var root = TempRoot();
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(root, "RegistryPulse", "config"));
+            await File.WriteAllTextAsync(
+                Path.Combine(root, "RegistryPulse", "config", "packages.json"),
+                """{"npm":["alpha-pkg","beta-pkg"]}""");
+
+            var service = new StatsService(root, new OverlapThrowHandler());
+            Directory.CreateDirectory(Path.GetDirectoryName(service.CachePath)!);
+            await File.WriteAllTextAsync(service.CachePath, """{"kept":true}""");
+
+            var result = await service.RefreshAsync();
+
+            Assert.False(result);
+            Assert.NotNull(service.LastError);
+            Assert.Contains("npm:alpha-pkg:", service.LastError, StringComparison.Ordinal);
+            Assert.Contains("npm:beta-pkg:", service.LastError, StringComparison.Ordinal);
+            Assert.Equal("""{"kept":true}""", await File.ReadAllTextAsync(service.CachePath));
+        }
+        finally
+        {
+            DeleteTemp(root);
+        }
+    }
+
+    [Fact]
     public async Task RefreshAsync_SumsGithubReleasesPastTheFirstPage()
     {
         var root = TempRoot();
@@ -300,6 +329,20 @@ public class StatsServiceTests
         {
             Content = new StringContent(body, Encoding.UTF8, "text/plain"),
         };
+    }
+
+    private sealed class OverlapThrowHandler : HttpMessageHandler
+    {
+        private int _started;
+        private readonly TaskCompletionSource _both = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (Interlocked.Increment(ref _started) >= 2)
+                _both.TrySetResult();
+            await _both.Task.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken);
+            throw new HttpRequestException("down " + request.RequestUri);
+        }
     }
 
     private sealed class StubHandler : HttpMessageHandler

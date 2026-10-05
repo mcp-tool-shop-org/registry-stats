@@ -386,7 +386,7 @@ const chatContext = !missing && data ? JSON.stringify({
 
 <AppShell
   title="Dashboard — Registry Pulse"
-  description="Live download statistics across npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub"
+  description="Live download statistics across npm, PyPI, NuGet, VS Code Marketplace, Docker Hub, and GitHub Releases"
 >
   <AppNav active="dashboard" hasSnapshot={!missing} />
 
@@ -588,18 +588,18 @@ const chatContext = !missing && data ? JSON.stringify({
       {/* ── Summary cards ── */}
       <section id="summary" class="mb-8">
         <h2 class="text-xl font-semibold text-heading">Summary</h2>
-        <p class="mt-1 text-sm text-dim">Grand totals across all registries.</p>
+        <p class="mt-1 text-sm text-dim">Weekly and monthly downloads are npm and PyPI. VS Code, NuGet, Docker, and GitHub contribute their all-time total in the breakdown, not these two sums.</p>
         <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div class="rounded-2xl border border-edge bg-surface-raised p-5">
             <div class="text-sm text-dim">Total packages</div>
             <div id="stat-packages" class="mt-2 text-3xl font-semibold text-heading">{totals ? fmt.format(totals.packages) : '\u2014'}</div>
           </div>
           <div class="rounded-2xl border border-edge bg-surface-raised p-5">
-            <div class="text-sm text-dim">Weekly downloads</div>
+            <div class="text-sm text-dim">Weekly downloads (npm + PyPI)</div>
             <div id="stat-weekly" class="mt-2 text-3xl font-semibold text-heading">{totals ? fmtCompact.format(totals.week) : '\u2014'}</div>
           </div>
           <div class="rounded-2xl border border-edge bg-surface-raised p-5">
-            <div class="text-sm text-dim">Monthly downloads</div>
+            <div class="text-sm text-dim">Monthly downloads (npm + PyPI)</div>
             <div id="stat-monthly" class="mt-2 text-3xl font-semibold text-heading">{totals ? fmtCompact.format(totals.month) : '\u2014'}</div>
           </div>
           <div class="rounded-2xl border border-edge bg-surface-raised p-5">
@@ -824,11 +824,11 @@ const chatContext = !missing && data ? JSON.stringify({
       {/* ── Registry breakdown + sparkline ── */}
       <section id="breakdown" class="mb-8">
         <h2 class="text-xl font-semibold text-heading">Breakdown</h2>
-        <p class="mt-1 text-sm text-dim">Per-registry weekly downloads and 30-day activity.</p>
+        <p class="mt-1 text-sm text-dim">npm and PyPI bars are this week. VS Code, NuGet, Docker, and GitHub bars are all-time totals, so the lengths are not one weekly scale. The sparkline is npm.</p>
         <div class="mt-4 grid gap-6 lg:grid-cols-3">
           <div class="lg:col-span-2 rounded-2xl border border-edge bg-surface-raised p-6">
             <div class="flex items-center justify-between gap-3 flex-wrap">
-              <h3 class="text-lg font-semibold text-heading">Per-registry (weekly)</h3>
+              <h3 class="text-lg font-semibold text-heading">Per-registry (week or all-time)</h3>
               <div id="breakdown-max" class="text-sm text-dim">
                 Max: <span class="font-medium text-muted">{fmtCompact.format(maxBar)}</span>
               </div>
@@ -1425,15 +1425,15 @@ const chatContext = !missing && data ? JSON.stringify({
             <div class="space-y-4 text-sm text-body">
               <div>
                 <h4 class="font-semibold text-heading flex items-center gap-2"><span>{"\uD83C\uDFE0"}</span> Home</h4>
-                <p class="mt-1 leading-relaxed">The landing view with the executive snapshot (total downloads, weekly change, health score, diversity) and the <strong>Registry Assistant</strong> &mdash; an AI chat (Ollama, defaulting to cloud models so a small rig still gets big-model answers) that can answer questions about your data.</p>
+                <p class="mt-1 leading-relaxed">The landing view with the executive snapshot (health score, npm weekly change, diversity, coverage) and the summary cards. Weekly and monthly downloads on those cards are npm and PyPI. The <strong>Registry Assistant</strong> is an AI chat (Ollama, defaulting to cloud models so a small rig still gets big-model answers) that can answer questions about your data.</p>
               </div>
               <div>
                 <h4 class="font-semibold text-heading flex items-center gap-2"><span>{"\uD83D\uDCCA"}</span> Analytics</h4>
-                <p class="mt-1 leading-relaxed">Six interactive charts: <strong>30-Day Trend</strong> (toggle between aggregate, per-registry, and top-5 views), <strong>Registry Share</strong> (polar area), <strong>Portfolio Risk</strong> (distribution histogram with Gini &amp; P90), <strong>Top 10 Momentum</strong> (bar chart colour-coded by velocity), <strong>Velocity Tracker</strong> (sparkline list sorted by growth rate), and <strong>30-Day Heatmap</strong> (per-package daily grid with spike detection).</p>
+                <p class="mt-1 leading-relaxed">Seven interactive charts: <strong>30-Day Trend</strong> (toggle between aggregate, per-registry, and top-5 views), <strong>Registry Share</strong> (polar area), <strong>Portfolio Risk</strong> (distribution histogram with Gini &amp; P90), <strong>Top 10 Momentum</strong> (bar chart colour-coded by velocity), <strong>Velocity Tracker</strong> (sparkline list sorted by growth rate), <strong>30-Day Heatmap</strong> (per-package daily grid with spike detection), and <strong>Portfolio Trend</strong> (stacked area of the weeks tracked).</p>
               </div>
               <div>
                 <h4 class="font-semibold text-heading flex items-center gap-2"><span>{"\uD83C\uDFC6"}</span> Leaderboard</h4>
-                <p class="mt-1 leading-relaxed">Every package ranked by weekly downloads with inline 30-day sparklines and a smart trend badge that avoids misleading percentages for low-volume packages.</p>
+                <p class="mt-1 leading-relaxed">Sorted by the Downloads column. npm and PyPI are the week. VS Code, NuGet, Docker, and GitHub are all-time. Month is npm and PyPI. The 30-day sparkline is the npm series; other rows show an em dash. Trend is last 7 versus the prior 7, npm only, and the badge avoids misleading percentages for low-volume packages.</p>
               </div>
             </div>
           </div>
@@ -1472,7 +1472,7 @@ const chatContext = !missing && data ? JSON.stringify({
               AI Inference Engine
             </h3>
             <div class="text-sm text-body space-y-2 leading-relaxed">
-              <p>The Analytics tab includes a built-in inference engine that runs at build time &mdash; no ML runtime, no external APIs, pure math. It powers four capabilities:</p>
+              <p>The Analytics tab includes a built-in inference engine that runs at build time &mdash; no ML runtime, no external APIs, pure math. It powers these capabilities:</p>
             </div>
             <dl class="mt-3 space-y-3 text-sm text-body">
               <div>
@@ -1490,6 +1490,14 @@ const chatContext = !missing && data ? JSON.stringify({
               <div>
                 <dt class="font-semibold text-heading">Automated Recommendations</dt>
                 <dd class="mt-0.5 leading-relaxed">The engine generates prioritised recommendations across four types: <span class="status-success font-medium">growth</span> (high-momentum packages), <span class="status-danger font-medium">risk</span> (concentration, npm-dependence), <span class="text-blue-400 font-medium">opportunity</span> (under-diversified registries), and <span class="status-warning font-medium">attention</span> (declining packages needing review).</dd>
+              </div>
+              <div>
+                <dt class="font-semibold text-heading">Package health grades</dt>
+                <dd class="mt-0.5 leading-relaxed">A 0&ndash;100 score from activity, consistency, growth, and stability, with an A&ndash;F letter grade per package.</dd>
+              </div>
+              <div>
+                <dt class="font-semibold text-heading">Actionable advice</dt>
+                <dd class="mt-0.5 leading-relaxed">Severity-tagged cards (critical, warning, info, success) with an urgency level and a specific next step for the packages named on the card.</dd>
               </div>
             </dl>
           </div>
@@ -1548,7 +1556,7 @@ const chatContext = !missing && data ? JSON.stringify({
                 <span class="text-dim">&rarr;</span>
                 <span class="rounded-md bg-surface-strong px-2 py-1 border border-edge">static HTML</span>
               </div>
-              <p class="mt-3">The engine queries six registries in parallel: <strong>npm</strong> (weekly + 30-day range), <strong>PyPI</strong> (weekly), <strong>VS Code Marketplace</strong> (installs), <strong>NuGet</strong> (total), <strong>Docker Hub</strong> (pulls), and <strong>GitHub Releases</strong> (owner/repo, cumulative asset downloads). Each provider has retries with exponential back-off. The tracked list is <code class="text-xs bg-surface-strong px-1 py-0.5 rounded">site/src/data/packages.json</code>.</p>
+              <p class="mt-3">The site fetch walks the six registries one after another: <strong>npm</strong> (weekly + 30-day range), <strong>PyPI</strong> (weekly), <strong>VS Code Marketplace</strong> (installs), <strong>NuGet</strong> (total), <strong>Docker Hub</strong> (pulls), and <strong>GitHub Releases</strong> (owner/repo, cumulative asset downloads). Each provider has retries with exponential back-off. The tracked list is <code class="text-xs bg-surface-strong px-1 py-0.5 rounded">site/src/data/packages.json</code>.</p>
             </div>
           </div>
 

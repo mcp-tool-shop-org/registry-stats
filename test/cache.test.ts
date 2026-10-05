@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { stats, createCache } from '../src/index.js';
+import { stats, createCache, registerProvider } from '../src/index.js';
 
 const originalFetch = globalThis.fetch;
 
@@ -86,19 +86,34 @@ describe('cache', () => {
 });
 
 describe('bulk concurrency', () => {
-  it('respects concurrency limit', async () => {
-    // npm smart-bulk for unscoped packages routes through the bulk point endpoint.
-    mockFetch(async () => ({
-      status: 200,
-      body: {
-        express: { downloads: 5000, start: '2025-01-01', end: '2025-01-31', package: 'express' },
-        koa: { downloads: 4000, start: '2025-01-01', end: '2025-01-31', package: 'koa' },
-        fastify: { downloads: 3000, start: '2025-01-01', end: '2025-01-31', package: 'fastify' },
-      },
-    }));
+  it('caps in-flight getStats calls on a provider that is not the npm bulk path', async () => {
+    async function maxInFlight(concurrency: number, count: number): Promise<number> {
+      let inFlight = 0;
+      let peak = 0;
+      registerProvider({
+        name: 'bulk-lane',
+        async getStats(pkg: string) {
+          inFlight += 1;
+          peak = Math.max(peak, inFlight);
+          await new Promise((resolve) => setTimeout(resolve, 30));
+          inFlight -= 1;
+          return {
+            registry: 'npm',
+            package: pkg,
+            downloads: { total: 1 },
+            fetchedAt: '2026-01-01T00:00:00.000Z',
+          };
+        },
+      });
+      const names = Array.from({ length: count }, (_, i) => `pkg-${i}`);
+      const results = await stats.bulk('bulk-lane', names, { concurrency });
+      expect(results).toHaveLength(count);
+      expect(results.every((row) => row !== null)).toBe(true);
+      return peak;
+    }
 
-    const results = await stats.bulk('npm', ['express', 'koa', 'fastify'], { concurrency: 2 });
-    expect(results).toHaveLength(3);
-    expect(results.every((r) => r !== null)).toBe(true);
+    expect(await maxInFlight(2, 3)).toBe(2);
+    expect(await maxInFlight(1, 3)).toBe(1);
+    expect(await maxInFlight(8, 3)).toBe(3);
   });
 });
