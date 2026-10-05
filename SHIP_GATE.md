@@ -16,14 +16,14 @@
 ### Default safety posture
 
 - [x] `[cli|mcp|desktop]` Dangerous actions (kill, delete, restart) require explicit `--allow-*` flag — SKIP: read-only stats queries; no destructive actions
-- [x] `[cli|mcp|desktop]` File operations constrained to known directories — no file writes; stdout/stderr only
+- [ ] `[cli|mcp|desktop]` File operations constrained to known directories — `--init` writes `registry-stats.config.json` in the working directory. The desktop app writes `packages.json` and `stats.json` under `%LOCALAPPDATA%\RegistryPulse`. Queries themselves print to stdout and stderr.
 - [ ] `[mcp]` SKIP: not an MCP server
 - [ ] `[mcp]` SKIP: not an MCP server
 
 ## B. Error Handling
 
 - [x] `[all]` Errors follow the Structured Error Shape: `code`, `message`, `hint`, `cause?`, `retryable?` — typed error responses with retry logic
-- [x] `[cli]` Exit codes: 0 ok · 1 user error · 2 runtime error · 3 partial success
+- [ ] `[cli]` Exit codes: 0 ok · 1 user error · 2 runtime error · 3 partial success — the CLI exits 0 or 1. A partial registry failure warns on stderr and still exits 0. There is no exit 2 or 3.
 - [x] `[cli]` No raw stack traces without `--debug`
 - [ ] `[mcp]` SKIP: not an MCP server
 - [ ] `[mcp]` SKIP: not an MCP server
@@ -42,7 +42,7 @@
 
 ## D. Shipping Hygiene
 
-- [x] `[all]` `verify` script exists (test + build + smoke in one command) — vitest + tsup
+- [ ] `[all]` `verify` script exists (test + build + smoke in one command) — `npm test` runs vitest with the coverage gate, and `npm run build` runs tsup. There is no `verify` script and no separate smoke command.
 - [x] `[all]` Version in manifest matches git tag — package.json is 3.4.0, already published and tagged `v3.4.0`. This pass does not cut a new npm release.
 - [x] `[all]` Dependency scanning runs in CI (ecosystem-appropriate) — full-tree `npm audit --audit-level=high` on the engine (`ci.yml`) **and** the dashboard tree (`pages.yml`); esbuild pinned to `^0.28.1` via `overrides` in both trees.
 - [x] `[all]` Automated dependency update mechanism exists

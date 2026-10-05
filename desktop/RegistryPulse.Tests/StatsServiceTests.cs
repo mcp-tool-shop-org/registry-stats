@@ -137,6 +137,43 @@ public class StatsServiceTests
         }
     }
 
+    [Fact]
+    public async Task RefreshAsync_KeepsAllTimeTotalsOutOfTheMonthFigure()
+    {
+        var root = TempRoot();
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(root, "RegistryPulse", "config"));
+            await File.WriteAllTextAsync(
+                Path.Combine(root, "RegistryPulse", "config", "packages.json"),
+                """{"nuget":["Newtonsoft.Json"]}""");
+
+            var service = new StatsService(root, new StubHandler
+            {
+                Respond = _ => Json(HttpStatusCode.OK, new
+                {
+                    data = new[]
+                    {
+                        new { id = "Newtonsoft.Json", totalDownloads = 1_000_000, version = "13.0.3" },
+                    },
+                }),
+            });
+
+            Assert.True(await service.RefreshAsync());
+            using var doc = JsonDocument.Parse(File.ReadAllBytes(service.CachePath));
+            Assert.Equal(0, doc.RootElement.GetProperty("totals").GetProperty("month").GetInt64());
+            var row = doc.RootElement.GetProperty("leaderboard").EnumerateArray().Single();
+            Assert.Equal(0, row.GetProperty("month").GetInt64());
+            Assert.Equal(1_000_000, row.GetProperty("total").GetInt64());
+            Assert.Equal(1_000_000, doc.RootElement.GetProperty("registryTotals").GetProperty("nuget").GetProperty("total").GetInt64());
+            Assert.True(doc.RootElement.TryGetProperty("errorsByRegistry", out _));
+        }
+        finally
+        {
+            DeleteTemp(root);
+        }
+    }
+
     private static HttpResponseMessage Json(HttpStatusCode status, object body)
     {
         var json = JsonSerializer.Serialize(body);

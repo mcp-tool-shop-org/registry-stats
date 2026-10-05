@@ -32,7 +32,7 @@ npm     | express
 registry-stats express
 ```
 
-This checks npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub for the package name.
+With no config file this queries every built-in registry. npm, PyPI, NuGet, VS Code Marketplace, and Docker Hub answer a plain package name. GitHub Releases is included too, and a plain name is not an `owner/repo` slug, so that one registry reports an error while the others return.
 
 ## Other registries
 
@@ -41,6 +41,7 @@ registry-stats requests -r pypi
 registry-stats Newtonsoft.Json -r nuget
 registry-stats esbenp.prettier-vscode -r vscode
 registry-stats library/node -r docker
+registry-stats mcp-tool-shop-org/registry-stats -r github
 ```
 
 ## Set up a config file

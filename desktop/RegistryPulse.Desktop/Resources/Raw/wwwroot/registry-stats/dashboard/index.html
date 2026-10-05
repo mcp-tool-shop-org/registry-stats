@@ -131,7 +131,7 @@ npm/PyPI = last 7d &bull; VS Code/NuGet = all-time installs
     var fmt = new Intl.NumberFormat('en-US');
     var fmtCompact = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
 
-    var REG_LABELS = { npm: 'npm', pypi: 'PyPI', vscode: 'VS Code', nuget: 'NuGet', docker: 'Docker Hub' };
+    var REG_LABELS = { npm: 'npm', pypi: 'PyPI', vscode: 'VS Code', nuget: 'NuGet', docker: 'Docker Hub', github: 'GitHub' };
     function regLabel(k) { return REG_LABELS[k] || k; }
 
     function trendBadge(pct) {
@@ -248,16 +248,21 @@ npm/PyPI = last 7d &bull; VS Code/NuGet = all-time installs
       }
 
       var regTotals = data.registryTotals || {};
-      var maxB = Math.max(1, Math.max.apply(null, Object.values(regTotals).map(function (r) { return Number(r.week || 0); })));
+      var cumulative = { vscode: 1, nuget: 1, docker: 1, github: 1 };
+      function regBarValue(key, r) {
+        return cumulative[key] ? Number(r.total || 0) : Number(r.week || 0);
+      }
+      var maxB = Math.max(1, Math.max.apply(null, Object.keys(regTotals).map(function (key) { return regBarValue(key, regTotals[key] || {}); })));
       var bars = document.getElementById('breakdown-bars');
       if (bars) {
         bars.innerHTML = Object.keys(regTotals).map(function (key) {
           var r = regTotals[key];
-          var suffix = (key === 'vscode' || key === 'nuget') ? ' <span class="ml-1.5 text-xs text-dim font-normal">(all-time installs)</span>' : '';
-          var pct = Math.round((Number(r.week || 0) / maxB) * 100);
+          var suffix = cumulative[key] ? ' <span class="ml-1.5 text-xs text-dim font-normal">(all-time)</span>' : '';
+          var shown = regBarValue(key, r);
+          var pct = Math.round((shown / maxB) * 100);
           return '<div><div class="flex items-center justify-between text-sm">' +
             '<div class="font-medium text-heading">' + esc(String(regLabel(key))) + suffix + '</div>' +
-            '<div class="text-dim"><span class="text-muted font-medium">' + esc(String(fmtCompact.format(r.week))) + '</span>' +
+            '<div class="text-dim"><span class="text-muted font-medium">' + esc(String(fmtCompact.format(shown))) + '</span>' +
             '<span class="mx-2 text-edge">\u2022</span>' + esc(String(fmt.format(r.packages))) + ' pkg</div></div>' +
             '<div class="mt-2 h-2 rounded-full bg-surface-strong overflow-hidden">' +
             '<div class="h-2 rounded-full bg-accent" style="width:' + pct + '%"></div></div></div>';

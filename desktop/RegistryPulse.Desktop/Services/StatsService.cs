@@ -193,7 +193,8 @@ public sealed class StatsService
         }
 
         var range = counts.Count == 30 ? counts.ToArray() : null;
-        return new LeaderboardRow(name, "npm", counts.TakeLast(7).Sum(), counts.Sum(), range);
+        var month = counts.Sum();
+        return new LeaderboardRow(name, "npm", counts.TakeLast(7).Sum(), month, month, range);
     }
 
     private async Task<LeaderboardRow?> FetchPypi(string name)
@@ -203,7 +204,7 @@ public sealed class StatsService
         if (doc is null || !doc.RootElement.TryGetProperty("data", out var data)) return null;
         var week = ReadLong(data, "last_week");
         var month = ReadLong(data, "last_month");
-        return new LeaderboardRow(name, "pypi", week, month, null);
+        return new LeaderboardRow(name, "pypi", week, month, month, null);
     }
 
     private async Task<LeaderboardRow?> FetchNuget(string name)
@@ -218,7 +219,7 @@ public sealed class StatsService
             var id = entry.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
             if (!string.Equals(id, name, StringComparison.OrdinalIgnoreCase)) continue;
             var total = ReadLong(entry, "totalDownloads");
-            return new LeaderboardRow(id ?? name, "nuget", 0, total, null);
+            return new LeaderboardRow(id ?? name, "nuget", 0, 0, total, null);
         }
         return null;
     }
@@ -254,7 +255,7 @@ public sealed class StatsService
                     installs = ReadLong(stat, "value");
             }
         }
-        return new LeaderboardRow($"{publisher}.{extensionName}", "vscode", 0, installs, null);
+        return new LeaderboardRow($"{publisher}.{extensionName}", "vscode", 0, 0, installs, null);
     }
 
     private async Task<LeaderboardRow?> FetchDocker(string name)
@@ -270,7 +271,7 @@ public sealed class StatsService
         var pulls = ReadLong(doc.RootElement, "pull_count");
         var repoName = doc.RootElement.TryGetProperty("name", out var n) ? n.GetString() : parts[1];
         var ns = doc.RootElement.TryGetProperty("namespace", out var nsEl) ? nsEl.GetString() : parts[0];
-        return new LeaderboardRow($"{ns}/{repoName}", "docker", 0, pulls, null);
+        return new LeaderboardRow($"{ns}/{repoName}", "docker", 0, 0, pulls, null);
     }
 
     private async Task<LeaderboardRow?> FetchGithub(string name)
@@ -290,7 +291,7 @@ public sealed class StatsService
             foreach (var asset in assets.EnumerateArray())
                 total += ReadLong(asset, "download_count");
         }
-        return new LeaderboardRow(name, "github", 0, total, null);
+        return new LeaderboardRow(name, "github", 0, 0, total, null);
     }
 
     private async Task<JsonDocument?> GetJson(string url, HttpMethod? method = null, string? body = null, string? accept = null)
@@ -460,7 +461,7 @@ public sealed class StatsService
         var active = rows.Select(row => row.Registry).Distinct().Count();
         var week = rows.Sum(row => row.Week);
         var month = rows.Sum(row => row.Month);
-        var ordered = rows.OrderByDescending(row => row.Week).ThenByDescending(row => row.Month).ToList();
+        var ordered = rows.OrderByDescending(row => row.Week).ThenByDescending(row => row.Month).ThenByDescending(row => row.Total).ToList();
         var topWeek = ordered.Sum(row => row.Week);
         var top5 = ordered.Take(5).Sum(row => row.Week);
         var concentration = topWeek > 0 ? Math.Round(100.0 * top5 / topWeek, 1) : 0;
@@ -475,12 +476,35 @@ public sealed class StatsService
 
         var narrative = ordered.Count == 0
             ? "No package data came back from the saved portfolio."
-            : $"{ordered[0].Name} leads the saved portfolio. Week {week:N0}, month {month:N0}. NuGet, VS Code, Docker Hub, and GitHub figures in the month column are all-time totals.";
+            : $"{ordered[0].Name} leads the saved portfolio. Week {week:N0}, month {month:N0}. The month figure is npm and PyPI only. NuGet, VS Code, Docker Hub, and GitHub stay in the all-time total.";
+
+        var registryTotals = registries.ToDictionary(reg => reg, reg =>
+        {
+            var mine = rows.Where(row => row.Registry == reg).ToList();
+            return new
+            {
+                packages = mine.Count,
+                week = mine.Sum(row => row.Week),
+                month = mine.Sum(row => row.Month),
+                total = mine.Sum(row => row.Total),
+            };
+        });
+        var errorsByRegistry = new Dictionary<string, int>();
+        foreach (var error in errors)
+        {
+            var colon = error.IndexOf(':');
+            if (colon <= 0) continue;
+            var reg = error[..colon];
+            if (!registries.Contains(reg)) continue;
+            errorsByRegistry[reg] = errorsByRegistry.GetValueOrDefault(reg) + 1;
+        }
 
         return new
         {
             fetchedAt = DateTime.UtcNow.ToString("o"),
             totals = new { packages = ordered.Count, week, month, activeRegistries = active },
+            registryTotals,
+            errorsByRegistry,
             manifestCounts = manifest,
             fetchedCounts = fetched,
             confidence = registries.ToDictionary(reg => reg, reg => manifest[reg] == 0 ? "missing" : fetched[reg] == manifest[reg] ? "ok" : "partial"),
@@ -496,6 +520,7 @@ public sealed class StatsService
                 registry = row.Registry,
                 week = row.Week,
                 month = row.Month,
+                total = row.Total,
                 range30 = row.Range30,
                 trendPct = (double?)null,
             }),
@@ -527,5 +552,5 @@ public sealed class StatsService
 
     private sealed record PortfolioPackage(string Registry, string Name);
 
-    private sealed record LeaderboardRow(string Name, string Registry, long Week, long Month, int[]? Range30);
+    private sealed record LeaderboardRow(string Name, string Registry, long Week, long Month, long Total, int[]? Range30);
 }

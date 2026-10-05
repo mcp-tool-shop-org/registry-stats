@@ -158,6 +158,7 @@ registry-stats requests -r pypi
 registry-stats Newtonsoft.Json -r nuget
 registry-stats esbenp.prettier-vscode -r vscode
 registry-stats library/node -r docker
+registry-stats mcp-tool-shop-org/registry-stats -r github
 
 # Create a config file
 registry-stats --init
@@ -205,7 +206,7 @@ Create a `registry-stats.config.json` in your project root (or run `registry-sta
 }
 ```
 
-Run `registry-stats` with no arguments to fetch stats for all configured packages. The CLI walks up from cwd to find the nearest config file.
+Run `registry-stats` with no arguments to fetch stats for all configured packages. The CLI walks up from cwd to find the nearest config file. The `registries` array above is the default five. Add `"github"` to include GitHub Releases; those packages are `owner/repo` slugs. With no config file, a package query uses every built-in registry, and GitHub reports an error for a name that is not a slug.
 
 The config is also available programmatically:
 

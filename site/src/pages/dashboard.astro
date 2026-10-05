@@ -130,7 +130,7 @@ const leaderboard = data?.leaderboard ?? [];
 const sparkline30 = data?.sparkline30 ?? [];
 const movers = data?.movers;
 
-const maxBar = Math.max(1, ...Object.entries(registryTotals).map(([k, r]: [string, RegistryTotal]) => ['vscode','nuget','docker'].includes(k) ? Number(r?.total ?? r?.week ?? 0) : Number(r?.week ?? 0)));
+const maxBar = Math.max(1, ...Object.entries(registryTotals).map(([k, r]: [string, RegistryTotal]) => ['vscode','nuget','docker','github'].includes(k) ? Number(r?.total ?? r?.week ?? 0) : Number(r?.week ?? 0)));
 const sparkMax = Math.max(1, ...sparkline30.map((n: number) => Number(n ?? 0)));
 
 const gainers = movers?.topGainers ?? [];
@@ -1824,7 +1824,7 @@ const chatContext = !missing && data ? JSON.stringify({
 
 <script is:inline>
   // Shared helper — cumulative registries show total instead of weekly
-  var __CUMULATIVE = ['vscode', 'nuget', 'docker'];
+  var __CUMULATIVE = ['vscode', 'nuget', 'docker', 'github'];
   function regDisplayVal(key, r) {
     return __CUMULATIVE.indexOf(key) !== -1 ? Number((r || {}).total || (r || {}).week || 0) : Number((r || {}).week || 0);
   }
@@ -2648,7 +2648,7 @@ const chatContext = !missing && data ? JSON.stringify({
     var fmt = new Intl.NumberFormat('en-US');
     var fmtCompact = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
 
-    var REG_LABELS = { npm: 'npm', pypi: 'PyPI', vscode: 'VS Code', nuget: 'NuGet', docker: 'Docker Hub' };
+    var REG_LABELS = { npm: 'npm', pypi: 'PyPI', vscode: 'VS Code', nuget: 'NuGet', docker: 'Docker Hub', github: 'GitHub' };
     function regLabel(k) { return REG_LABELS[k] || k; }
 
     // formatGrowth/trendBadge now live in the shared global script block (F-002 dedup)

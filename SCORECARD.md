@@ -10,9 +10,9 @@
 | Category | Score | Notes |
 |----------|-------|-------|
 | A. Security | 10/10 | SECURITY.md with current supported versions; threat model in README; no secrets/telemetry |
-| B. Error Handling | 10/10 | Typed errors with retry logic; CLI exit codes; no raw stack traces |
+| B. Error Handling | 8/10 | Typed errors with retry logic; no raw stack traces. The CLI exits 0 or 1. A partial registry failure warns and still exits 0. |
 | C. Operator Docs | 10/10 | Comprehensive README; 8-page Starlight handbook; CHANGELOG; --help accurate |
-| D. Shipping Hygiene | 10/10 | vitest + tsup verify; version matches tag; CI with dep scanning; MSIX desktop builds |
+| D. Shipping Hygiene | 8/10 | `npm test` and `npm run build`. No single `verify` script. Version matches the 3.4.0 tag. CI dependency scanning. MSIX desktop builds. |
 | E. Identity (soft) | 10/10 | Logo, translations (7 languages + English source), landing page, handbook, GitHub topics |
 | **Overall** | **50/50** | |
 
