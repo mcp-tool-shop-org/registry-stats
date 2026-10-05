@@ -469,6 +469,81 @@ describe('CLI main (in process)', () => {
     expect(none.stderr).toContain('No packages found');
   });
 
+  it('does not glue a 13-character total or an 11-character month to the next column', async () => {
+    // 12,345,678,901 and 1,234,567,890 are 13 characters. A 12-wide pad joins them.
+    h.stats.compare.mockResolvedValue({
+      package: 'left-pad',
+      registries: {
+        docker: {
+          ...full,
+          registry: 'docker',
+          downloads: { total: 12_345_678_901, lastMonth: 10, lastWeek: 2, lastDay: 1 },
+        },
+        pypi: {
+          ...bare,
+          registry: 'pypi',
+          downloads: { total: 1_234_567_890, lastMonth: 3, lastWeek: 2, lastDay: 1 },
+        },
+      },
+      fetchedAt: full.fetchedAt,
+    });
+    const compared = await invoke(['left-pad', '--compare']);
+    expect(compared.code).toBe(0);
+    const compareLines = compared.stdout.split('\n');
+    const totalLine = compareLines.find((line) => line.includes('Total'));
+    const compareHeader = compareLines.find((line) => line.includes('Metric'));
+    const compareRule = compareLines.find((line) => line.includes('─'));
+    expect(totalLine).toBeTruthy();
+    expect(compareHeader).toBeTruthy();
+    expect(compareRule).toBeTruthy();
+    expect(compared.stdout).not.toContain('12,345,678,9011,234,567,890');
+    expect(totalLine).toContain('12,345,678,901 1,234,567,890');
+    expect(totalLine!.endsWith('1,234,567,890')).toBe(true);
+    expect(totalLine!.indexOf('12,345,678,901') + '12,345,678,901'.length).toBe(
+      compareHeader!.indexOf('docker') + 'docker'.length,
+    );
+    expect(totalLine!.indexOf('1,234,567,890') + '1,234,567,890'.length).toBe(
+      compareHeader!.indexOf('pypi') + 'pypi'.length,
+    );
+    expect(compareRule!.trimEnd().length).toBe(compareHeader!.trimEnd().length);
+    expect(compareRule!.trimEnd().length).toBe(totalLine!.trimEnd().length);
+
+    // Rows stay within 10 characters. Their sum is 100,000,000 (11) and 12,000,000 (10).
+    h.stats.mine.mockResolvedValue([
+      {
+        ...full,
+        package: 'alpha',
+        downloads: { lastMonth: 50_000_000, lastWeek: 6_000_000, lastDay: 100 },
+      },
+      {
+        ...full,
+        package: 'beta',
+        downloads: { lastMonth: 50_000_000, lastWeek: 6_000_000, lastDay: 100 },
+      },
+    ]);
+    const mined = await invoke(['--mine', 'someone']);
+    expect(mined.code).toBe(0);
+    const mineLines = mined.stdout.split('\n');
+    const totalMine = mineLines.find((line) => line.includes('TOTAL'));
+    const mineHeader = mineLines.find((line) => line.includes('Package'));
+    const mineRule = mineLines.find((line) => line.includes('─'));
+    expect(totalMine).toBeTruthy();
+    expect(mineHeader).toBeTruthy();
+    expect(mineRule).toBeTruthy();
+    expect(mined.stdout).not.toContain('100,000,00012,000,000');
+    expect(totalMine).toContain('100,000,000 12,000,000');
+    expect(totalMine!.endsWith('200')).toBe(true);
+    expect(totalMine!.indexOf('100,000,000') + '100,000,000'.length).toBe(
+      mineHeader!.indexOf('Month') + 'Month'.length,
+    );
+    expect(totalMine!.indexOf('12,000,000') + '12,000,000'.length).toBe(
+      mineHeader!.indexOf('Week') + 'Week'.length,
+    );
+    expect(totalMine!.indexOf('200') + '200'.length).toBe(mineHeader!.indexOf('Day') + 'Day'.length);
+    expect(mineRule!.trimEnd().length).toBe(mineHeader!.trimEnd().length);
+    expect(mineRule!.trimEnd().length).toBe(totalMine!.trimEnd().length);
+  });
+
   it('prints the registry error when a query throws', async () => {
     h.stats.all.mockRejectedValue(new Error('boom'));
     const r = await invoke(['left-pad']);

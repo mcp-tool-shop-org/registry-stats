@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Shared PDF and Markdown reports show the all-time total for VS Code, NuGet, Docker, and GitHub. A package is marked New only when its row says so. The handbook says an empty `GET /stats/:package` body plus `X-Registry-Errors` is an outage.
 - The weekly share chart and the 30-day per-registry lines stay on npm and PyPI. The leaderboard order matches the Downloads column. A VS Code marketplace hit is kept only when the id matches. The desktop refresh names the portfolio fetch, and a failed refresh shows the stored cause. The bundled dashboard fills the Total column from the snapshot.
 - `registry-stats <pkg> --compare --json` exits 1 when every registry misses. A plain package name skips GitHub Releases unless the name is `owner/repo`. Weekly and monthly dashboard totals are labeled npm and PyPI. The breakdown chart no longer calls the all-time bars weekly. Help no longer says every package is ranked by weekly downloads.
+- Redrawn 30-day bars keep their scoped style, so the activity strip and the 30d cells stay visible. The handbook light theme uses light chrome, and status colors stay readable on white. Compare and portfolio tables widen each column to the numbers. The packaged app links to the privacy page.
 
 ### Changed
 - Dashboard (`site/`, not published): each fetch phase has a 6-minute budget and the whole fetch 30 minutes. A rate-limited registry falls back to its previous stats, marked stale, instead of holding the deploy for an hour.

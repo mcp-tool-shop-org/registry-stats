@@ -61,6 +61,11 @@ function formatNumber(n: number | undefined): string {
   return n.toLocaleString('en-US');
 }
 
+/** Wider of the header and the cells, plus one space so the next column cannot touch. */
+function columnWidth(header: string, cells: readonly string[]): number {
+  return Math.max(header.length, ...cells.map((cell) => cell.length)) + 1;
+}
+
 /**
  * Print a stderr warning per registry that errored during an all-registries /
  * compare fan-out, so a transient outage is not silently indistinguishable from
@@ -112,12 +117,6 @@ function printComparison(result: ComparisonResult) {
 
   console.log(`\n  ${result.package} — comparison\n`);
 
-  // Header
-  const cols = regs.map(([r]) => r.padEnd(12));
-  console.log(`  ${'Metric'.padEnd(14)}${cols.join('')}`);
-  console.log(`  ${'─'.repeat(14 + cols.length * 12)}`);
-
-  // Rows
   const metrics = ['total', 'lastMonth', 'lastWeek', 'lastDay'] as const;
   const labels: Record<string, string> = {
     total: 'Total',
@@ -125,13 +124,25 @@ function printComparison(result: ComparisonResult) {
     lastWeek: 'Week',
     lastDay: 'Day',
   };
-
-  for (const m of metrics) {
-    const values = regs.map(([, s]) => {
+  const metricWidth = 14;
+  const formatted = regs.map(([, s]) =>
+    metrics.map((m) => {
       const v = s.downloads[m];
-      return (v !== undefined ? formatNumber(v) : '-').padEnd(12);
-    });
-    console.log(`  ${labels[m].padEnd(14)}${values.join('')}`);
+      return v !== undefined ? formatNumber(v) : '-';
+    }),
+  );
+  const colWidths = regs.map(([name], i) => columnWidth(name, formatted[i]));
+  const tableWidth = metricWidth + colWidths.reduce((sum, w) => sum + w, 0);
+
+  console.log(
+    `  ${'Metric'.padEnd(metricWidth)}${regs.map(([name], i) => name.padStart(colWidths[i])).join('')}`,
+  );
+  console.log(`  ${'─'.repeat(tableWidth)}`);
+
+  for (let row = 0; row < metrics.length; row++) {
+    const m = metrics[row];
+    const values = formatted.map((cells, i) => cells[row].padStart(colWidths[i]));
+    console.log(`  ${labels[m].padEnd(metricWidth)}${values.join('')}`);
   }
   console.log();
 }
@@ -144,29 +155,37 @@ function printMineTable(results: PackageStats[], maintainer: string) {
   const totalWeek = results.reduce((s, r) => s + (r.downloads.lastWeek ?? 0), 0);
   const totalDay = results.reduce((s, r) => s + (r.downloads.lastDay ?? 0), 0);
 
-  // Column widths
   const nameWidth = Math.max(7, ...results.map((r) => r.package.length)) + 2;
-  const numWidth = 10;
+  const monthWidth = columnWidth('Month', [
+    ...withDownloads.map((r) => formatNumber(r.downloads.lastMonth)),
+    formatNumber(totalMonth),
+  ]);
+  const weekWidth = columnWidth('Week', [
+    ...withDownloads.map((r) => formatNumber(r.downloads.lastWeek)),
+    formatNumber(totalWeek),
+  ]);
+  const dayWidth = columnWidth('Day', [
+    ...withDownloads.map((r) => formatNumber(r.downloads.lastDay)),
+    formatNumber(totalDay),
+  ]);
+  const ruleWidth = nameWidth + monthWidth + weekWidth + dayWidth;
 
   console.log(`\n  ${maintainer} — ${results.length} npm packages\n`);
 
-  // Header
   console.log(
-    `  ${'Package'.padEnd(nameWidth)}${'Month'.padStart(numWidth)}${'Week'.padStart(numWidth)}${'Day'.padStart(numWidth)}`,
+    `  ${'Package'.padEnd(nameWidth)}${'Month'.padStart(monthWidth)}${'Week'.padStart(weekWidth)}${'Day'.padStart(dayWidth)}`,
   );
-  console.log(`  ${'─'.repeat(nameWidth + numWidth * 3)}`);
+  console.log(`  ${'─'.repeat(ruleWidth)}`);
 
-  // Rows with downloads
   for (const r of withDownloads) {
     console.log(
-      `  ${r.package.padEnd(nameWidth)}${formatNumber(r.downloads.lastMonth).padStart(numWidth)}${formatNumber(r.downloads.lastWeek).padStart(numWidth)}${formatNumber(r.downloads.lastDay).padStart(numWidth)}`,
+      `  ${r.package.padEnd(nameWidth)}${formatNumber(r.downloads.lastMonth).padStart(monthWidth)}${formatNumber(r.downloads.lastWeek).padStart(weekWidth)}${formatNumber(r.downloads.lastDay).padStart(dayWidth)}`,
     );
   }
 
-  // Summary separator
-  console.log(`  ${'─'.repeat(nameWidth + numWidth * 3)}`);
+  console.log(`  ${'─'.repeat(ruleWidth)}`);
   console.log(
-    `  ${'TOTAL'.padEnd(nameWidth)}${formatNumber(totalMonth).padStart(numWidth)}${formatNumber(totalWeek).padStart(numWidth)}${formatNumber(totalDay).padStart(numWidth)}`,
+    `  ${'TOTAL'.padEnd(nameWidth)}${formatNumber(totalMonth).padStart(monthWidth)}${formatNumber(totalWeek).padStart(weekWidth)}${formatNumber(totalDay).padStart(dayWidth)}`,
   );
 
   if (noData.length > 0) {

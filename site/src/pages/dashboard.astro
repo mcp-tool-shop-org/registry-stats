@@ -1082,7 +1082,7 @@ const chatContext = !missing && data ? JSON.stringify({
                           </div>
                           <p class="mt-0.5 text-xs text-muted leading-relaxed">{adv.detail}</p>
                           <div class="mt-1.5 flex items-center gap-1.5">
-                            <span class="text-[10px] font-semibold text-violet-400">Action:</span>
+                            <span class="text-[10px] font-semibold tone-action">Action:</span>
                             <span class="text-[10px] text-muted">{adv.action}</span>
                           </div>
                           {adv.packages && adv.packages.length > 0 && (
@@ -1109,9 +1109,9 @@ const chatContext = !missing && data ? JSON.stringify({
                 {healthScores.slice(0, 12).map((h: any) => {
                   const gradeColor = {
                     A: 'status-success bg-emerald-500/10 border-emerald-500/30',
-                    B: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
+                    B: 'tone-b bg-blue-500/10 border-blue-500/30',
                     C: 'status-warning bg-amber-500/10 border-amber-500/30',
-                    D: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
+                    D: 'tone-d bg-orange-500/10 border-orange-500/30',
                     F: 'status-danger bg-rose-500/10 border-rose-500/30',
                   };
                   const barColor = {
@@ -1489,7 +1489,7 @@ const chatContext = !missing && data ? JSON.stringify({
               </div>
               <div>
                 <dt class="font-semibold text-heading">Automated Recommendations</dt>
-                <dd class="mt-0.5 leading-relaxed">The engine generates prioritised recommendations across four types: <span class="status-success font-medium">growth</span> (high-momentum packages), <span class="status-danger font-medium">risk</span> (concentration, npm-dependence), <span class="text-blue-400 font-medium">opportunity</span> (under-diversified registries), and <span class="status-warning font-medium">attention</span> (declining packages needing review).</dd>
+                <dd class="mt-0.5 leading-relaxed">The engine generates prioritised recommendations across four types: <span class="status-success font-medium">growth</span> (high-momentum packages), <span class="status-danger font-medium">risk</span> (concentration, npm-dependence), <span class="tone-b font-medium">opportunity</span> (under-diversified registries), and <span class="status-warning font-medium">attention</span> (declining packages needing review).</dd>
               </div>
               <div>
                 <dt class="font-semibold text-heading">Package health grades</dt>
@@ -1620,6 +1620,14 @@ const chatContext = !missing && data ? JSON.stringify({
     background: var(--color-accent);
     opacity: 0.7;
   }
+
+  /* Bright on the dark card, dark on the light card. The 400 utilities fail on white. */
+  .tone-b { color: #60a5fa; }
+  .tone-d { color: #fb923c; }
+  .tone-action { color: #a78bfa; }
+  :global([data-theme="light"]) .tone-b { color: #1e40af; }
+  :global([data-theme="light"]) .tone-d { color: #9a3412; }
+  :global([data-theme="light"]) .tone-action { color: #5b21b6; }
 
   /* Tabs */
   .tab-btn {
@@ -2650,6 +2658,12 @@ const chatContext = !missing && data ? JSON.stringify({
 
     // Expose for runtime refresh
     window.__rpInitCharts = function () { chartsInitialized = false; initCharts(); };
+
+    document.addEventListener('rp-theme-change', function () {
+      if (!chartsInitialized) return;
+      chartsInitialized = false;
+      initCharts();
+    });
   })();
 </script>
 
@@ -2682,6 +2696,23 @@ const chatContext = !missing && data ? JSON.stringify({
     }
 
     // Safe DOM builder: creates element with optional class and children (strings become text nodes)
+    function copyScope(node) {
+      var from = node.parentElement;
+      while (from) {
+        var attrs = from.attributes;
+        var stamped = false;
+        for (var i = 0; i < attrs.length; i++) {
+          var name = attrs[i].name;
+          if (name.indexOf('data-astro-cid-') === 0) {
+            node.setAttribute(name, attrs[i].value);
+            stamped = true;
+          }
+        }
+        if (stamped) return;
+        from = from.parentElement;
+      }
+    }
+
     function el(tag, cls, children) {
       var e = document.createElement(tag);
       if (cls) e.className = cls;
@@ -2801,8 +2832,7 @@ const chatContext = !missing && data ? JSON.stringify({
         nameSpan.title = r.name || name;
         nameSpan.appendChild(document.createTextNode(clipName(name)));
         if (isNew) {
-          var badge = el('span', 'ml-1.5 text-[10px] font-semibold uppercase rounded', 'new');
-          badge.style.cssText = 'background:rgba(251,191,36,0.15);color:#fbbf24;padding:1px 6px;';
+          var badge = el('span', 'ml-1.5 text-[10px] font-semibold uppercase bg-amber-400/15 status-warning px-1.5 py-0.5 rounded', 'new');
           nameSpan.appendChild(badge);
         }
         row1.appendChild(nameSpan);
@@ -2994,6 +3024,7 @@ const chatContext = !missing && data ? JSON.stringify({
           s.style.height = h + '%';
           s.title = fmt.format(n) + ' downloads';
           spEl.appendChild(s);
+          copyScope(s);
         });
       }
 
@@ -3046,6 +3077,11 @@ const chatContext = !missing && data ? JSON.stringify({
           tr.appendChild(td('px-3 py-3', sparkCell));
           tr.appendChild(td('px-5 py-3 text-right tabular-nums ' + tb.cls, tb.text));
           tbody.appendChild(tr);
+          if (has30) {
+            copyScope(sparkCell);
+            var rsNodes = sparkCell.children;
+            for (var rsi = 0; rsi < rsNodes.length; rsi++) copyScope(rsNodes[rsi]);
+          }
         });
       }
 
@@ -4712,7 +4748,7 @@ const chatContext = !missing && data ? JSON.stringify({
     }
 
     // Dispatch export clicks
-    exportMenu.querySelectorAll('[data-export]').forEach(function (btn) {
+    document.querySelectorAll('[data-export]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var type = btn.getAttribute('data-export');
         exportMenu.classList.add('hidden');

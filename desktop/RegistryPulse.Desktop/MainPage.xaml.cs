@@ -71,6 +71,10 @@ public partial class MainPage : ContentPage, IDisposable
             await Launcher.OpenAsync("https://github.com/mcp-tool-shop-org/registry-stats");
         helpMenu.Add(githubItem);
 
+        var privacyItem = new MenuFlyoutItem { Text = "Privacy" };
+        privacyItem.Clicked += OnPrivacyClicked;
+        helpMenu.Add(privacyItem);
+
         var aboutItem = new MenuFlyoutItem { Text = "About" };
         aboutItem.Clicked += OnAboutClicked;
         helpMenu.Add(aboutItem);
@@ -420,6 +424,15 @@ public partial class MainPage : ContentPage, IDisposable
         if (_server is not null && handler?.PlatformView is Microsoft.UI.Xaml.Controls.WebView2 webView2)
         {
             webView2.CoreWebView2?.Navigate($"{_server.BaseUrl}/registry-stats/setup/");
+        }
+    }
+
+    private void OnPrivacyClicked(object? sender, EventArgs e)
+    {
+        var handler = DashboardWebView.Handler;
+        if (_server is not null && handler?.PlatformView is Microsoft.UI.Xaml.Controls.WebView2 webView2)
+        {
+            webView2.CoreWebView2?.Navigate($"{_server.BaseUrl}/registry-stats/privacy/");
         }
     }
 #endif

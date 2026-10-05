@@ -112,6 +112,20 @@ const repoUrl = "https://github.com/mcp-tool-shop-org/registry-stats";
     >
       Setup
     </a>
+    <div class="pt-2 border-t border-edge space-y-1">
+      <div class="px-3 py-1 text-[11px] uppercase tracking-widest text-dim">Theme</div>
+      <button type="button" data-theme-choice="system" class="block w-full text-left px-3 py-2 rounded-md text-[13px] text-dim hover:text-heading hover:bg-surface-strong/40 transition-colors">System</button>
+      <button type="button" data-theme-choice="light" class="block w-full text-left px-3 py-2 rounded-md text-[13px] text-dim hover:text-heading hover:bg-surface-strong/40 transition-colors">Light</button>
+      <button type="button" data-theme-choice="dark" class="block w-full text-left px-3 py-2 rounded-md text-[13px] text-dim hover:text-heading hover:bg-surface-strong/40 transition-colors">Dark</button>
+    </div>
+    {active === "dashboard" && (
+      <div class="pt-2 border-t border-edge space-y-1">
+        <div class="px-3 py-1 text-[11px] uppercase tracking-widest text-dim">Export</div>
+        <button type="button" data-export="pdf" class="block w-full text-left px-3 py-2 rounded-md text-[13px] text-dim hover:text-heading hover:bg-surface-strong/40 transition-colors">Exec — PDF</button>
+        <button type="button" data-export="jsonl" class="block w-full text-left px-3 py-2 rounded-md text-[13px] text-dim hover:text-heading hover:bg-surface-strong/40 transition-colors">LLM — JSONL</button>
+        <button type="button" data-export="md" class="block w-full text-left px-3 py-2 rounded-md text-[13px] text-dim hover:text-heading hover:bg-surface-strong/40 transition-colors">Dev — Markdown</button>
+      </div>
+    )}
     <div class="flex items-center gap-3 pt-2 border-t border-edge">
       <button type="button" class="mobile-help-btn text-muted hover:text-heading transition-colors">Help</button>
       <a href={repoUrl} target="_blank" rel="noreferrer" class="text-muted hover:text-heading transition-colors">GitHub</a>
@@ -205,6 +219,8 @@ const repoUrl = "https://github.com/mcp-tool-shop-org/registry-stats";
         btn.classList.toggle('text-heading', isActive);
         btn.classList.toggle('text-dim', !isActive);
       });
+
+      document.dispatchEvent(new CustomEvent('rp-theme-change'));
     }
 
     if (btnTheme) {

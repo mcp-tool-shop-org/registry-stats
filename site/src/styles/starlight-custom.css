@@ -1,6 +1,10 @@
-/* Align Starlight with @mcptoolshop/site-theme dark palette */
-/* Accent: #34d399 (emerald) — default */
-:root {
+/* Align Starlight with the site theme.
+   Dark tokens stay on :root and :root[data-theme='dark']. An unlayered
+   :root block beats Starlight's layered light rules, so the light palette
+   has to be unlayered and more specific. */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
   --sl-color-accent-low: #022c22;
   --sl-color-accent: #34d399;
   --sl-color-accent-high: #6ee7b7;
@@ -15,4 +19,27 @@
   --sl-color-white: #fafafa;
   --sl-color-text: #e4e4e7;
   --sl-color-text-accent: #6ee7b7;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --sl-color-accent-low: #d1fae5;
+  --sl-color-accent: #059669;
+  --sl-color-accent-high: #047857;
+  --sl-color-text-accent: #047857;
+  --sl-color-bg: #ffffff;
+  --sl-color-bg-nav: #fafafa;
+  --sl-color-bg-sidebar: #f4f4f5;
+  --sl-color-black: #ffffff;
+  --sl-color-white: #18181b;
+  --sl-color-text: #27272a;
+  --sl-color-hairline-light: #e4e4e7;
+  --sl-color-hairline: #d4d4d8;
+  --sl-color-gray-1: #27272a;
+  --sl-color-gray-2: #3f3f46;
+  --sl-color-gray-3: #52525b;
+  --sl-color-gray-4: #71717a;
+  --sl-color-gray-5: #d4d4d8;
+  --sl-color-gray-6: #f4f4f5;
+  --sl-color-gray-7: #fafafa;
 }
