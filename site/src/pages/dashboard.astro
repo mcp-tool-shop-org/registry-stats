@@ -4139,7 +4139,13 @@ const chatContext = !missing && data ? JSON.stringify({
     function fc(n) { return fmtC.format(Number(n || 0)); }
     function pct(v) { return v !== null && v !== undefined ? (Math.round(Math.abs(v) * 10) / 10) + '%' : 'N/A'; }
     function iso() { return new Date().toISOString(); }
-    function regL(k) { return ({ npm: 'npm', pypi: 'PyPI', vscode: 'VS Code', nuget: 'NuGet', docker: 'Docker Hub' })[k] || k; }
+    function regL(k) { return ({ npm: 'npm', pypi: 'PyPI', vscode: 'VS Code', nuget: 'NuGet', docker: 'Docker Hub', github: 'GitHub' })[k] || k; }
+    function regWindow(k) {
+      if (k === 'vscode' || k === 'nuget') return 'all-time installs';
+      if (k === 'docker') return 'all-time pulls';
+      if (k === 'github') return 'all-time';
+      return 'week';
+    }
 
     function getData() {
       return window.__rpCurrentData || null;
@@ -4210,13 +4216,13 @@ const chatContext = !missing && data ? JSON.stringify({
       // Per-registry
       L.push('## Per-Registry Breakdown');
       L.push('');
-      L.push('| Registry | Packages | Weekly | Monthly | Status |');
-      L.push('|:---------|:--------:|-------:|--------:|:------:|');
+      L.push('| Registry | Packages | Downloads | Window | Status |');
+      L.push('|:---------|:--------:|----------:|:-------|:------:|');
       Object.keys(rt).forEach(function (reg) {
         var r = rt[reg];
         var c = conf[reg] || '?';
         var icon = c === 'ok' ? '\u2705' : '\u26A0\uFE0F';
-        L.push('| ' + regL(reg) + ' | ' + fi(r.packages) + ' | ' + fi(r.week) + ' | ' + fi(r.month) + ' | ' + icon + ' ' + c + ' |');
+        L.push('| ' + regL(reg) + ' | ' + fi(r.packages) + ' | ' + fi(regDisplayVal(reg, r)) + ' | ' + regWindow(reg) + ' | ' + icon + ' ' + c + ' |');
       });
       L.push('');
 
@@ -4260,14 +4266,16 @@ const chatContext = !missing && data ? JSON.stringify({
       // Leaderboard (top 30)
       L.push('## Leaderboard (Top 30)');
       L.push('');
-      L.push('| # | Package | Registry | Weekly | Monthly | WoW % | Trend |');
-      L.push('|--:|:--------|:---------|-------:|--------:|------:|:------|');
+      L.push('Downloads are the week for npm and PyPI, and all-time for VS Code, NuGet, Docker, and GitHub. Month is npm and PyPI. New appears only when the row is marked new.');
+      L.push('');
+      L.push('| # | Package | Registry | Downloads | Month | WoW % | Trend |');
+      L.push('|--:|:--------|:---------|----------:|------:|------:|:------|');
       lb.slice(0, 30).forEach(function (r, i) {
         var name = String(r.name || '').replace('@mcptoolshop/', '');
         var tp = r.trendPct;
-        var tpStr = tp !== null && tp !== undefined ? (tp >= 0 ? '+' : '') + pct(tp) : 'New';
-        var label = tp !== null && tp !== undefined ? (tp >= 50 ? '\u{1F525} Rising fast' : tp >= 10 ? '\u2197\uFE0F Up' : tp >= -10 ? '\u2194\uFE0F Steady' : tp >= -50 ? '\u2198\uFE0F Down' : '\u{1F53B} Falling') : '\u{1F195} New';
-        L.push('| ' + (i + 1) + ' | ' + name + ' | ' + regL(r.registry) + ' | ' + fi(r.week) + ' | ' + fi(r.month) + ' | ' + tpStr + ' | ' + label + ' |');
+        var tpStr = r.isNew === true ? 'New' : (tp !== null && tp !== undefined ? (tp >= 0 ? '+' : '') + pct(tp) : 'n/a');
+        var label = r.isNew === true ? '\u{1F195} New' : (tp !== null && tp !== undefined ? (tp >= 50 ? '\u{1F525} Rising fast' : tp >= 10 ? '\u2197\uFE0F Up' : tp >= -10 ? '\u2194\uFE0F Steady' : tp >= -50 ? '\u2198\uFE0F Down' : '\u{1F53B} Falling') : 'n/a');
+        L.push('| ' + (i + 1) + ' | ' + name + ' | ' + regL(r.registry) + ' | ' + fi(regDisplayVal(r.registry, r)) + ' | ' + fi(r.month) + ' | ' + tpStr + ' | ' + label + ' |');
       });
       L.push('');
 
@@ -4400,7 +4408,7 @@ const chatContext = !missing && data ? JSON.stringify({
             trendPct: r.trendPct !== null && r.trendPct !== undefined ? Math.round(r.trendPct * 10) / 10 : null,
             velocity: vel
           },
-          isNew: r.trendPct === null || r.trendPct === undefined,
+          isNew: r.isNew === true,
           range30: r.range30 || null
         }));
       });
@@ -4579,8 +4587,8 @@ const chatContext = !missing && data ? JSON.stringify({
 
         // ── Registry Breakdown ──
         heading('Per-Registry Breakdown');
-        var cols = [M, M + 32, M + 55, M + 80, M + 110];
-        tableHeader(['Registry', 'Packages', 'Weekly', 'Monthly', 'Status'], cols);
+        var cols = [M, M + 32, M + 54, M + 80, M + 122];
+        tableHeader(['Registry', 'Packages', 'Downloads', 'Window', 'Status'], cols);
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
         Object.keys(rt).forEach(function (reg) {
@@ -4590,8 +4598,8 @@ const chatContext = !missing && data ? JSON.stringify({
           doc.text(regL(reg), cols[0], y);
           doc.setTextColor(80, 80, 80);
           doc.text(fi(r.packages), cols[1], y);
-          doc.text(fi(r.week), cols[2], y);
-          doc.text(fi(r.month), cols[3], y);
+          doc.text(fi(regDisplayVal(reg, r)), cols[2], y);
+          doc.text(regWindow(reg), cols[3], y);
           var status = (d.confidence || {})[reg] || '?';
           doc.setTextColor(status === 'ok' ? 34 : 150, status === 'ok' ? 139 : 80, status === 'ok' ? 34 : 80);
           doc.text(status, cols[4], y);
@@ -4626,8 +4634,14 @@ const chatContext = !missing && data ? JSON.stringify({
         // ── Leaderboard (Top 25) ──
         checkPage(20);
         heading('Leaderboard (Top 25)');
-        var lc = [M, M + 8, M + 55, M + 78, M + 100, M + 125, M + 148];
-        tableHeader(['#', 'Package', 'Registry', 'Weekly', 'Monthly', 'WoW %', 'Trend'], lc);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(110, 110, 110);
+        var dlNote = doc.splitTextToSize('Downloads are the week for npm and PyPI, and all-time for VS Code, NuGet, Docker, and GitHub.', CW);
+        doc.text(dlNote, M, y);
+        y += dlNote.length * 4 + 2;
+        var lc = [M, M + 8, M + 52, M + 76, M + 102, M + 124, M + 146];
+        tableHeader(['#', 'Package', 'Registry', 'Downloads', 'Month', 'WoW %', 'Trend'], lc);
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
         lb.slice(0, 25).forEach(function (r, i) {
@@ -4647,20 +4661,22 @@ const chatContext = !missing && data ? JSON.stringify({
           doc.setTextColor(100, 100, 100);
           doc.text(regL(r.registry), lc[2], y);
           doc.setTextColor(60, 60, 60);
-          doc.text(fi(r.week), lc[3], y);
+          doc.text(fi(regDisplayVal(r.registry, r)), lc[3], y);
           doc.text(fi(r.month), lc[4], y);
-          // Colour-coded trend
           var tp = r.trendPct;
-          if (tp !== null && tp !== undefined) {
+          if (r.isNew === true) {
+            doc.setTextColor(170, 130, 40);
+            doc.text('New', lc[5], y);
+            doc.text('New', lc[6], y);
+          } else if (tp !== null && tp !== undefined) {
             doc.setTextColor(tp >= 0 ? 22 : 200, tp >= 0 ? 163 : 50, tp >= 0 ? 74 : 50);
             doc.text((tp >= 0 ? '+' : '') + pct(tp), lc[5], y);
-            // Simple arrow
             doc.setTextColor(tp >= 0 ? 22 : 200, tp >= 0 ? 163 : 50, tp >= 0 ? 74 : 50);
             doc.text(tp >= 50 ? 'Rising fast' : tp >= 10 ? 'Up' : tp >= -10 ? 'Steady' : tp >= -50 ? 'Down' : 'Falling', lc[6], y);
           } else {
             doc.setTextColor(170, 170, 170);
-            doc.text('New', lc[5], y);
-            doc.text('--', lc[6], y);
+            doc.text('n/a', lc[5], y);
+            doc.text('n/a', lc[6], y);
           }
           y += 4.5;
         });

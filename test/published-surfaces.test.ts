@@ -8,6 +8,14 @@ describe('reader-facing highs from the confirming audit', () => {
     expect(src).toContain("['vscode','nuget','docker','github']");
     expect(src).not.toContain("['vscode','nuget','docker'].includes");
     expect(src).toContain('VS Code/NuGet/Docker/GitHub = all-time');
+    expect(src).toContain('function regWindow');
+    expect(src).toContain('fi(regDisplayVal(reg, r))');
+    expect(src).toContain('isNew: r.isNew === true');
+    expect(src).toContain("if (r.isNew === true)");
+    expect(src).toContain("doc.text('n/a', lc[5], y)");
+    expect(src).not.toContain('isNew: r.trendPct === null || r.trendPct === undefined');
+    expect(src).not.toContain(") : 'New'");
+    expect(src).not.toContain("doc.text('--', lc[6], y)");
   });
 
   it('the handbook says serve stays on loopback and listen(port) does not', () => {
@@ -16,6 +24,9 @@ describe('reader-facing highs from the confirming audit', () => {
     expect(src).toContain('binds every interface');
     expect(src).toContain('Access-Control-Allow-Origin: *');
     expect(src).not.toContain('createServer(handler).listen(3000);');
+    expect(src).toContain('X-Registry-Errors');
+    expect(src).toContain('An empty array plus the `X-Registry-Errors` header is an outage.');
+    expect(src).toContain('An empty array without that header means no registry returned the package.');
   });
 
   it('the security writeup says a githubToken in the config file stays there', () => {

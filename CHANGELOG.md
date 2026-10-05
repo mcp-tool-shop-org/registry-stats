@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - A PyPI all-time total of 0 stays 0. Desktop GitHub refresh walks release pages. An npm series of 30 days gets a trend. Two refreshes cannot share one temp file. The baked "Updated 3h ago" label follows the real timestamp.
 - A VS Code marketplace hit is kept only when the returned publisher and extension match the requested id. The health line follows the same timestamp as the header. The help modal says the assistant can send the snapshot through a local Ollama daemon that proxies a cloud model. Monday Pages builds refuse a snapshot whose weekly total is zero.
 - `registry-stats --json` exits 1 when every configured package misses, same as the table. The dashboard help describes the JSON portfolio, the Data Health marks, and a desktop reload. A registry filled from the previous snapshot is partial, not ok.
+- Shared PDF and Markdown reports show the all-time total for VS Code, NuGet, Docker, and GitHub. A package is marked New only when its row says so. The handbook says an empty `GET /stats/:package` body plus `X-Registry-Errors` is an outage.
 
 ### Changed
 - Dashboard (`site/`, not published): each fetch phase has a 6-minute budget and the whole fetch 30 minutes. A rate-limited registry falls back to its previous stats, marked stale, instead of holding the deploy for an hour.

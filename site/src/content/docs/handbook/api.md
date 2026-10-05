@@ -154,9 +154,11 @@ createServer(handler).listen(3000, '127.0.0.1');
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/` | Health check (lists available endpoints) |
-| `GET` | `/stats/:package` | All registries for a package |
+| `GET` | `/stats/:package` | All registries. Failures go in `X-Registry-Errors`, not the JSON array. |
 | `GET` | `/stats/:registry/:package` | Single registry |
 | `GET` | `/compare/:package?registries=npm,pypi` | Cross-registry comparison |
 | `GET` | `/range/:registry/:package?start=...&end=...&format=json\|csv\|chart` | Time series data |
 
 All endpoints return JSON by default. The `/range` endpoint supports `format=csv` (returns CSV with `Content-Disposition` header) and `format=chart` (returns Chart.js-compatible JSON). `createHandler` defaults `Access-Control-Allow-Origin` to `*`. Pass `corsOrigin` to narrow it. `serve()` stays on `127.0.0.1` unless `host` is set.
+
+`GET /stats/:package` returns a JSON array. An empty array plus the `X-Registry-Errors` header is an outage. An empty array without that header means no registry returned the package. `GET /compare` returns an object, so a failure on that route stays in the JSON body.
