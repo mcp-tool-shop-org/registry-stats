@@ -339,7 +339,6 @@ Week and Month are npm and PyPI. Total is all-time for NuGet, VS Code, Docker Hu
           var total = Object.keys(data.confidence).length;
           freshness.textContent = 'Freshness: updated ' + relTime(data.fetchedAt) + ' \u2022 ' + ok + '/' + total + ' registries OK';
         }
-        return;
       }
       renderDashboard(data);
     }).catch(function () {

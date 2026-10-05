@@ -51,6 +51,26 @@ public sealed class StatsService
     public string? LastError { get; private set; }
 
     /// <summary>
+    /// True when a saved portfolio has at least one package. That is the path
+    /// that calls the registries. No file, an empty file, or invalid JSON falls
+    /// through to the published snapshot, or fails before any download.
+    /// </summary>
+    public bool HasSavedPortfolio()
+    {
+        try
+        {
+            if (!File.Exists(PackagesPath)) return false;
+            var portfolio = LoadPortfolio(File.ReadAllText(PackagesPath));
+            return portfolio.Error is null && portfolio.Packages.Count > 0;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[StatsService] HasSavedPortfolio error: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Refresh the local snapshot. Returns true when a valid stats document was written.
     /// </summary>
     public async Task<bool> RefreshAsync()

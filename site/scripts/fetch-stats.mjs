@@ -527,7 +527,7 @@ async function main() {
     activeRegistries: activeRegistries.length,
   };
 
-  // Leaderboard (sort by weekly desc, tie-break month desc)
+  // Leaderboard. The Downloads column is week for npm and PyPI, and all-time for the rest.
   const leaderboard = allPackages
     .map((x) => ({
       registry: x.registry,
@@ -544,7 +544,10 @@ async function main() {
       extra: x.extra ?? null,
       ...(x.stale ? { stale: true } : {}),
     }))
-    .sort((a, b) => b.week - a.week || b.month - a.month || b.total - a.total)
+    .sort((a, b) => {
+      const shown = (row) => CUMULATIVE_REGISTRIES.has(row.registry) ? safeNumber(row.total) : safeNumber(row.week);
+      return shown(b) - shown(a) || safeNumber(b.month) - safeNumber(a.month) || safeNumber(b.total) - safeNumber(a.total);
+    })
     .slice(0, 250);
 
   // Aggregate npm sparkline (sum daily across all npm packages)

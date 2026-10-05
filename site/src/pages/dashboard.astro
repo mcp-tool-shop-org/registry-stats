@@ -35,6 +35,7 @@ interface LeaderboardEntry {
   registry: string;
   week: number;
   month?: number;
+  total?: number;
   trendPct: number | null;
   range30?: number[];
   delta7?: number;
@@ -127,6 +128,13 @@ const totals = data?.totals;
 const snapshotStale = !!data && (Date.now() - new Date(data.fetchedAt).getTime()) / 86_400_000 > 8;
 const registryTotals = data?.registryTotals ?? {};
 const leaderboard = data?.leaderboard ?? [];
+function displayDownloads(row: { registry?: string; week?: number; total?: number }) {
+  return ['vscode', 'nuget', 'docker', 'github'].includes(row.registry ?? '') ? Number(row.total ?? 0) : Number(row.week ?? 0);
+}
+const rankedLeaderboard = [...leaderboard].sort((a, b) =>
+  displayDownloads(b) - displayDownloads(a)
+  || Number(b.month ?? 0) - Number(a.month ?? 0)
+  || Number(b.total ?? 0) - Number(a.total ?? 0));
 const sparkline30 = data?.sparkline30 ?? [];
 const movers = data?.movers;
 
@@ -194,16 +202,10 @@ const npmDailyByPkg = (leaderboard as LeaderboardEntry[])
   .filter((r: LeaderboardEntry) => r.registry === 'npm' && r.range30?.length === 30);
 const perRegistryDaily: Record<string, number[]> = {};
 for (const reg of Object.keys(registryTotals)) {
-  if (reg === 'npm') {
-    // Aggregate all npm package range30 arrays
-    const agg = new Array(30).fill(0);
-    npmDailyByPkg.forEach((r: LeaderboardEntry) => r.range30!.forEach((v: number, i: number) => agg[i] += Number(v)));
-    perRegistryDaily.npm = agg;
-  } else {
-    // Estimate daily from weekly total (flat distribution — best available)
-    const weekVal = Number((registryTotals as Record<string, RegistryTotal>)[reg]?.week ?? 0);
-    perRegistryDaily[reg] = new Array(30).fill(Math.round(weekVal / 7));
-  }
+  if (reg !== 'npm') continue;
+  const agg = new Array(30).fill(0);
+  npmDailyByPkg.forEach((r: LeaderboardEntry) => r.range30!.forEach((v: number, i: number) => agg[i] += Number(v)));
+  perRegistryDaily.npm = agg;
 }
 
 // Top 5 per-package daily overlay
@@ -282,8 +284,8 @@ const attentionPkgs = (leaderboard as LeaderboardEntry[])
 
 // Auto-generated insights
 const insights: { icon: string; text: string; type: string }[] = [];
-if (weekDeltaPct > 0) insights.push({ icon: '\uD83D\uDCC8', text: `Portfolio grew ${Math.round(weekDeltaPct * 10) / 10}% week-over-week (${fmtCompact.format(npmLast7)} downloads)`, type: 'positive' });
-if (weekDeltaPct < -5) insights.push({ icon: '\u26A0\uFE0F', text: `Portfolio declined ${Math.abs(Math.round(weekDeltaPct * 10) / 10)}% week-over-week`, type: 'warning' });
+if (weekDeltaPct > 0) insights.push({ icon: '\uD83D\uDCC8', text: `npm grew ${Math.round(weekDeltaPct * 10) / 10}% week-over-week (${fmtCompact.format(npmLast7)} downloads)`, type: 'positive' });
+if (weekDeltaPct < -5) insights.push({ icon: '\u26A0\uFE0F', text: `npm declined ${Math.abs(Math.round(weekDeltaPct * 10) / 10)}% week-over-week`, type: 'warning' });
 if (top3Pct > 60) insights.push({ icon: '\uD83E\uDDF1', text: `${top3Pct}% of downloads come from top 3 packages — high concentration risk`, type: 'warning' });
 if (gini > 0.7) insights.push({ icon: '\u26A0\uFE0F', text: `Gini coefficient ${gini.toFixed(2)} — portfolio heavily skewed toward few packages`, type: 'warning' });
 if (anomalies.length > 0) {
@@ -1172,7 +1174,7 @@ const chatContext = !missing && data ? JSON.stringify({
           <div class="text-[10px] text-dim uppercase tracking-wide">Weekly Downloads</div>
           <div class="mt-1 text-2xl font-bold tabular-nums text-heading">{totals ? fmtCompact.format(totals.week) : '\u2014'}</div>
           <div class={`mt-0.5 text-xs tabular-nums ${weekDeltaPct >= 0 ? 'status-success' : 'status-danger'}`}>
-            {weekDeltaPct >= 0 ? '\u25B2' : '\u25BC'} {Math.abs(Math.round(weekDeltaPct * 10) / 10)}% vs prev week
+            npm {weekDeltaPct >= 0 ? '\u25B2' : '\u25BC'} {Math.abs(Math.round(weekDeltaPct * 10) / 10)}% vs prior 7 days
           </div>
         </div>
         <div class="rounded-xl border border-edge bg-surface-raised p-4">
@@ -1238,7 +1240,7 @@ const chatContext = !missing && data ? JSON.stringify({
             <div class="flex items-center justify-between gap-3 flex-wrap mb-1">
               <div>
                 <h3 class="text-lg font-semibold text-heading">30-Day Download Trend</h3>
-                <p class="mt-0.5 text-sm text-dim">Registry split • anomaly flags • 7d moving average</p>
+                <p class="mt-0.5 text-sm text-dim">Aggregate is the npm daily total. Per registry plots that npm series. VS Code, NuGet, Docker, and GitHub are all-time and are not on this chart.</p>
               </div>
               <div class="flex items-center gap-2" id="trend-toggles">
                 <button class="trend-toggle active" data-mode="aggregate">Aggregate</button>
@@ -1258,10 +1260,10 @@ const chatContext = !missing && data ? JSON.stringify({
             {/* ── 2. Registry Share (upgraded → stacked bar + metrics) ── */}
             <div class="rounded-2xl border border-edge bg-surface-raised p-6">
               <h3 class="text-lg font-semibold text-heading">Registry Share</h3>
-              <p class="mt-0.5 text-sm text-dim">Weekly distribution with absolute + delta.</p>
+              <p class="mt-0.5 text-sm text-dim">Weekly downloads, npm and PyPI.</p>
               <div id="registry-share-stats" class="mt-3 space-y-2"></div>
               <div class="mt-4" style="position:relative;height:220px;">
-                <canvas id="chart-share" role="img" aria-label="Registry share stacked bar chart showing weekly download distribution across registries"></canvas>
+                <canvas id="chart-share" role="img" aria-label="Weekly download share for npm and PyPI"></canvas>
               </div>
             </div>
 
@@ -1319,7 +1321,7 @@ const chatContext = !missing && data ? JSON.stringify({
       {/* ── Leaderboard ── */}
       <section id="leaderboard" class="mb-8">
         <h2 class="text-xl font-semibold text-heading">Leaderboard</h2>
-        <p class="mt-1 text-sm text-dim">Sorted by downloads. npm/PyPI = weekly; VS Code, NuGet, Docker, and GitHub = all-time total. Trend = last 7 vs prior 7 (npm only).</p>
+        <p class="mt-1 text-sm text-dim">Sorted by the Downloads column. npm and PyPI are the week. VS Code, NuGet, Docker, and GitHub are all-time. Month is npm and PyPI. Trend is last 7 vs prior 7, npm only.</p>
         <div class="mt-4 rounded-2xl border border-edge overflow-hidden">
           <div class="p-4 flex items-center justify-between gap-4 flex-wrap bg-surface-raised">
             <div class="flex items-center gap-3 flex-wrap">
@@ -1353,7 +1355,7 @@ const chatContext = !missing && data ? JSON.stringify({
                 </tr>
               </thead>
               <tbody id="leaderboard-body">
-                {leaderboard.map((row: any, i: number) => {
+                {rankedLeaderboard.map((row: any, i: number) => {
                   const prevW = row.range30?.length === 30 ? row.range30.slice(-14, -7).reduce((a: number, b: number) => a + Number(b), 0) : null;
                   const currW = row.range30?.length === 30 ? row.range30.slice(-7).reduce((a: number, b: number) => a + Number(b), 0) : row.week;
                   const t = trendBadge(row.trendPct, prevW, currW);
@@ -2118,8 +2120,8 @@ const chatContext = !missing && data ? JSON.stringify({
       // ═══════════════════════════════════════════════
       // 2. Registry Share — polar area + stat rows
       // ═══════════════════════════════════════════════
-      var regKeys = Object.keys(cdata.registryTotals || {});
-      var regVals = regKeys.map(function (k) { return regDisplayVal(k, cdata.registryTotals[k] || {}); });
+      var regKeys = Object.keys(cdata.registryTotals || {}).filter(function (k) { return __CUMULATIVE.indexOf(k) === -1; });
+      var regVals = regKeys.map(function (k) { return Number((cdata.registryTotals[k] || {}).week || 0); });
       var regTotal = regVals.reduce(function (a, b) { return a + b; }, 0);
 
       // Stat rows
@@ -2987,7 +2989,11 @@ const chatContext = !missing && data ? JSON.stringify({
         });
       }
 
-      var lb = data.leaderboard || [];
+      var lb = (data.leaderboard || []).slice().sort(function (a, b) {
+        var av = regDisplayVal(a.registry, a);
+        var bv = regDisplayVal(b.registry, b);
+        return bv - av || Number(b.month || 0) - Number(a.month || 0) || Number(b.total || 0) - Number(a.total || 0);
+      });
       var lbCount = document.getElementById('leaderboard-count');
       if (lbCount) lbCount.textContent = String(lb.length);
       var tbody = document.getElementById('leaderboard-body');

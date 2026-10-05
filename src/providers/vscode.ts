@@ -55,11 +55,14 @@ export const vscode: RegistryProvider = {
     // || [] defense below).
     if (!ext || !ext.publisher) return null;
 
+    const id = `${ext.publisher.publisherName}.${ext.extensionName}`;
+    if (id.toLowerCase() !== pkg.toLowerCase()) return null;
+
     const stats = ext.statistics || [];
 
     return {
       registry: 'vscode',
-      package: `${ext.publisher.publisherName}.${ext.extensionName}`,
+      package: id,
       downloads: {
         total: getStat(stats, 'install'),
       },

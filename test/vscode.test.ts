@@ -63,6 +63,46 @@ describe('vscode provider (mocked)', () => {
     expect(result).toBeNull();
   });
 
+  it('getStats returns null when the first hit is a different extension', async () => {
+    mockFetch(async () => ({
+      status: 200,
+      body: {
+        results: [{
+          extensions: [{
+            extensionName: 'other',
+            publisher: { publisherName: 'someone' },
+            displayName: 'Other',
+            statistics: [{ statisticName: 'install', value: 9 }],
+          }],
+        }],
+      },
+    }));
+
+    const result = await vscode.getStats('esbenp.prettier-vscode');
+    expect(result).toBeNull();
+  });
+
+  it('getStats keeps a case-insensitive id match', async () => {
+    mockFetch(async () => ({
+      status: 200,
+      body: {
+        results: [{
+          extensions: [{
+            extensionName: 'prettier-vscode',
+            publisher: { publisherName: 'esbenp' },
+            displayName: 'Prettier',
+            statistics: [{ statisticName: 'install', value: 12 }],
+          }],
+        }],
+      },
+    }));
+
+    const result = await vscode.getStats('Esbenp.Prettier-VSCode');
+    expect(result).not.toBeNull();
+    expect(result!.package).toBe('esbenp.prettier-vscode');
+    expect(result!.downloads.total).toBe(12);
+  });
+
   // engine-B02: a malformed extension shape with no `publisher` must not
   // throw a raw TypeError (reading publisherName of undefined) — return null.
   it('getStats returns null for an extension missing the publisher field', async () => {

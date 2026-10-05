@@ -240,7 +240,9 @@ public partial class MainPage : ContentPage, IDisposable
             {
                 action = "status",
                 refreshFailed = true,
-                message = "Showing cached data — couldn't reach live source."
+                message = string.IsNullOrWhiteSpace(_stats.LastError)
+                    ? "Showing cached data — couldn't reach live source."
+                    : "Showing cached data — " + _stats.LastError
             }));
         }
         catch (Exception ex)
@@ -293,7 +295,10 @@ public partial class MainPage : ContentPage, IDisposable
                     break;
 
                 case "fetchNow":
-                    sender.PostWebMessageAsJson(JsonSerializer.Serialize(new { action = "fetchProgress", line = "Downloading stats from GitHub Pages..." }));
+                    var refreshLine = _stats.HasSavedPortfolio()
+                        ? "Fetching the saved portfolio from the registries..."
+                        : "Downloading stats from GitHub Pages...";
+                    sender.PostWebMessageAsJson(JsonSerializer.Serialize(new { action = "fetchProgress", line = refreshLine }));
                     var ok = await _stats.RefreshAsync();
                     sender.PostWebMessageAsJson(JsonSerializer.Serialize(new
                     {

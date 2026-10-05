@@ -16,6 +16,12 @@ describe('reader-facing highs from the confirming audit', () => {
     expect(src).not.toContain('isNew: r.trendPct === null || r.trendPct === undefined');
     expect(src).not.toContain(") : 'New'");
     expect(src).not.toContain("doc.text('--', lc[6], y)");
+    expect(src).toContain('Weekly downloads, npm and PyPI.');
+    expect(src).toContain('__CUMULATIVE.indexOf(k) === -1');
+    expect(src).toContain('vs prior 7 days');
+    expect(src).toContain('const rankedLeaderboard');
+    expect(src).not.toContain('Math.round(weekVal / 7)');
+    expect(src).not.toContain('Portfolio declined');
   });
 
   it('the handbook says serve stays on loopback and listen(port) does not', () => {

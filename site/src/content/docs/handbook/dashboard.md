@@ -18,7 +18,7 @@ The dashboard is a self-updating stats application deployed to GitHub Pages.
 - **Yearly progress tracking** — persistent history layer accumulates monthly per-package and weekly portfolio aggregates; portfolio trend chart with per-registry stacking
 - **Live refresh** — the page re-fetches same-origin `data/stats.json`. It does not call the npm or PyPI APIs from the browser.
 - **Export reports** — PDF (jsPDF), JSONL (for AI ingestion), and Markdown (GFM tables)
-- **Leaderboard** — packages ranked by weekly downloads with 30-day sparklines and smart trend badges
+- **Leaderboard** — ranked by the Downloads column. npm and PyPI are the week. VS Code, NuGet, Docker, and GitHub are all-time. Month is npm and PyPI. Sparklines and trend badges are the npm 30-day series.
 - **Dark/light theme** — follows system preference
 
 ## Pulse AI co-pilot

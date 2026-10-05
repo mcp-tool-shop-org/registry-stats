@@ -24,6 +24,26 @@ public class StatsServiceTests
     }
 
     [Fact]
+    public void HasSavedPortfolio_IsTrueOnlyWhenTheFileListsAPackage()
+    {
+        var root = TempRoot();
+        try
+        {
+            var service = new StatsService(root, new StubHandler());
+            Assert.False(service.HasSavedPortfolio());
+            Directory.CreateDirectory(Path.GetDirectoryName(service.PackagesPath)!);
+            File.WriteAllText(service.PackagesPath, "{\"npm\":[\"left-pad\"]}");
+            Assert.True(service.HasSavedPortfolio());
+            File.WriteAllText(service.PackagesPath, "{\"npm\":[]}");
+            Assert.False(service.HasSavedPortfolio());
+        }
+        finally
+        {
+            DeleteTemp(root);
+        }
+    }
+
+    [Fact]
     public async Task RefreshAsync_ReturnsFalse_WhenOffline()
     {
         var root = TempRoot();
