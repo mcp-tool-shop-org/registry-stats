@@ -68,7 +68,7 @@ const fmt = new Intl.NumberFormat('en-US');
 const fmtCompact = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
 
 function registryLabel(key: string) {
-  return ({ npm: 'npm', pypi: 'PyPI', vscode: 'VS Code', nuget: 'NuGet', docker: 'Docker Hub' } as Record<string, string>)[key] ?? key;
+  return ({ npm: 'npm', pypi: 'PyPI', vscode: 'VS Code', nuget: 'NuGet', docker: 'Docker Hub', github: 'GitHub' } as Record<string, string>)[key] ?? key;
 }
 
 // Smart growth display — handles small-denominator distortion
@@ -844,10 +844,13 @@ const chatContext = !missing && data ? JSON.stringify({
                       {key === 'docker' && (
                         <span class="ml-1.5 text-xs text-dim font-normal">(all-time pulls)</span>
                       )}
+                      {key === 'github' && (
+                        <span class="ml-1.5 text-xs text-dim font-normal">(all-time)</span>
+                      )}
                     </div>
                     <div class="text-dim">
                       <span class="text-muted font-medium">{fmtCompact.format(
-                        ['vscode','nuget','docker'].includes(key) ? (r.total ?? r.week) : r.week
+                        ['vscode','nuget','docker','github'].includes(key) ? (r.total ?? r.week) : r.week
                       )}</span>
                       <span class="mx-2 text-edge">&bull;</span>
                       {fmt.format(r.packages)} pkg
@@ -857,7 +860,7 @@ const chatContext = !missing && data ? JSON.stringify({
                     <div
                       class="h-2 rounded-full bg-accent"
                       style={`width:${Math.round((Number(
-                        ['vscode','nuget','docker'].includes(key) ? (r.total ?? r.week) : r.week
+                        ['vscode','nuget','docker','github'].includes(key) ? (r.total ?? r.week) : r.week
                       ) / maxBar) * 100)}%`}
                     />
                   </div>
@@ -1316,7 +1319,7 @@ const chatContext = !missing && data ? JSON.stringify({
       {/* ── Leaderboard ── */}
       <section id="leaderboard" class="mb-8">
         <h2 class="text-xl font-semibold text-heading">Leaderboard</h2>
-        <p class="mt-1 text-sm text-dim">Sorted by downloads. npm/PyPI = weekly; VS Code/NuGet/Docker = all-time total. Trend = last 7 vs prior 7 (npm only).</p>
+        <p class="mt-1 text-sm text-dim">Sorted by downloads. npm/PyPI = weekly; VS Code, NuGet, Docker, and GitHub = all-time total. Trend = last 7 vs prior 7 (npm only).</p>
         <div class="mt-4 rounded-2xl border border-edge overflow-hidden">
           <div class="p-4 flex items-center justify-between gap-4 flex-wrap bg-surface-raised">
             <div class="flex items-center gap-3 flex-wrap">
@@ -1332,7 +1335,7 @@ const chatContext = !missing && data ? JSON.stringify({
               />
             </div>
             <div class="text-xs text-dim">
-              npm/PyPI = last 7d &bull; VS Code/NuGet/Docker = all-time
+              npm/PyPI = last 7d &bull; VS Code/NuGet/Docker/GitHub = all-time
             </div>
           </div>
 
@@ -1361,7 +1364,7 @@ const chatContext = !missing && data ? JSON.stringify({
                       <td class="px-5 py-3 text-dim tabular-nums">{i + 1}</td>
                       <td class="px-5 py-3 font-medium text-heading">{row.name}</td>
                       <td class="px-5 py-3 text-dim">{registryLabel(row.registry)}</td>
-                      <td class="px-5 py-3 text-right tabular-nums text-body">{fmt.format(['vscode','nuget','docker'].includes(row.registry) ? (row.total ?? row.week) : row.week)}</td>
+                      <td class="px-5 py-3 text-right tabular-nums text-body">{fmt.format(['vscode','nuget','docker','github'].includes(row.registry) ? (row.total ?? row.week) : row.week)}</td>
                       <td class="px-5 py-3 text-right tabular-nums text-body">{fmt.format(row.month)}</td>
                       <td class="px-3 py-3">
                         {hasSparkline ? (
@@ -2941,6 +2944,9 @@ const chatContext = !missing && data ? JSON.stringify({
           } else if (key === 'docker') {
             labelChildren.push(document.createTextNode(' '));
             labelChildren.push(el('span', 'ml-1.5 text-xs text-dim font-normal', '(all-time pulls)'));
+          } else if (key === 'github') {
+            labelChildren.push(document.createTextNode(' '));
+            labelChildren.push(el('span', 'ml-1.5 text-xs text-dim font-normal', '(all-time)'));
           }
           var barInner = document.createElement('div');
           barInner.className = 'h-2 rounded-full bg-accent';

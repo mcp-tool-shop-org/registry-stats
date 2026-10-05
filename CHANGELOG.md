@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 - A queued GitHub request whose signal had already aborted waited out the full spacing gap (60s without a token) instead of returning at once.
+- The desktop leaderboard and CSV export show the all-time `total`. Week and month stay npm and PyPI only.
+- The site leaderboard's first paint counts GitHub with the other all-time registries.
+- The security writeup says a `githubToken` you add to `registry-stats.config.json` stays in that file. The handbook says `serve()` binds loopback and `listen(port)` with no host binds every interface.
 
 ### Changed
 - Dashboard (`site/`, not published): each fetch phase has a 6-minute budget and the whole fetch 30 minutes. A rate-limited registry falls back to its previous stats, marked stale, instead of holding the deploy for an hour.

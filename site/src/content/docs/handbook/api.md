@@ -135,16 +135,18 @@ const result = inferPortfolio(leaderboard, { gini: 0.6, npmPct: 85 });
 
 ## REST server
 
+`serve()` binds `127.0.0.1` unless `host` is set. `createHandler()` sends `Access-Control-Allow-Origin: *` unless `corsOrigin` is set. `createServer(handler).listen(port)` with no host binds every interface, so the sample below pins loopback.
+
 ```typescript
 import { createHandler, serve } from '@mcptoolshop/registry-stats';
 
-// Quick start
-serve({ port: 3000 });
+// Loopback only. Set host to '0.0.0.0' only when you mean to publish it.
+serve({ port: 3000, host: '127.0.0.1' });
 
-// Bring your own server
+// Bring your own server. listen(3000) with no host binds every interface.
 import { createServer } from 'node:http';
 const handler = createHandler();
-createServer(handler).listen(3000);
+createServer(handler).listen(3000, '127.0.0.1');
 ```
 
 ### Endpoints
@@ -157,4 +159,4 @@ createServer(handler).listen(3000);
 | `GET` | `/compare/:package?registries=npm,pypi` | Cross-registry comparison |
 | `GET` | `/range/:registry/:package?start=...&end=...&format=json\|csv\|chart` | Time series data |
 
-All endpoints return JSON by default. The `/range` endpoint supports `format=csv` (returns CSV with `Content-Disposition` header) and `format=chart` (returns Chart.js-compatible JSON). CORS is enabled for all origins.
+All endpoints return JSON by default. The `/range` endpoint supports `format=csv` (returns CSV with `Content-Disposition` header) and `format=chart` (returns Chart.js-compatible JSON). `createHandler` defaults `Access-Control-Allow-Origin` to `*`. Pass `corsOrigin` to narrow it. `serve()` stays on `127.0.0.1` unless `host` is set.

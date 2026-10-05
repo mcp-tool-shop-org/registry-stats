@@ -470,17 +470,18 @@ public partial class MainPage : ContentPage, IDisposable
                         if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
                         return '"' + s.replace(/"/g, '""') + '"';
                     }
-                    var csv = ['Rank','Package','Registry','Week','Month','Trend'].map(escapeCsv).join(',') + '\n';
+                    var csv = ['Rank','Package','Registry','Week','Month','Total','Trend'].map(escapeCsv).join(',') + '\n';
                     rows.forEach(function(tr) {
                         var cells = tr.querySelectorAll('td');
-                        if (cells.length < 7) return;
+                        if (cells.length < 8) return;
                         var rank = cells[0].textContent.trim();
                         var name = cells[1].textContent.trim();
                         var reg = cells[2].textContent.trim();
                         var week = cells[3].textContent.trim();
                         var month = cells[4].textContent.trim();
-                        var trend = cells[6].textContent.trim();
-                        csv += [rank, name, reg, week, month, trend].map(escapeCsv).join(',') + '\n';
+                        var total = cells[5].textContent.trim();
+                        var trend = cells[7].textContent.trim();
+                        csv += [rank, name, reg, week, month, total, trend].map(escapeCsv).join(',') + '\n';
                     });
                     var blob = new Blob([csv], { type: 'text/csv' });
                     var a = document.createElement('a');

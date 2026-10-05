@@ -41,6 +41,25 @@ public class BundledDashboardTests
         Assert.Contains("chrome.webview", html);
     }
 
+    [Fact]
+    public void Leaderboard_ShowsAllTimeTotal_AndCsvExportsIt()
+    {
+        var html = File.ReadAllText(FindBundledDashboard());
+        Assert.Contains(">Total</th>", html);
+        Assert.Contains("fmt.format(Number(row.total || 0))", html);
+        Assert.Contains("Week and Month are npm and PyPI. Total is the all-time count.", html);
+        Assert.Contains("Monthly downloads, npm and PyPI", html);
+
+        DirectoryInfo? dir = new FileInfo(FindBundledDashboard()).Directory;
+        while (dir is not null && dir.Name != "RegistryPulse.Desktop") dir = dir.Parent;
+        Assert.NotNull(dir);
+        var mainPage = File.ReadAllText(Path.Combine(dir!.FullName, "MainPage.xaml.cs"));
+        Assert.Contains("'Rank','Package','Registry','Week','Month','Total','Trend'", mainPage);
+        Assert.Contains("cells.length < 8", mainPage);
+        Assert.Contains("var total = cells[5]", mainPage);
+        Assert.Contains("var trend = cells[7]", mainPage);
+    }
+
     private static string FindBundledDashboard()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
