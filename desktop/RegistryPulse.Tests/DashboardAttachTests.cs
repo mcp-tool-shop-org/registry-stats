@@ -66,6 +66,22 @@ public class BundledDashboardTests
         Assert.Contains("var trend = cells[7]", mainPage);
     }
 
+    [Fact]
+    public void Breakdown_KeepsNumericTotal_AndSumsLeaderboardWhenTotalIsAbsent()
+    {
+        var html = File.ReadAllText(FindBundledDashboard());
+        Assert.Contains("if (typeof r.total === 'number') return r.total;", html);
+        Assert.Contains("if (!cumulative[key]) return Number(r.week || 0);", html);
+        Assert.Contains("entry.registry !== key", html);
+        Assert.Contains("Number.isFinite(entryTotal) ? entryTotal : 0", html);
+        Assert.DoesNotContain("Number(r.total || 0)", html);
+        Assert.Contains("typeof data.source === 'string'", html);
+        Assert.Contains("build-time fetch", html);
+        var fetchedAt = html.IndexOf("data.fetchedAt === buildTime", StringComparison.Ordinal);
+        var render = html.IndexOf("renderDashboard(data);", StringComparison.Ordinal);
+        Assert.True(fetchedAt >= 0 && render > fetchedAt);
+    }
+
     private static string FindBundledDashboard()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

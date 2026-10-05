@@ -167,6 +167,17 @@ export interface AllStatsResult extends Array<PackageStats> {
   errors?: RegistryFailure[];
 }
 
+/** Result of stats.bulk(): one slot per name, plus names that threw. */
+export interface BulkStatsResult extends Array<PackageStats | null> {
+  /** Thrown names only. A legitimate null (package absent) is not listed. */
+  errors?: RegistryFailure[];
+}
+
+/** Result of stats.mine(): package rows plus the bulk failure channel. */
+export interface MineStatsResult extends Array<PackageStats> {
+  errors?: RegistryFailure[];
+}
+
 /** Result of stats.compare(): ComparisonResult plus an additive errors channel. */
 export interface ComparisonWithErrors extends ComparisonResult {
   /** Registries that errored (vs. legitimately returning null/not-found). */
@@ -275,12 +286,37 @@ stats.all = async function all(
   return out;
 };
 
+/**
+ * One settled lookup per name. A throw becomes null plus an errors entry.
+ * A fulfilled null is a real miss and is not an error.
+ */
+function collectSettled(
+  registry: string,
+  settled: PromiseSettledResult<PackageStats | null>[],
+  errors: RegistryFailure[],
+): { values: (PackageStats | null)[]; firstReject: unknown; fulfilled: number } {
+  const values: (PackageStats | null)[] = [];
+  let firstReject: unknown;
+  let fulfilled = 0;
+  for (const result of settled) {
+    if (result.status === 'fulfilled') {
+      values.push(result.value);
+      fulfilled++;
+    } else {
+      values.push(null);
+      if (firstReject === undefined) firstReject = result.reason;
+      errors.push(toRegistryFailure(registry, result.reason));
+    }
+  }
+  return { values, firstReject, fulfilled };
+}
+
 /** Fetch stats for multiple packages from one registry with concurrency control. */
 stats.bulk = async function bulk(
   registry: string,
   packages: string[],
   options?: StatsOptions,
-): Promise<(PackageStats | null)[]> {
+): Promise<BulkStatsResult> {
   const provider = providers.get(registry);
   if (!provider) {
     throw new RegistryError(registry, 400, `Unknown registry "${registry}".`);
@@ -299,7 +335,18 @@ stats.bulk = async function bulk(
 
   const concurrency = options?.concurrency ?? 5;
   const limit = pLimit(concurrency);
-  return Promise.all(packages.map((pkg) => limit(() => stats(registry, pkg, options))));
+  const settled = await Promise.allSettled(
+    packages.map((pkg) => limit(() => stats(registry, pkg, options))),
+  );
+  const errors: RegistryFailure[] = [];
+  const { values, firstReject, fulfilled } = collectSettled(registry, settled, errors);
+  // Every name threw: nothing to keep. A fulfilled null is a real miss.
+  if (packages.length > 0 && fulfilled === 0) {
+    throw firstReject ?? new RegistryError(registry, 0, 'bulk fetch failed');
+  }
+  const out: BulkStatsResult = values;
+  if (errors.length > 0) out.errors = errors;
+  return out;
 };
 
 /**
@@ -309,7 +356,7 @@ stats.bulk = async function bulk(
 async function npmBulkStats(
   packages: string[],
   options?: StatsOptions,
-): Promise<(PackageStats | null)[]> {
+): Promise<BulkStatsResult> {
   const scoped: string[] = [];
   const unscoped: string[] = [];
 
@@ -322,8 +369,8 @@ async function npmBulkStats(
   }
 
   // Each period settles on its own. A later failure keeps the maps that
-  // already arrived and records the period on errors. All three failing is
-  // still a rejection (nothing to return).
+  // already arrived and records the period on errors. Sums stay on these
+  // point-API maps; they are not recomputed from the range endpoint.
   const errors: RegistryFailure[] = [];
   let firstReject: unknown;
   const loadPeriod = async (period: 'last-month' | 'last-week' | 'last-day') => {
@@ -342,7 +389,9 @@ async function npmBulkStats(
   const bulkMonth = await loadPeriod('last-month');
   const bulkWeek = await loadPeriod('last-week');
   const bulkDay = await loadPeriod('last-day');
-  if (unscoped.length > 0 && errors.length === 3) throw firstReject;
+  // Total period failure is fatal only when scoped lookups also produce
+  // nothing usable. Those lookups settle below so a scoped hit is kept.
+  const allPeriodsFailed = unscoped.length > 0 && errors.length === 3;
 
   const unscopedResults = new Map<string, PackageStats | null>();
   for (const pkg of unscoped) {
@@ -367,15 +416,26 @@ async function npmBulkStats(
 
   // Scoped: serial — the per-provider throttle in fetch.ts spaces requests 400ms apart.
   // Concurrency=1 ensures throttle chain works correctly without races.
+  // Settle each call. One throw must not discard unscoped rows already in hand.
   const limit = pLimit(1);
-  const scopedResults = await Promise.all(
+  const scopedSettled = await Promise.allSettled(
     scoped.map((pkg) => limit(() => stats('npm', pkg, options))),
   );
+  const { values: scopedValues, firstReject: scopedReject, fulfilled: scopedFulfilled } = collectSettled(
+    'npm',
+    scopedSettled,
+    errors,
+  );
   const scopedMap = new Map<string, PackageStats | null>();
-  scoped.forEach((pkg, i) => scopedMap.set(pkg, scopedResults[i]));
+  scoped.forEach((pkg, i) => scopedMap.set(pkg, scopedValues[i] ?? null));
+
+  const unscopedUsable = unscoped.length > 0 && !allPeriodsFailed;
+  if (!unscopedUsable && scopedFulfilled === 0) {
+    throw (allPeriodsFailed ? firstReject : scopedReject) ?? new RegistryError('npm', 0, 'npm bulk fetch failed');
+  }
 
   // Return in original order. errors is an additive channel, same idea as stats.all.
-  const ordered: (PackageStats | null)[] & { errors?: RegistryFailure[] } = packages.map(
+  const ordered: BulkStatsResult = packages.map(
     (pkg) => unscopedResults.get(pkg) ?? scopedMap.get(pkg) ?? null,
   );
   if (errors.length > 0) ordered.errors = errors;
@@ -472,7 +532,7 @@ interface NpmSearchResult {
 stats.mine = async function mine(
   maintainer: string,
   options?: StatsOptions & { onProgress?: (done: number, total: number, pkg: string) => void },
-): Promise<PackageStats[]> {
+): Promise<MineStatsResult> {
   // Discover all packages by this maintainer
   const packages: string[] = [];
   const PAGE_SIZE = 250;
@@ -505,8 +565,9 @@ stats.mine = async function mine(
 
   if (packages.length === 0) return [];
 
-  // Fetch stats for all discovered packages using smart bulk
-  const results: PackageStats[] = [];
+  // Fetch stats for all discovered packages using smart bulk.
+  // Truthy rows only; the bulk failure channel rides on the array, not on a package.
+  const results: MineStatsResult = [];
   const bulkResults = await stats.bulk('npm', packages, options);
 
   for (let i = 0; i < packages.length; i++) {
@@ -517,6 +578,7 @@ stats.mine = async function mine(
 
   // Sort by monthly downloads descending
   results.sort((a, b) => (b.downloads.lastMonth ?? 0) - (a.downloads.lastMonth ?? 0));
+  if (bulkResults.errors && bulkResults.errors.length > 0) results.errors = bulkResults.errors;
 
   return results;
 };

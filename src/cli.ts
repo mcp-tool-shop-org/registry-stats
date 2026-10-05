@@ -30,6 +30,10 @@ Options:
   --compare       Compare package across registries side-by-side
   --format        Output format: table (default), json, csv, chart
   --json          Shorthand for --format json
+  --github-token  GitHub token. Overrides the config file, then GITHUB_TOKEN,
+                  then GH_TOKEN. Not stored in the config file or printed.
+  --docker-token  Docker Hub token. Overrides the config file, then
+                  DOCKER_TOKEN. Not stored in the config file or printed.
   --init          Create a starter registry-stats.config.json
   --version, -V   Show version
   --help, -h      Show this help
@@ -41,6 +45,8 @@ Subcommands:
                   Use 0.0.0.0 to expose on all interfaces (only behind a
                   trusted proxy or when you intend public access).
     --cors        Access-Control-Allow-Origin value (default: * — any origin)
+    --github-token  GitHub token (GITHUB_TOKEN or GH_TOKEN). Same override order.
+    --docker-token  Docker Hub token (DOCKER_TOKEN). Same override order.
 
 Examples:
   registry-stats express
@@ -219,31 +225,77 @@ function parsePort(raw: string): number {
   return port;
 }
 
-function buildOptions(config: Config | null): StatsOptions {
-  const opts: StatsOptions = {};
-  if (!config) return opts;
+interface TokenSources {
+  githubToken?: string;
+  dockerToken?: string;
+  /** Flag was present, so it wins even when the value is blank. */
+  githubFromFlag?: boolean;
+  dockerFromFlag?: boolean;
+}
 
-  if (config.cache !== false) {
-    opts.cache = createCache();
-    opts.cacheTtlMs = config.cacheTtlMs;
+function blankToUnset(value: string | undefined): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed === '' ? undefined : trimmed;
+}
+
+function tokenFromEnv(names: readonly string[]): string | undefined {
+  for (const name of names) {
+    const value = blankToUnset(process.env[name]);
+    if (value) return value;
   }
-  if (config.concurrency) opts.concurrency = config.concurrency;
-  if (config.dockerToken) opts.dockerToken = config.dockerToken;
-  if (config.githubToken) opts.githubToken = config.githubToken;
-  // A present array is the allowlist, including empty (query nothing).
-  // Only a missing registries field means every provider.
-  if (Array.isArray(config.registries)) opts.registries = config.registries;
+  return undefined;
+}
+
+/** Flag, then a non-blank config value, then the first non-blank env var. */
+function pickToken(
+  fromFlag: boolean | undefined,
+  flagValue: string | undefined,
+  configured: string | undefined,
+  envNames: readonly string[],
+): string | undefined {
+  if (fromFlag) return blankToUnset(flagValue);
+  return blankToUnset(configured) ?? tokenFromEnv(envNames);
+}
+
+function buildOptions(config: Config | null, tokens?: TokenSources): StatsOptions {
+  const opts: StatsOptions = {};
+  if (config) {
+    if (config.cache !== false) {
+      opts.cache = createCache();
+      opts.cacheTtlMs = config.cacheTtlMs;
+    }
+    if (config.concurrency) opts.concurrency = config.concurrency;
+    // A present array is the allowlist, including empty (query nothing).
+    // Only a missing registries field means every provider.
+    if (Array.isArray(config.registries)) opts.registries = config.registries;
+  }
+
+  const githubToken = pickToken(
+    tokens?.githubFromFlag,
+    tokens?.githubToken,
+    config?.githubToken,
+    ['GITHUB_TOKEN', 'GH_TOKEN'],
+  );
+  const dockerToken = pickToken(
+    tokens?.dockerFromFlag,
+    tokens?.dockerToken,
+    config?.dockerToken,
+    ['DOCKER_TOKEN'],
+  );
+  if (githubToken) opts.githubToken = githubToken;
+  if (dockerToken) opts.dockerToken = dockerToken;
   return opts;
 }
 
-async function runConfigPackages(config: Config, format: string) {
+async function runConfigPackages(config: Config, format: string, tokens?: TokenSources) {
   const packages = config.packages;
   if (!packages || Object.keys(packages).length === 0) {
     console.error('No packages defined in config. Add packages to registry-stats.config.json.');
     process.exit(1);
   }
 
-  const opts = buildOptions(config);
+  const opts = buildOptions(config, tokens);
   const allResults: Record<string, PackageStats[]> = {};
 
   for (const [displayName, registryMap] of Object.entries(packages)) {
@@ -282,24 +334,38 @@ async function runConfigPackages(config: Config, format: string) {
   console.log();
 }
 
-async function runMine(maintainer: string, format: string, config: Config | null) {
-  const opts = buildOptions(config);
+async function runMine(maintainer: string, format: string, config: Config | null, tokens?: TokenSources) {
+  const opts = buildOptions(config, tokens);
 
   process.stderr.write(`  Discovering packages for ${maintainer}...`);
 
-  const results = await stats.mine(maintainer, {
-    ...opts,
-    onProgress(done, total, pkg) {
-      // Clear line and show progress
-      process.stderr.write(`\r  Fetching stats... ${done}/${total} (${pkg})${''.padEnd(20)}`);
-    },
-  });
+  let results: PackageStats[] & { errors?: RegistryFailure[] };
+  try {
+    results = await stats.mine(maintainer, {
+      ...opts,
+      onProgress(done, total, pkg) {
+        // Clear line and show progress
+        process.stderr.write(`\r  Fetching stats... ${done}/${total} (${pkg})${''.padEnd(20)}`);
+      },
+    });
+  } catch (e: unknown) {
+    process.stderr.write('\r' + ' '.repeat(80) + '\r');
+    const message = e instanceof Error ? e.message : String(e);
+    console.error(`Error: ${message}`);
+    process.exit(1);
+  }
 
   // Clear progress line
   process.stderr.write('\r' + ' '.repeat(80) + '\r');
 
+  // Failures stay on stderr, including --json. The document stays a package array.
+  warnRegistryFailures(results.errors);
+
   if (results.length === 0) {
-    console.error(`No packages found for maintainer "${maintainer}".`);
+    // A registry error is not "no packages". An empty discovery still is.
+    if (!results.errors || results.errors.length === 0) {
+      console.error(`No packages found for maintainer "${maintainer}".`);
+    }
     process.exit(1);
   }
 
@@ -340,6 +406,10 @@ export async function main(): Promise<void> {
     let port = 3000;
     let host: string | undefined;
     let cors: string | undefined;
+    let githubToken: string | undefined;
+    let dockerToken: string | undefined;
+    let githubFromFlag = false;
+    let dockerFromFlag = false;
     for (let i = 1; i < args.length; i++) {
       if (args[i] === '--port') {
         port = parsePort(requireValue('--port', args, i, undefined, true));
@@ -350,6 +420,14 @@ export async function main(): Promise<void> {
       } else if (args[i] === '--cors') {
         cors = requireValue('--cors', args, i);
         i++;
+      } else if (args[i] === '--github-token') {
+        githubToken = requireValue('--github-token', args, i);
+        githubFromFlag = true;
+        i++;
+      } else if (args[i] === '--docker-token') {
+        dockerToken = requireValue('--docker-token', args, i);
+        dockerFromFlag = true;
+        i++;
       } else if (args[i].startsWith('-')) {
         console.error(`Error: unknown option ${args[i]}`);
         process.exit(1);
@@ -359,7 +437,7 @@ export async function main(): Promise<void> {
       }
     }
     const config = loadConfig();
-    const fromConfig = buildOptions(config);
+    const fromConfig = buildOptions(config, { githubToken, dockerToken, githubFromFlag, dockerFromFlag });
     const serverOpts: ServerOptions = { port, host, corsOrigin: cors };
     if (config?.cache === false) serverOpts.cache = false;
     if (fromConfig.githubToken) serverOpts.githubToken = fromConfig.githubToken;
@@ -377,6 +455,10 @@ export async function main(): Promise<void> {
   let format = 'table';
   let compare = false;
   let mineUser: string | undefined;
+  let githubToken: string | undefined;
+  let dockerToken: string | undefined;
+  let githubFromFlag = false;
+  let dockerFromFlag = false;
 
   const unknownFlags: string[] = [];
   for (let i = 0; i < args.length; i++) {
@@ -396,6 +478,14 @@ export async function main(): Promise<void> {
     } else if (args[i] === '--mine') {
       mineUser = requireValue('--mine', args, i, 'Error: --mine requires a maintainer name (e.g. registry-stats --mine yourname)');
       i++;
+    } else if (args[i] === '--github-token') {
+      githubToken = requireValue('--github-token', args, i);
+      githubFromFlag = true;
+      i++;
+    } else if (args[i] === '--docker-token') {
+      dockerToken = requireValue('--docker-token', args, i);
+      dockerFromFlag = true;
+      i++;
     } else if (!args[i].startsWith('-') && !pkg) {
       pkg = args[i];
     } else if (args[i].startsWith('-')) {
@@ -408,6 +498,7 @@ export async function main(): Promise<void> {
   }
 
   const config = loadConfig();
+  const tokens: TokenSources = { githubToken, dockerToken, githubFromFlag, dockerFromFlag };
 
   // Warn if csv/chart is used without --range
   if ((format === 'csv' || format === 'chart') && !range) {
@@ -417,7 +508,7 @@ export async function main(): Promise<void> {
 
   // --mine mode: discover and show all packages by maintainer
   if (mineUser) {
-    await runMine(mineUser, format, config);
+    await runMine(mineUser, format, config, tokens);
     return;
   }
 
@@ -427,12 +518,12 @@ export async function main(): Promise<void> {
       usage();
       process.exit(0);
     }
-    await runConfigPackages(config, format);
+    await runConfigPackages(config, format, tokens);
     return;
   }
 
   // Package specified — single query mode
-  const opts = buildOptions(config);
+  const opts = buildOptions(config, tokens);
 
   try {
     // Comparison mode

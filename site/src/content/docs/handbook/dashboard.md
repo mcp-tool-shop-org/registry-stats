@@ -63,7 +63,7 @@ Scroll zoom, drag pan, and pinch zoom are on the 30-day trend chart and the port
 
 ## Data pipeline
 
-Two CI schedules keep the dashboard current: a daily data refresh (`daily-refresh.yml` at 06:00 UTC) and a full site rebuild and deploy (`pages.yml` on Mondays at 07:00 UTC). The page re-fetches same-origin `data/stats.json`. Configure tracked packages in `site/src/data/packages.json`.
+Two CI schedules keep the dashboard current: a daily data refresh (`daily-refresh.yml` at 06:00 UTC) and a full site rebuild and deploy (`pages.yml` on Mondays at 07:00 UTC). The page re-fetches same-origin `data/stats.json`. `site/src/data/packages.json` is the registry arrays `npm`, `pypi`, `vscode`, `nuget`, `docker`, and `github`, plus an optional `npmMaintainer` string. A non-empty string calls `stats.mine` and adds discovered names that are not already in the `npm` array. If discovery throws, the script warns and keeps the explicit npm list. This file is not `registry-stats.config.json`.
 
 Historical data accumulates in `site/src/data/history.json`, tracking monthly per-package aggregates and weekly portfolio totals (up to 2 years).
 

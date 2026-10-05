@@ -57,6 +57,17 @@ vi.mock('node:fs', async () => {
 import { existsSync, writeFileSync } from 'node:fs';
 import { main } from './cli.js';
 
+const TOKEN_KEYS = ['GITHUB_TOKEN', 'GH_TOKEN', 'DOCKER_TOKEN'] as const;
+const savedTokenEnv = Object.fromEntries(TOKEN_KEYS.map((key) => [key, process.env[key]])) as Record<string, string | undefined>;
+
+function restoreTokenEnv() {
+  for (const key of TOKEN_KEYS) {
+    const saved = savedTokenEnv[key];
+    if (saved === undefined) delete process.env[key];
+    else process.env[key] = saved;
+  }
+}
+
 class ExitSignal extends Error {
   constructor(readonly code: number) {
     super(`exit ${code}`);
@@ -117,6 +128,8 @@ async function invoke(args: string[]) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  restoreTokenEnv();
+  for (const key of TOKEN_KEYS) delete process.env[key];
   h.loadConfig.mockReturnValue(null);
   h.stats.mockResolvedValue(full);
   h.stats.all.mockResolvedValue(allOf([full]));
@@ -135,6 +148,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  restoreTokenEnv();
   vi.clearAllMocks();
 });
 
@@ -549,5 +563,156 @@ describe('CLI main (in process)', () => {
     const r = await invoke(['left-pad']);
     expect(r.code).toBe(1);
     expect(r.stderr).toContain('Error: boom');
+  });
+
+  it('names token flags and env vars in help without an example secret', async () => {
+    const help = await invoke(['--help']);
+    expect(help.code).toBe(0);
+    expect(help.stdout).toContain('--github-token');
+    expect(help.stdout).toContain('--docker-token');
+    expect(help.stdout).toContain('GITHUB_TOKEN');
+    expect(help.stdout).toContain('GH_TOKEN');
+    expect(help.stdout).toContain('DOCKER_TOKEN');
+    expect(help.stdout).not.toMatch(/ghp_|github_pat_/);
+  });
+
+  it('takes a token from the flag, then config, then GITHUB_TOKEN or GH_TOKEN and DOCKER_TOKEN', async () => {
+    process.env.GITHUB_TOKEN = '   ';
+    process.env.GH_TOKEN = '  from-gh  ';
+    process.env.DOCKER_TOKEN = '\nfrom-dock\n';
+    h.loadConfig.mockReturnValue({ githubToken: '   ', dockerToken: '  ', cache: false });
+    const fromEnv = await invoke(['left-pad']);
+    expect(fromEnv.code).toBe(0);
+    expect(fromEnv.stdout).not.toContain('from-gh');
+    expect(fromEnv.stderr).not.toContain('from-dock');
+    expect(h.stats.all).toHaveBeenCalledWith('left-pad', expect.objectContaining({
+      githubToken: 'from-gh',
+      dockerToken: 'from-dock',
+    }));
+
+    h.loadConfig.mockReturnValue({
+      githubToken: 'from-config',
+      dockerToken: 'from-config-dock',
+      cache: false,
+    });
+    await invoke(['left-pad', '-r', 'pypi']);
+    expect(h.stats).toHaveBeenCalledWith('pypi', 'left-pad', expect.objectContaining({
+      githubToken: 'from-config',
+      dockerToken: 'from-config-dock',
+    }));
+
+    await invoke([
+      'left-pad',
+      '--github-token',
+      ' from-flag ',
+      '--docker-token',
+      'from-flag-dock',
+      '--compare',
+    ]);
+    expect(h.stats.compare).toHaveBeenCalledWith('left-pad', undefined, expect.objectContaining({
+      githubToken: 'from-flag',
+      dockerToken: 'from-flag-dock',
+    }));
+    const compared = h.stats.compare.mock.calls.at(-1);
+    expect(JSON.stringify(compared)).not.toContain('from-config');
+
+    await invoke(['left-pad', '--range', '2025-01-01:2025-01-02', '--github-token', 'range-flag']);
+    expect(h.stats.range).toHaveBeenCalledWith(
+      'npm',
+      'left-pad',
+      '2025-01-01',
+      '2025-01-02',
+      expect.objectContaining({ githubToken: 'range-flag' }),
+    );
+
+    h.stats.mine.mockResolvedValue([full]);
+    await invoke(['--mine', 'someone', '--github-token', 'mine-flag']);
+    expect(h.stats.mine).toHaveBeenCalledWith('someone', expect.objectContaining({
+      githubToken: 'mine-flag',
+    }));
+
+    // A blank flag overrides config and env. It does not fall through.
+    await invoke(['left-pad', '--github-token', '   ']);
+    const cleared = h.stats.all.mock.calls.at(-1)?.[1] as { githubToken?: string; dockerToken?: string };
+    expect(cleared.githubToken).toBeUndefined();
+    expect(cleared.dockerToken).toBe('from-config-dock');
+  });
+
+  it('passes tokens into serve and does not write them into the starter config', async () => {
+    process.env.DOCKER_TOKEN = 'serve-dock';
+    h.loadConfig.mockReturnValue({ cache: false, registries: ['npm'], githubToken: 'from-config' });
+    const served = await invoke(['serve', '--port', '4010', '--github-token', 'serve-flag']);
+    expect(served.code).toBe(0);
+    expect(served.stdout).not.toContain('serve-flag');
+    expect(served.stderr).not.toContain('serve-dock');
+    expect(h.serve).toHaveBeenCalledWith({
+      port: 4010,
+      host: undefined,
+      corsOrigin: undefined,
+      cache: false,
+      registries: ['npm'],
+      githubToken: 'serve-flag',
+      dockerToken: 'serve-dock',
+    });
+
+    process.env.GITHUB_TOKEN = 'only-env';
+    delete process.env.DOCKER_TOKEN;
+    h.loadConfig.mockReturnValue(null);
+    const envServe = await invoke(['serve']);
+    expect(envServe.code).toBe(0);
+    expect(h.serve).toHaveBeenCalledWith({
+      port: 3000,
+      host: undefined,
+      corsOrigin: undefined,
+      githubToken: 'only-env',
+    });
+
+    const missing = await invoke(['serve', '--docker-token']);
+    expect(missing.code).toBe(1);
+    expect(missing.stderr).toContain('--docker-token requires a value');
+
+    vi.mocked(existsSync).mockReturnValue(false);
+    const created = await invoke(['--init', '--github-token', 'super-secret-value', '--docker-token', 'dock-secret-value']);
+    expect(created.code).toBe(0);
+    expect(created.stdout).not.toContain('super-secret-value');
+    expect(created.stderr).not.toContain('dock-secret-value');
+    const written = String(vi.mocked(writeFileSync).mock.calls[0][1]);
+    expect(written).not.toContain('super-secret-value');
+    expect(written).not.toContain('dock-secret-value');
+  });
+
+  it('warns mine failures on stderr and does not hide a registry error as no packages', async () => {
+    const rows = [full] as typeof full[] & { errors?: { registry: string; statusCode?: number; message: string }[] };
+    rows.errors = [{ registry: 'npm', statusCode: 503, message: 'period down' }];
+    h.stats.mine.mockResolvedValue(rows);
+    const json = await invoke(['--mine', 'someone', '--format', 'json']);
+    expect(json.code).toBe(0);
+    expect(json.stderr).toContain('Warning: failed to fetch npm (HTTP 503): period down');
+    expect(json.stdout).toContain('"package": "left-pad"');
+    expect(json.stdout).not.toContain('period down');
+    expect(json.stdout).not.toContain('"errors"');
+    expect(Array.isArray(JSON.parse(json.stdout))).toBe(true);
+
+    const table = await invoke(['--mine', 'someone']);
+    expect(table.code).toBe(0);
+    expect(table.stderr).toContain('period down');
+    expect(table.stdout).toContain('TOTAL');
+
+    h.stats.mine.mockRejectedValue(new Error('[npm] nothing usable'));
+    const failed = await invoke(['--mine', 'someone', '--json']);
+    expect(failed.code).toBe(1);
+    expect(failed.stderr).toContain('Error: [npm] nothing usable');
+    expect(failed.stderr).not.toContain('No packages found');
+    expect(failed.stdout.trim()).toBe('');
+
+    const empty = [] as unknown[] & { errors?: { registry: string; message: string }[] };
+    empty.errors = [{ registry: 'npm', message: 'registry down' }];
+    h.stats.mine.mockResolvedValue(empty);
+    const none = await invoke(['--mine', 'nobody', '--json']);
+    expect(none.code).toBe(1);
+    expect(none.stderr).toContain('failed to fetch npm');
+    expect(none.stderr).toContain('registry down');
+    expect(none.stderr).not.toContain('No packages found');
+    expect(none.stdout.trim()).toBe('');
   });
 });

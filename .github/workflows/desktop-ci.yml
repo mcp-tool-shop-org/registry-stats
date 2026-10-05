@@ -59,14 +59,18 @@ jobs:
 
       # Read-only job token. GitHub release requests use the authenticated
       # lane. The token stays on this step only, not on npm ci.
+      # Pull requests build the site from the committed snapshot.
       - name: Fetch live stats
+        if: github.event_name != 'pull_request'
         working-directory: site
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run fetch-stats
 
       # Fail only on degraded or unusable. Stale rows do not set dataQuality.
+      # Skipped with the live fetch on pull_request so review builds the committed JSON.
       - name: Refuse a degraded or unusable snapshot
+        if: github.event_name != 'pull_request'
         working-directory: site
         shell: bash
         run: node --input-type=module -e "import { readFileSync } from 'node:fs'; const q = JSON.parse(readFileSync('src/data/stats.json','utf8')).dataQuality; if (q === 'degraded' || q === 'unusable') { console.error('stats.json dataQuality is ' + q); process.exit(1); }"

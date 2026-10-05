@@ -25,7 +25,7 @@ const docker = await stats('docker', 'library/node');
 
 ### stats.all()
 
-Query all registries at once. A bad package name throws `RegistryError`. A registry that fails is recorded on `.errors` and does not reject the call. Pass `options.registries` to query a subset:
+Query all registries at once. A bad package name throws `RegistryError`. A registry that fails is recorded on `.errors` and does not reject the call. Pass `options.registries` to query a subset. An explicit array is the allowlist, including an empty array, and an empty array queries nothing. Omit the field to walk every built-in provider. GitHub Releases is included only when the package name is `owner/repo`. An explicit list that names `github` stays strict.
 
 ```typescript
 const all = await stats.all('express');
@@ -33,7 +33,7 @@ const all = await stats.all('express');
 
 ### stats.bulk()
 
-Fetch multiple packages from one registry, concurrency-limited:
+Fetch multiple packages from one registry, concurrency-limited. One thrown name keeps the other rows and is listed on `.errors`. The call rejects only when every name threw. A missing package stays `null` and is not an error. `JSON.stringify` drops `.errors`.
 
 ```typescript
 const bulk = await stats.bulk('npm', ['express', 'koa', 'fastify']);
@@ -69,7 +69,7 @@ const results = await stats.mine('mikefrilot', {
 // Returns PackageStats[] sorted by monthly downloads (descending)
 ```
 
-Uses the npm search API for discovery and the smart bulk API for stats (single HTTP call for unscoped packages, throttled sequential for scoped).
+Uses the npm search API for discovery and the smart bulk API for stats (single HTTP call for unscoped packages, throttled sequential for scoped). The bulk `.errors` channel rides on the returned array. `registry-stats --mine --json` prints that array, and the failures go to stderr.
 
 ## Calculations
 

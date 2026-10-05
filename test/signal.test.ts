@@ -42,10 +42,15 @@ describe('StatsOptions.signal', () => {
       new Response('', { status: 429, statusText: 'Too Many Requests', headers: { 'retry-after': '60' } });
     const ac = new AbortController();
     setTimeout(() => ac.abort(), 50);
-    await expect(stats.bulk('nuget', ['Newtonsoft.Json', 'Serilog'], { cache, signal: ac.signal }))
-      .rejects.toThrow(/aborted/);
+    // A cached success is usable, so the abort stays on .errors instead of rejecting the call.
+    const rows = await stats.bulk('nuget', ['Newtonsoft.Json', 'Serilog'], { cache, signal: ac.signal });
+    expect(rows[0]).toEqual(first);
+    expect(rows[1]).toBeNull();
+    expect(rows.errors).toEqual([
+      expect.objectContaining({ registry: 'nuget', message: expect.stringMatching(/aborted/) }),
+    ]);
     expect(await stats('nuget', 'Newtonsoft.Json', { cache, signal: ac.signal })).toEqual(first);
-  });
+  }, 5_000);
 
   it('does not hold queued tokenless GitHub calls for 60s after an abort', async () => {
     globalThis.fetch = async () =>

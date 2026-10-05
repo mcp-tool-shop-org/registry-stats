@@ -197,7 +197,8 @@ Week and Month are npm and PyPI. Total is all-time for NuGet, VS Code, Docker Hu
       var snap = document.getElementById('exec-snapshot');
       if (snap) snap.classList.remove('hidden');
       var meta = document.getElementById('exec-meta');
-      if (meta) meta.innerHTML = 'Source: build-time fetch<br>' + esc(new Date(data.fetchedAt).toUTCString());
+      var sourceLabel = typeof data.source === 'string' ? data.source : 'build-time fetch';
+      if (meta) meta.innerHTML = 'Source: ' + esc(sourceLabel) + '<br>' + esc(new Date(data.fetchedAt).toUTCString());
       var lines = document.getElementById('exec-lines');
       if (lines && data.narrativeLines) {
         lines.innerHTML = data.narrativeLines.map(function (ln) {
@@ -270,7 +271,18 @@ Week and Month are npm and PyPI. Total is all-time for NuGet, VS Code, Docker Hu
       var regTotals = data.registryTotals || {};
       var cumulative = { vscode: 1, nuget: 1, docker: 1, github: 1 };
       function regBarValue(key, r) {
-        return cumulative[key] ? Number(r.total || 0) : Number(r.week || 0);
+        r = r || {};
+        if (!cumulative[key]) return Number(r.week || 0);
+        if (typeof r.total === 'number') return r.total;
+        var sum = 0;
+        var board = data.leaderboard || [];
+        for (var bi = 0; bi < board.length; bi++) {
+          var entry = board[bi];
+          if (!entry || entry.registry !== key) continue;
+          var entryTotal = Number(entry.total);
+          sum += Number.isFinite(entryTotal) ? entryTotal : 0;
+        }
+        return sum;
       }
       var maxB = Math.max(1, Math.max.apply(null, Object.keys(regTotals).map(function (key) { return regBarValue(key, regTotals[key] || {}); })));
       var bars = document.getElementById('breakdown-bars');

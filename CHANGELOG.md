@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- **`signal` option** on `StatsOptions`. Aborting it stops every request, retry wait and throttle wait made by `stats`, `stats.bulk`, `stats.range` and `stats.mine`, which then reject with a `RegistryError`. Results already in `options.cache` still come back.
+- **`signal` option** on `StatsOptions`. Aborting it stops every request, retry wait and throttle wait. `stats`, `stats.range`, and a `stats.mine` search that has not returned still reject with a `RegistryError`. `stats.bulk` keeps a name that already succeeded, records the abort on `.errors`, and rejects only when nothing usable came back. Results already in `options.cache` still come back.
 
 ### Fixed
 - A queued GitHub request whose signal had already aborted waited out the full spacing gap (60s without a token) instead of returning at once.
@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - The weekly share chart and the 30-day per-registry lines stay on npm and PyPI. The leaderboard order matches the Downloads column. A VS Code marketplace hit is kept only when the id matches. The desktop refresh names the portfolio fetch, and a failed refresh shows the stored cause. The bundled dashboard fills the Total column from the snapshot.
 - `registry-stats <pkg> --compare --json` exits 1 when every registry misses. A plain package name skips GitHub Releases unless the name is `owner/repo`. Weekly and monthly dashboard totals are labeled npm and PyPI. The breakdown chart no longer calls the all-time bars weekly. Help no longer says every package is ranked by weekly downloads.
 - Redrawn 30-day bars keep their scoped style, so the activity strip and the 30d cells stay visible. The handbook light theme uses light chrome, and status colors stay readable on white. Compare and portfolio tables widen each column to the numbers. The packaged app links to the privacy page.
+- The CLI reads `GITHUB_TOKEN` or `GH_TOKEN`, and `DOCKER_TOKEN`, when the config leaves those tokens unset. `--github-token` and `--docker-token` override the file and the environment, and the value is not written into the config or printed. `stats.bulk` and `stats.mine` keep rows that already arrived, list thrown names on `.errors`, and reject only when nothing usable came back. `--mine --json` still prints the package array, and those failures go to stderr. The packaged dashboard sums a registry's leaderboard when the rollup has no `total`, labels the snapshot by the path that wrote it, and fills the portfolio narrative from the saved rows. A refresh asks for every saved name. A desktop pull request builds the committed snapshot. The handbook says the site portfolio is six registry arrays plus an optional `npmMaintainer`, and that an explicit `registries` array, including an empty one, is the allowlist.
 
 ### Changed
 - Dashboard (`site/`, not published): each fetch phase has a 6-minute budget and the whole fetch 30 minutes. A rate-limited registry falls back to its previous stats, marked stale, instead of holding the deploy for an hour.

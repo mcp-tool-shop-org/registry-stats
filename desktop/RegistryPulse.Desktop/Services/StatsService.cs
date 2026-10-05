@@ -23,7 +23,6 @@ public sealed class StatsService
 
     private const int MaxSnapshotBytes = 8 * 1024 * 1024;
     private const int MaxResponseBytes = 2 * 1024 * 1024;
-    private const int MaxPackages = 80;
 
     /// <summary>
     /// <paramref name="rootDirectory"/> replaces LocalApplicationData as the
@@ -155,11 +154,6 @@ public sealed class StatsService
     {
         var errors = new List<string>();
         var rows = new List<LeaderboardRow>();
-        if (packages.Count > MaxPackages)
-        {
-            errors.Add($"Stopped after {MaxPackages} packages.");
-            packages = packages.Take(MaxPackages).ToList();
-        }
 
         for (var i = 0; i < packages.Count; i += 4)
         {
@@ -528,9 +522,32 @@ public sealed class StatsService
             for (var i = 0; i < 30; i++) spark[i] += row.Range30[i];
         }
 
+        const string WindowNote = "Week and month are npm and PyPI.";
+        const string AllTimeNote = "NuGet, VS Code, Docker, and GitHub stay all-time.";
         var narrative = ordered.Count == 0
             ? "No package data came back from the saved portfolio."
-            : $"{ordered[0].Name} leads the saved portfolio. Week {week:N0}, month {month:N0}. The month figure is npm and PyPI only. NuGet, VS Code, Docker Hub, and GitHub stay in the all-time total.";
+            : $"{ordered[0].Name} leads the saved portfolio. Week {week:N0} and month {month:N0} are npm and PyPI. {AllTimeNote}";
+        var lead = rows
+            .GroupBy(row => row.Registry)
+            .Select(group => (Registry: group.Key, Week: group.Sum(row => row.Week)))
+            .OrderByDescending(item => item.Week)
+            .ThenBy(item => Array.IndexOf(registries, item.Registry))
+            .ToList();
+        var leadText = lead.Count == 0
+            ? "No registry returned a week. " + WindowNote
+            : $"{RegistryLabel(lead[0].Registry)} had the largest week, {lead[0].Week:N0}. {WindowNote} {AllTimeNote}";
+        var topText = ordered.Count == 0
+            ? "No package data came back from the saved portfolio."
+            : ordered[0].Registry is "npm" or "pypi"
+                ? $"{ordered[0].Name} is the top package, with {ordered[0].Week:N0} weekly downloads and {ordered[0].Month:N0} this month. {WindowNote} {AllTimeNote}"
+                : $"{ordered[0].Name} is the top package, with {ordered[0].Total:N0} all-time. {AllTimeNote}";
+        var concentrationText = FormattableString.Invariant(
+            $"Top 5 packages account for {concentration:0.0}% of weekly downloads. {WindowNote}");
+        var healthText = errors.Count == 0
+            ? "There were no fetch errors."
+            : errors.Count == 1
+                ? "1 fetch error."
+                : $"{errors.Count} fetch errors.";
 
         var registryTotals = registries.ToDictionary(reg => reg, reg =>
         {
@@ -556,6 +573,7 @@ public sealed class StatsService
         return new
         {
             fetchedAt = DateTime.UtcNow.ToString("o"),
+            source = "Saved portfolio",
             totals = new { packages = ordered.Count, week, month, activeRegistries = active },
             registryTotals,
             errorsByRegistry,
@@ -565,7 +583,10 @@ public sealed class StatsService
             narrative,
             narrativeLines = new[]
             {
-                new { icon = "📊", label = "Portfolio", text = narrative },
+                new { icon = "📊", label = "Registry Lead", text = leadText },
+                new { icon = "🏆", label = "Top Package", text = topText },
+                new { icon = "📈", label = "Concentration", text = concentrationText },
+                new { icon = "⚠️", label = "Data Health", text = healthText },
             },
             movers = new { concentrationTop5Pct = concentration, topGainers = Array.Empty<object>(), topDecliners = Array.Empty<object>(), newlyActive = Array.Empty<object>() },
             leaderboard = ordered.Select(row => new
@@ -603,6 +624,16 @@ public sealed class StatsService
         if (previous == 0) return null;
         return Math.Round((current - previous) * 100.0 / previous, 1);
     }
+
+    private static string RegistryLabel(string registry) => registry switch
+    {
+        "pypi" => "PyPI",
+        "vscode" => "VS Code",
+        "nuget" => "NuGet",
+        "docker" => "Docker",
+        "github" => "GitHub",
+        _ => registry,
+    };
 
     private static long ReadLong(JsonElement element, string name)
     {

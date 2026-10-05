@@ -314,6 +314,149 @@ public class StatsServiceTests
         }
     }
 
+    [Fact]
+    public async Task RefreshAsync_FetchesEverySavedName_IncludingPastEighty()
+    {
+        var root = TempRoot();
+        try
+        {
+            var npm = Enumerable.Range(0, 80).Select(i => $"pkg-{i:00}");
+            var portfolio = "{\"npm\":[" + string.Join(",", npm.Select(name => $"\"{name}\"")) + "],\"github\":[\"octo/demo\"]}";
+            Directory.CreateDirectory(Path.Combine(root, "RegistryPulse", "config"));
+            await File.WriteAllTextAsync(Path.Combine(root, "RegistryPulse", "config", "packages.json"), portfolio);
+
+            var requested = new List<string>();
+            var service = new StatsService(root, new StubHandler
+            {
+                Respond = request =>
+                {
+                    var url = request.RequestUri!.ToString();
+                    lock (requested) requested.Add(url);
+                    if (url.Contains("api.github.com", StringComparison.Ordinal))
+                    {
+                        return Json(HttpStatusCode.OK, new[]
+                        {
+                            new { assets = new[] { new { download_count = 4 } } },
+                        });
+                    }
+
+                    return Json(HttpStatusCode.OK, new
+                    {
+                        downloads = Enumerable.Range(0, 30).Select(i => new { day = $"2026-01-{(i + 1):00}", downloads = 1 }).ToArray(),
+                    });
+                },
+            });
+
+            Assert.True(await service.RefreshAsync());
+            Assert.Equal(81, requested.Count);
+            Assert.Contains(requested, url => url.Contains("octo/demo", StringComparison.Ordinal));
+
+            using var doc = JsonDocument.Parse(File.ReadAllBytes(service.CachePath));
+            Assert.Equal("Saved portfolio", doc.RootElement.GetProperty("source").GetString());
+            var lines = doc.RootElement.GetProperty("narrativeLines").EnumerateArray().ToArray();
+            Assert.True(lines.Length > 1);
+            var health = lines.Single(line => line.GetProperty("label").GetString() == "Data Health").GetProperty("text").GetString();
+            Assert.Equal("There were no fetch errors.", health);
+            var names = doc.RootElement.GetProperty("leaderboard").EnumerateArray().Select(row => row.GetProperty("name").GetString()).ToArray();
+            Assert.Equal(81, names.Length);
+            Assert.Contains("pkg-00", names);
+            Assert.Contains("pkg-79", names);
+            Assert.Contains("octo/demo", names);
+            Assert.Empty(doc.RootElement.GetProperty("errors").EnumerateArray().Select(item => item.GetString()).ToArray());
+        }
+        finally
+        {
+            DeleteTemp(root);
+        }
+    }
+
+    [Fact]
+    public async Task RefreshAsync_StampsSavedPortfolioSource_AndNarrativeLines()
+    {
+        var root = TempRoot();
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(root, "RegistryPulse", "config"));
+            await File.WriteAllTextAsync(
+                Path.Combine(root, "RegistryPulse", "config", "packages.json"),
+                """{"npm":["left-pad"],"pypi":["requests"],"nuget":["Missing.Package"]}""");
+
+            var service = new StatsService(root, new StubHandler
+            {
+                Respond = request =>
+                {
+                    var url = request.RequestUri!.ToString();
+                    if (url.Contains("pypistats.org", StringComparison.Ordinal))
+                    {
+                        return Json(HttpStatusCode.OK, new { data = new { last_week = 50, last_month = 80 } });
+                    }
+
+                    if (url.Contains("nuget.org", StringComparison.Ordinal))
+                        return new HttpResponseMessage(HttpStatusCode.InternalServerError);
+
+                    return Json(HttpStatusCode.OK, new
+                    {
+                        downloads = Enumerable.Range(0, 30).Select(i => new { day = $"2026-01-{(i + 1):00}", downloads = 2 }).ToArray(),
+                    });
+                },
+            });
+
+            Assert.True(await service.RefreshAsync());
+            using var doc = JsonDocument.Parse(File.ReadAllBytes(service.CachePath));
+            Assert.Equal("Saved portfolio", doc.RootElement.GetProperty("source").GetString());
+            var lines = doc.RootElement.GetProperty("narrativeLines").EnumerateArray().ToArray();
+            Assert.Equal(4, lines.Length);
+            Assert.Equal(
+                new[] { "Registry Lead", "Top Package", "Concentration", "Data Health" },
+                lines.Select(line => line.GetProperty("label").GetString()).ToArray());
+            Assert.Equal("PyPI had the largest week, 50. Week and month are npm and PyPI. NuGet, VS Code, Docker, and GitHub stay all-time.", lines[0].GetProperty("text").GetString());
+            Assert.Equal("requests is the top package, with 50 weekly downloads and 80 this month. Week and month are npm and PyPI. NuGet, VS Code, Docker, and GitHub stay all-time.", lines[1].GetProperty("text").GetString());
+            Assert.Contains("100.0%", lines[2].GetProperty("text").GetString());
+            Assert.Contains("Week and month are npm and PyPI.", lines[2].GetProperty("text").GetString());
+            Assert.Equal("1 fetch error.", lines[3].GetProperty("text").GetString());
+            foreach (var line in lines)
+            {
+                var text = line.GetProperty("text").GetString() ?? "";
+                Assert.DoesNotContain("declin", text, StringComparison.OrdinalIgnoreCase);
+            }
+
+            var names = doc.RootElement.GetProperty("leaderboard").EnumerateArray().Select(row => row.GetProperty("name").GetString()).ToArray();
+            Assert.Equal(new[] { "requests", "left-pad" }, names);
+            Assert.Contains("requests", doc.RootElement.GetProperty("narrative").GetString());
+            Assert.Single(doc.RootElement.GetProperty("errors").EnumerateArray().ToArray());
+        }
+        finally
+        {
+            DeleteTemp(root);
+        }
+    }
+
+    [Fact]
+    public async Task RefreshAsync_WritesThePublishedSnapshotUnchanged()
+    {
+        var root = TempRoot();
+        try
+        {
+            var body = """{"fetchedAt":"2026-03-01T11:15:30.138Z","totals":{"packages":1,"week":2,"month":3}}""";
+            var service = new StatsService(root, new StubHandler
+            {
+                Respond = request =>
+                {
+                    Assert.Contains("github.io", request.RequestUri!.ToString(), StringComparison.OrdinalIgnoreCase);
+                    return Text(HttpStatusCode.OK, body);
+                },
+            });
+
+            Assert.True(await service.RefreshAsync());
+            Assert.Equal(body, await File.ReadAllTextAsync(service.CachePath));
+            Assert.DoesNotContain("Saved portfolio", await File.ReadAllTextAsync(service.CachePath));
+        }
+        finally
+        {
+            DeleteTemp(root);
+        }
+    }
+
     private static HttpResponseMessage Json(HttpStatusCode status, object body)
     {
         var json = JsonSerializer.Serialize(body);

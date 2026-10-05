@@ -54,7 +54,7 @@ const notice = Astro.url.searchParams.get('notice');
           </div>
 
           <div class="p-3">
-            <p class="text-[10px] text-muted mb-2">Add packages by registry. One entry per line within each array.</p>
+            <p class="text-[10px] text-muted mb-2">Add packages by registry. One entry per line within each array. This file is the arrays npm, pypi, vscode, nuget, docker, and github, plus an optional npmMaintainer string. It is not registry-stats.config.json. A non-empty npmMaintainer is what the site fetch passes to stats.mine, which adds discovered names that are not already in the npm array. If discovery throws, the fetch warns and keeps the explicit npm list.</p>
             <textarea
               id="editor"
               class="w-full h-64 rounded border border-edge p-3 font-mono text-[13px] text-heading resize-y focus:outline-none focus:ring-1 focus:ring-setup-accent/30"
