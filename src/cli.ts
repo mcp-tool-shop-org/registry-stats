@@ -241,14 +241,14 @@ async function runConfigPackages(config: Config, format: string) {
     if (results.length > 0) allResults[displayName] = results;
   }
 
-  if (format === 'json') {
-    console.log(JSON.stringify(allResults, null, 2));
-    return;
-  }
-
   if (Object.keys(allResults).length === 0) {
     console.error('No results found for any configured packages.');
     process.exit(1);
+  }
+
+  if (format === 'json') {
+    console.log(JSON.stringify(allResults, null, 2));
+    return;
   }
 
   for (const [displayName, results] of Object.entries(allResults)) {

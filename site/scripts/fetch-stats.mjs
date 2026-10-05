@@ -560,8 +560,9 @@ async function main() {
       const expected = manifestCounts[reg] ?? 0;
       const fetched = fetchedCounts[reg] ?? 0;
       const err = errorsByRegistry[reg] ?? 0;
+      const stale = staleCounts[reg] ?? 0;
       if (expected === 0) return [reg, "missing"];
-      if (err === 0 && fetched === expected) return [reg, "ok"];
+      if (err === 0 && fetched === expected && stale === 0) return [reg, "ok"];
       if (fetched > 0) return [reg, "partial"];
       return [reg, "missing"];
     })

@@ -1411,7 +1411,7 @@ const chatContext = !missing && data ? JSON.stringify({
           <div class="rounded-2xl border border-edge bg-surface-raised p-6 mb-6">
             <h3 class="text-lg font-semibold text-heading mb-3">Quick start</h3>
             <ol class="list-decimal list-inside space-y-2 text-sm text-body leading-relaxed">
-              <li><strong class="text-heading">Set up your portfolio</strong> &mdash; go to the <a href={`${base}/setup/`} class="text-accent underline underline-offset-2 hover:brightness-125">Setup</a> page, paste your package names (one per line), and save.</li>
+              <li><strong class="text-heading">Set up your portfolio</strong> &mdash; on the <a href={`${base}/setup/`} class="text-accent underline underline-offset-2 hover:brightness-125">Setup</a> page, edit the JSON arrays. Put one package name on each line inside the array for that registry, then save.</li>
               <li><strong class="text-heading">Wait for data</strong> &mdash; registry-stats fetches download counts from npm, PyPI, VS Code Marketplace, NuGet, Docker Hub, and GitHub Releases. The first snapshot takes about a minute.</li>
               <li><strong class="text-heading">Explore the tabs</strong> &mdash; <em>Home</em> has the AI chat assistant, <em>Analytics</em> shows charts and insights, and <em>Leaderboard</em> ranks every package.</li>
             </ol>
@@ -1458,7 +1458,7 @@ const chatContext = !missing && data ? JSON.stringify({
               </div>
               <div>
                 <dt class="font-semibold text-heading">Confidence badges</dt>
-                <dd class="mt-0.5 leading-relaxed">{"\u2705"} <strong>ok</strong> = fresh data, {"\u26A0\uFE0F"} <strong>partial</strong> = some endpoints failed, {"\u26D4"} <strong>error</strong> = provider unreachable. Shown on the home executive snapshot and the setup page.</dd>
+                <dd class="mt-0.5 leading-relaxed">The marks are on the Data Health rows. {"\u2705"} <strong>ok</strong> means every package in that registry came back from this fetch. {"\u26A0\uFE0F"} <strong>partial</strong> means some failed or were filled from the previous snapshot. {"\u26D4"} means nothing came back, or the portfolio lists no packages for that registry.</dd>
               </div>
             </dl>
           </div>
@@ -1522,7 +1522,7 @@ const chatContext = !missing && data ? JSON.stringify({
                 <span class="text-lg shrink-0">{"\uD83D\uDDA5\uFE0F"}</span>
                 <div>
                   <span class="font-semibold text-heading">Desktop app (MAUI WebView2)</span>
-                  <p class="mt-0.5 leading-relaxed">When served inside the .NET MAUI host the dashboard auto-refreshes from a local cache. The <code class="text-xs bg-surface-strong px-1 py-0.5 rounded">window.__registryStatsBridge</code> API lets the native layer push fresh snapshots.</p>
+                  <p class="mt-0.5 leading-relaxed">When the .NET MAUI host refreshes, it writes the local cache and reloads the dashboard.</p>
                 </div>
               </div>
             </div>

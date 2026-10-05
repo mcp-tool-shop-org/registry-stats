@@ -400,6 +400,11 @@ describe('CLI main (in process)', () => {
     expect(json.stdout).toContain('"Left"');
 
     h.stats.mockResolvedValue(null);
+    const noneJson = await invoke(['--json']);
+    expect(noneJson.code).toBe(1);
+    expect(noneJson.stderr).toContain('No results found');
+    expect(noneJson.stdout.trim()).toBe('');
+
     const none = await invoke([]);
     expect(none.code).toBe(1);
     expect(none.stderr).toContain('No results found');
