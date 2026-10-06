@@ -48,8 +48,8 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 7,
-      "changed": 56,
+      "added": 12,
+      "changed": 66,
       "moved": 0,
       "parts": 6,
       "removed": 0
@@ -57,75 +57,73 @@
     "items": [
       {
         "kind": "door",
-        "sentence": "CI's push trigger now also names `vitest.config.ts`.",
-        "subjects": [
-          ".github/workflows/ci.yml"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "CI now also runs src/cli.cover.test.ts and src/fetch.cover.test.ts.",
+        "sentence": "CI now also runs src/backend-fixes.test.ts and src/bulk-settle.test.ts.",
         "subjects": [
           ".github/workflows/ci.yml",
-          "src/cli.cover.test.ts",
-          "src/fetch.cover.test.ts"
+          "src/backend-fixes.test.ts",
+          "src/bulk-settle.test.ts"
         ]
       },
       {
         "kind": "door",
-        "sentence": "Daily Refresh now also runs src/cli.cover.test.ts and src/fetch.cover.test.ts.",
+        "sentence": "Daily Refresh now also runs src/backend-fixes.test.ts and src/bulk-settle.test.ts.",
         "subjects": [
           ".github/workflows/daily-refresh.yml",
-          "src/cli.cover.test.ts",
-          "src/fetch.cover.test.ts"
+          "src/backend-fixes.test.ts",
+          "src/bulk-settle.test.ts"
         ]
       },
       {
         "kind": "door",
-        "sentence": "And 3 more changes to doors.",
+        "sentence": "Desktop CI (MSIX) now also runs site/scripts/audit.mjs.",
+        "subjects": [
+          ".github/workflows/desktop-ci.yml",
+          "site/scripts/audit.mjs"
+        ]
+      },
+      {
+        "kind": "door",
+        "sentence": "And 1 more change to a door.",
         "subjects": []
       },
       {
         "kind": "landing",
-        "sentence": "site/public/data/packages.json is now also written by .github/workflows/daily-refresh.yml and .github/workflows/pages.yml.",
+        "sentence": "README.md is now also read by test/published-surfaces.test.ts.",
         "subjects": [
-          "site/public/data/packages.json",
-          ".github/workflows/daily-refresh.yml",
-          ".github/workflows/pages.yml"
+          "README.md",
+          "test/published-surfaces.test.ts"
         ]
       },
       {
         "kind": "landing",
-        "sentence": "site/public/data/stats.json is now also written by .github/workflows/daily-refresh.yml and .github/workflows/pages.yml.",
+        "sentence": "SECURITY.md is now read by test/published-surfaces.test.ts.",
         "subjects": [
-          "site/public/data/stats.json",
-          ".github/workflows/daily-refresh.yml",
-          ".github/workflows/pages.yml"
+          "SECURITY.md",
+          "test/published-surfaces.test.ts"
         ]
       },
       {
         "kind": "landing",
-        "sentence": "site/src/data/history.json is now also written by .github/workflows/daily-refresh.yml and .github/workflows/pages.yml.",
+        "sentence": "desktop/RegistryPulse.Desktop/MainPage.xaml.cs is now read by test/desktop-bridge.test.ts.",
         "subjects": [
-          "site/src/data/history.json",
-          ".github/workflows/daily-refresh.yml",
-          ".github/workflows/pages.yml"
+          "desktop/RegistryPulse.Desktop/MainPage.xaml.cs",
+          "test/desktop-bridge.test.ts"
         ]
       },
       {
         "kind": "landing",
-        "sentence": "And 4 more new writers and readers of places.",
+        "sentence": "And 5 more new writers and readers of places.",
         "subjects": []
       },
       {
         "kind": "counts",
-        "sentence": "7 files added and 56 changed content, across 6 parts.",
+        "sentence": "12 files added and 66 changed content, across 6 parts.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "7bd013bf4d2a84f1c17307489c97afbc8667a7da",
-      "generatedAt": "2026-10-01T02:12:23.024Z"
+      "commit": "56428378e4a1f927b2b553a04c2084c158ea86da",
+      "generatedAt": "2026-10-03T20:31:49.036Z"
     },
     "unchanged": false
   },
@@ -134,9 +132,9 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 0 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 0,
-  "commit": "56428378e4a1f927b2b553a04c2084c158ea86da",
+  "commit": "0ae338a5bf136e01909af9605f21f8980a630d28",
   "defaultBranch": "main",
-  "derived": "8 parts, mostly TypeScript (40 files), C# (9), Astro (6), HTML (4), CSS (3) and JavaScript (3). Work enters through 7 doors; Daily Refresh and Desktop CI (MSIX) each reach 3 parts, and Daily Refresh is followed because it commits into the repository. It publishes to npm. It deploys a site to GitHub Pages. People run registry-stats. People import @mcptoolshop/registry-stats.",
+  "derived": "8 parts, mostly TypeScript (45 files), C# (10), JavaScript (9), Astro (6), HTML (4) and CSS (3). Work enters through 7 doors; Daily Refresh and Desktop CI (MSIX) each reach 3 parts, and Daily Refresh is followed because it commits into the repository. It publishes to npm. It deploys a site to GitHub Pages. People run registry-stats. People import @mcptoolshop/registry-stats.",
   "doors": [
     {
       "builds": [
@@ -147,13 +145,32 @@
       "checksCount": 0,
       "checksMore": 0,
       "file": ".github/workflows/desktop-ci.yml",
+      "held": [
+        {
+          "checks": [],
+          "checksMore": 0,
+          "lead": "on a push to main or by hand",
+          "runs": [
+            "site/scripts/fetch-stats.mjs"
+          ],
+          "runsMore": 0,
+          "when": "on a push to main or by hand"
+        }
+      ],
       "id": ".github/workflows/desktop-ci.yml",
-      "landings": [
-        "site/public/data/packages.json",
-        "site/public/data/stats.json",
-        "site/src/data/history.json",
-        "site/src/data/snapshots.json",
-        "site/src/data/stats.json"
+      "landings": [],
+      "landingsHeld": [
+        {
+          "lead": "on a push to main or by hand",
+          "places": [
+            "site/public/data/packages.json",
+            "site/public/data/stats.json",
+            "site/src/data/history.json",
+            "site/src/data/snapshots.json",
+            "site/src/data/stats.json"
+          ],
+          "when": "on a push to main or by hand"
+        }
       ],
       "name": "Desktop CI (MSIX)",
       "pushes": false,
@@ -166,7 +183,7 @@
         {
           "boundary": "site",
           "depth": 0,
-          "files": 13
+          "files": 14
         },
         {
           "boundary": "src",
@@ -175,7 +192,7 @@
         }
       ],
       "runs": [
-        "site/scripts/fetch-stats.mjs",
+        "site/scripts/audit.mjs",
         "desktop/RegistryPulse.Tests/RegistryPulse.Tests.csproj",
         "site/astro.config.mjs",
         "site/src/"
@@ -217,16 +234,18 @@
         {
           "boundary": "src",
           "depth": 0,
-          "files": 21
+          "files": 23
         },
         {
           "boundary": "test",
           "depth": 0,
-          "files": 15
+          "files": 18
         }
       ],
       "runs": [
         "site/scripts/fetch-stats.mjs",
+        "src/backend-fixes.test.ts",
+        "src/bulk-settle.test.ts",
         "src/cache.test.ts",
         "src/calc.test.ts",
         "src/cli.cover.test.ts",
@@ -236,8 +255,8 @@
         "src/retry.test.ts",
         "test/"
       ],
-      "runsCount": 9,
-      "runsMore": 20,
+      "runsCount": 11,
+      "runsMore": 25,
       "sends": [],
       "stages": [
         "site/public/data/packages.json",
@@ -267,15 +286,17 @@
         {
           "boundary": "src",
           "depth": 0,
-          "files": 21
+          "files": 23
         },
         {
           "boundary": "test",
           "depth": 0,
-          "files": 15
+          "files": 18
         }
       ],
       "runs": [
+        "src/backend-fixes.test.ts",
+        "src/bulk-settle.test.ts",
         "src/cache.test.ts",
         "src/calc.test.ts",
         "src/cli.cover.test.ts",
@@ -285,8 +306,8 @@
         "src/retry.test.ts",
         "test/"
       ],
-      "runsCount": 8,
-      "runsMore": 19,
+      "runsCount": 10,
+      "runsMore": 24,
       "sends": [],
       "stages": [],
       "triggers": [
@@ -378,15 +399,17 @@
         {
           "boundary": "src",
           "depth": 0,
-          "files": 21
+          "files": 23
         },
         {
           "boundary": "test",
           "depth": 0,
-          "files": 15
+          "files": 18
         }
       ],
       "runs": [
+        "src/backend-fixes.test.ts",
+        "src/bulk-settle.test.ts",
         "src/cache.test.ts",
         "src/calc.test.ts",
         "src/cli.cover.test.ts",
@@ -396,8 +419,8 @@
         "src/retry.test.ts",
         "test/"
       ],
-      "runsCount": 8,
-      "runsMore": 19,
+      "runsCount": 10,
+      "runsMore": 24,
       "sends": [
         "publishes to npm"
       ],
@@ -518,9 +541,10 @@
       ]
     }
   ],
-  "generatedAt": "2026-10-03T20:31:49.036Z",
+  "generatedAt": "2026-10-06T00:29:34.150Z",
   "limits": [
-    "10 reads go to a path their caller passes, not to this repository.",
+    "4 imports could not be resolved: `desktop/RegistryPulse.Desktop/Resources/Raw/wwwroot/registry-stats/vendor/chartjs-plugin-zoom.min.js` imports `chart.js`, which is not declared; `desktop/RegistryPulse.Desktop/Resources/Raw/wwwroot/registry-stats/vendor/chartjs-plugin-zoom.min.js` imports `chart.js/helpers`, which is not declared; `desktop/RegistryPulse.Desktop/Resources/Raw/wwwroot/registry-stats/vendor/chartjs-plugin-zoom.min.js` imports `hammerjs`, which is not declared; and 1 more.",
+    "45 reads go to a path their caller passes, not to this repository.",
     "1 write and 3 reads go to the directory the command is run in (registry-stats.config.json), not to this repository.",
     "Statistics confidence is low: fewer than 25 source files reach 10 revisions in the window."
   ],
@@ -561,15 +585,15 @@
   "startHere": [
     ".github/workflows/desktop-ci.yml",
     "src/index.ts",
-    "src/providers/npm.ts",
     "src/fetch.ts",
     "src/types.ts"
   ],
   "summary": null,
   "summaryFrom": null,
-  "testFiles": 22,
+  "testFiles": 27,
   "testedBy": {
-    "src": 21
+    "desktop": 0,
+    "src": 24
   },
   "unnamedWrites": 0,
   "unread": [
@@ -606,15 +630,15 @@
       ]
     }
   ],
-  "unreadCode": [
-    "desktop"
-  ],
-  "unreadCodeUses": "desktop holds only C#, CSS and HTML files, which this map does not read, so what uses it cannot be seen.",
   "unreadFiles": 0,
   "unreadNote": [],
-  "untested": [],
-  "untestedNote": [
-    "desktop holds only C#, CSS and HTML files, which this map does not read, so whether a test touches it cannot be seen."
+  "untested": [
+    {
+      "part": "desktop",
+      "partLabel": "desktop",
+      "testedBy": 0
+    }
   ],
+  "untestedNote": [],
   "written": 5
 }
