@@ -16,7 +16,7 @@
 ### Default safety posture
 
 - [x] `[cli|mcp|desktop]` Dangerous actions (kill, delete, restart) require explicit `--allow-*` flag — SKIP: read-only stats queries; no destructive actions
-- [ ] `[cli|mcp|desktop]` File operations constrained to known directories — `--init` writes `registry-stats.config.json` in the working directory. The desktop app writes `packages.json` and `stats.json` under `%LOCALAPPDATA%\RegistryPulse`. Queries themselves print to stdout and stderr.
+- [x] `[cli|mcp|desktop]` File operations constrained to known directories — `--init` writes `registry-stats.config.json` in the working directory. The desktop app writes `packages.json` and `stats.json` under `%LOCALAPPDATA%\RegistryPulse`. Queries themselves print to stdout and stderr.
 - [ ] `[mcp]` SKIP: not an MCP server
 - [ ] `[mcp]` SKIP: not an MCP server
 

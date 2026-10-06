@@ -397,6 +397,7 @@ const notice = Astro.url.searchParams.get('notice');
 
     if (isDesktop) {
       postBridge('getPackagesJson');
+      postBridge('getBranding');
     } else if (currentPackages) {
       editor.value = currentPackages;
     } else {
@@ -611,6 +612,20 @@ const notice = Astro.url.searchParams.get('notice');
             updateButtonEmphasis(true);
           }
           break;
+        case 'error':
+          if (btnPublished) btnPublished.disabled = false;
+          btnFetch.textContent = 'Refresh Portfolio Data';
+          btnFetch.disabled = false;
+          updateButtonEmphasis(true);
+          if (msg.forAction === 'savePackagesJson') {
+            showValidation('error', 'Save failed: ' + (msg.error || 'Unknown error.'));
+          } else {
+            fetchStatus.textContent = 'Refresh failed.';
+            fetchOutput.classList.remove('hidden');
+            fetchOutput.textContent += '\nError: ' + (msg.error || 'Unknown error.');
+            setDot(snapDot, snapState, 'error', 'Failed');
+          }
+          break;
         case 'status':
           if (msg.hasStats) unlockDashboard();
           if (msg.lastFetch) {
@@ -618,8 +633,9 @@ const notice = Astro.url.searchParams.get('notice');
             advTimestamp.textContent = new Date(msg.lastFetch).toLocaleString();
           }
           if (msg.dataPath) {
-            const cfgPath = msg.dataPath.replace(/\\data$/, '\\config') + '\\packages.json';
-            const dataPath = msg.dataPath + '\\stats.json';
+            const cfgPath = msg.packagesPath || (msg.dataPath.replace(/\\data$/, '\\config') + '\\packages.json');
+            const statsDir = msg.dataPath.endsWith('\\config') ? msg.dataPath.slice(0, -'\\config'.length) + '\\data' : msg.dataPath;
+            const dataPath = msg.statsPath || (statsDir + '\\stats.json');
 
             document.getElementById('adv-config-path').textContent = cfgPath;
             document.getElementById('adv-data-path').textContent = dataPath;

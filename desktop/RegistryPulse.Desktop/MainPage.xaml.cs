@@ -538,18 +538,17 @@ public partial class MainPage : ContentPage, IDisposable
                         if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
                         return '"' + s.replace(/"/g, '""') + '"';
                     }
-                    var csv = ['Rank','Package','Registry','Week','Month','Total','Trend'].map(escapeCsv).join(',') + '\n';
+                    var csv = ['Rank','Package','Registry','Downloads','Month','Trend'].map(escapeCsv).join(',') + '\n';
                     rows.forEach(function(tr) {
                         var cells = tr.querySelectorAll('td');
-                        if (cells.length < 8) return;
+                        if (cells.length < 7) return;
                         var rank = cells[0].textContent.trim();
                         var name = cells[1].textContent.trim();
                         var reg = cells[2].textContent.trim();
-                        var week = cells[3].textContent.trim();
+                        var downloads = cells[3].textContent.trim();
                         var month = cells[4].textContent.trim();
-                        var total = cells[5].textContent.trim();
-                        var trend = cells[7].textContent.trim();
-                        csv += [rank, name, reg, week, month, total, trend].map(escapeCsv).join(',') + '\n';
+                        var trend = cells[6].textContent.trim();
+                        csv += [rank, name, reg, downloads, month, trend].map(escapeCsv).join(',') + '\n';
                     });
                     var blob = new Blob([csv], { type: 'text/csv' });
                     var a = document.createElement('a');
@@ -591,7 +590,7 @@ public partial class MainPage : ContentPage, IDisposable
 
     private async void OnAboutClicked(object? sender, EventArgs e)
     {
-        var version = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "3.3.0";
+        var version = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "3.4.0";
         await DisplayAlertAsync("Registry Pulse Desktop",
             $"Version {version}\n\nOne dashboard. Six registries.\nAll your download stats.\n\nBuilt by MCP Tool Shop",
             "OK");

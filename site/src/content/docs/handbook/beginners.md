@@ -9,7 +9,7 @@ sidebar:
 
 registry-stats is a TypeScript tool that pulls download statistics from six registries — npm, PyPI, NuGet, the VS Code Marketplace, Docker Hub, and GitHub Releases — through a single interface. A plain package name is sent to npm, PyPI, NuGet, the VS Code Marketplace, and Docker Hub. GitHub Releases is included when the name is an `owner/repo` slug, or when the registries list names `github`. Instead of checking each site yourself, you run one command or call one API and get consolidated results.
 
-It ships as an npm package (`@mcptoolshop/registry-stats`) with three surfaces: a CLI for quick terminal lookups, a programmatic API for automation, and a REST server for integrating with other tools. There is also a web dashboard with AI-powered analytics and a native Windows desktop app.
+It ships as an npm package (`@mcptoolshop/registry-stats`) with three surfaces: a CLI for quick terminal lookups, a programmatic API for automation, and a REST server for integrating with other tools. There is also a web dashboard with AI-powered analytics and a native Windows desktop app. That app is Registry Pulse, listed at https://apps.microsoft.com/detail/9P9TR0055JG9.
 
 Zero runtime dependencies. Uses native `fetch()`. Requires Node 18 or later.
 

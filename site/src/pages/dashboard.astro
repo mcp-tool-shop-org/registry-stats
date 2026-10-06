@@ -453,7 +453,7 @@ const chatContext = !missing && data ? JSON.stringify({
               <h2 class="text-lg font-semibold text-heading flex items-center gap-2">
                 <span class="text-xl">{"\uD83E\uDD99"}</span> Pulse
               </h2>
-              <p class="mt-0.5 text-xs text-dim">Your registry co-pilot &bull; Powered by Ollama &bull; Cloud models by default</p>
+              <p class="mt-0.5 text-xs text-dim">Your registry co-pilot &bull; Powered by Ollama &bull; Local model on this machine</p>
             </div>
             <div class="flex items-center gap-3">
               <div id="ollama-status" aria-live="polite" class="flex items-center gap-1.5 text-xs">
@@ -1425,7 +1425,7 @@ const chatContext = !missing && data ? JSON.stringify({
             <div class="space-y-4 text-sm text-body">
               <div>
                 <h4 class="font-semibold text-heading flex items-center gap-2"><span>{"\uD83C\uDFE0"}</span> Home</h4>
-                <p class="mt-1 leading-relaxed">The landing view with the executive snapshot (health score, npm weekly change, diversity, coverage) and the summary cards. Weekly and monthly downloads on those cards are npm and PyPI. The <strong>Registry Assistant</strong> is an AI chat (Ollama, defaulting to cloud models so a small rig still gets big-model answers) that can answer questions about your data.</p>
+                <p class="mt-1 leading-relaxed">The landing view with the executive snapshot (health score, npm weekly change, diversity, coverage) and the summary cards. Weekly and monthly downloads on those cards are npm and PyPI. The <strong>Registry Assistant</strong> is a chat with Ollama on this machine. It starts on a local model.</p>
               </div>
               <div>
                 <h4 class="font-semibold text-heading flex items-center gap-2"><span>{"\uD83D\uDCCA"}</span> Analytics</h4>
@@ -1512,8 +1512,7 @@ const chatContext = !missing && data ? JSON.stringify({
                 <li>&ldquo;Summarise the npm vs PyPI split.&rdquo;</li>
                 <li>&ldquo;Why did site-theme spike on day 27?&rdquo;</li>
               </ul>
-              <p class="mt-2"><strong>Cloud models by default.</strong> The model picker defaults to a cloud model (e.g. <code class="text-xs bg-surface-strong px-1 py-0.5 rounded">gpt-oss:120b-cloud</code>) that runs on Ollama&rsquo;s servers — so a small rig still gets big-model answers. Run <code class="text-xs bg-surface-strong px-1 py-0.5 rounded">ollama signin</code> once (free) to enable them; the browser can only reach the local daemon, which proxies cloud models for you. Full list: <a href="https://ollama.com/search?c=cloud" class="text-accent underline underline-offset-2 hover:brightness-125" target="_blank" rel="noopener">ollama.com/search?c=cloud</a>.</p>
-              <p class="mt-2"><strong>Prefer fully local?</strong> Pick a model from the &ldquo;Local&rdquo; group (e.g. after <code class="text-xs bg-surface-strong px-1 py-0.5 rounded">ollama pull llama3.2</code>) — it runs entirely on your machine, no sign-in. If Ollama is offline the chat shows a friendly fallback &mdash; everything else works normally.</p>
+              <p class="mt-2"><strong>Local model.</strong> The picker starts on a model installed on this machine. If Ollama is offline the chat shows a fallback, and the rest of the dashboard still works.</p>
             </div>
           </div>
 
@@ -1838,16 +1837,18 @@ const chatContext = !missing && data ? JSON.stringify({
   }
 </style>
 
-<!-- CDN scripts pinned to exact versions with SRI hashes (F-003). Regenerate hashes if bumping versions. -->
-<script is:inline src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
-<script is:inline src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js" integrity="sha384-dwwI6ICEN/0ZQlS5owhUa/6ZzvwUPmjH45bFVCAcjgjTulbHJvlE+TGU3g1k0N3R" crossorigin="anonymous"></script>
-<script is:inline src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js" integrity="sha384-Cs3dgUx6+jDxxuqHvVH8Onpyj2LF1gKZurLDlhqzuJmUqVYMJ0THTWpxK5Z086Zm" crossorigin="anonymous"></script>
+<!-- Chart libraries ship with the app. The WebView does not depend on a CDN. -->
+<script is:inline src="/registry-stats/vendor/hammer.min.js"></script>
+<script is:inline src="/registry-stats/vendor/chart.umd.min.js"></script>
+<script is:inline src="/registry-stats/vendor/chartjs-plugin-zoom.min.js"></script>
 
 <script is:inline>
   // Shared helper — cumulative registries show total instead of weekly
   var __CUMULATIVE = ['vscode', 'nuget', 'docker', 'github'];
   function regDisplayVal(key, r) {
-    return __CUMULATIVE.indexOf(key) !== -1 ? Number((r || {}).total || (r || {}).week || 0) : Number((r || {}).week || 0);
+    var row = r || {};
+    if (__CUMULATIVE.indexOf(key) !== -1 && typeof row.total === 'number') return row.total;
+    return Number(row.week || 0);
   }
 
   // Shared smart growth display (F-002) — single copy used by both chart and runtime IIFEs
@@ -1894,7 +1895,10 @@ const chatContext = !missing && data ? JSON.stringify({
       panels.forEach(function (p) {
         p.classList.toggle('hidden', p.id !== 'tab-' + name);
       });
-      if (name === 'analytics' && !chartsInitialized) initCharts();
+      if (name === 'analytics' && (!chartsInitialized || window.__rpChartsDirty)) {
+        window.__rpChartsDirty = false;
+        initCharts();
+      }
       history.replaceState(null, '', '#' + name);
     }
 
@@ -2740,6 +2744,108 @@ const chatContext = !missing && data ? JSON.stringify({
       return true;
     }
 
+    function sumNums(arr) {
+      return (arr || []).reduce(function (a, b) { return a + Number(b); }, 0);
+    }
+
+    // The baked chart payload is the site build. The desktop window fetches a
+    // newer stats.json, so the charts have to be derived again or Analytics
+    // stays on the build-time snapshot.
+    function chartPayloadFromStats(data) {
+      var sparkline30 = data.sparkline30 || [];
+      var leaderboard = data.leaderboard || [];
+      var registryTotals = data.registryTotals || {};
+      var npmDaily = leaderboard.filter(function (r) {
+        return r.registry === 'npm' && r.range30 && r.range30.length === 30;
+      });
+      var perRegistryDaily = {};
+      if (registryTotals.npm) {
+        var agg = new Array(30).fill(0);
+        npmDaily.forEach(function (r) {
+          r.range30.forEach(function (v, i) { agg[i] += Number(v); });
+        });
+        perRegistryDaily.npm = agg;
+      }
+      var top5Daily = npmDaily.slice().sort(function (a, b) {
+        return (b.week || 0) - (a.week || 0);
+      }).slice(0, 5).map(function (r) {
+        return { name: String(r.name || '').replace('@mcptoolshop/', ''), range30: r.range30 };
+      });
+      var spMean = sparkline30.length ? sumNums(sparkline30) / sparkline30.length : 0;
+      var spVar = sparkline30.length > 1
+        ? sparkline30.reduce(function (s, v) { return s + Math.pow(Number(v) - spMean, 2); }, 0) / sparkline30.length
+        : 1;
+      var spStd = Math.sqrt(spVar);
+      var anomalies = sparkline30.map(function (v, i) {
+        var z = spStd > 0 ? (Number(v) - spMean) / spStd : 0;
+        return Math.abs(z) >= 2 ? { day: i, value: Number(v), z: Math.round(z * 10) / 10 } : null;
+      }).filter(Boolean);
+      var weeks = leaderboard.map(function (r) { return Number(r.week || 0); }).sort(function (a, b) { return a - b; });
+      var n = weeks.length;
+      var totalDl = sumNums(weeks);
+      var giniNum = 0;
+      weeks.forEach(function (x, i) { giniNum += (2 * (i + 1) - n - 1) * x; });
+      var gini = n > 1 && totalDl > 0 ? Math.round((giniNum / (n * totalDl)) * 100) / 100 : 0;
+      var median = n ? weeks[Math.floor(n / 2)] : 0;
+      var p90 = n ? weeks[Math.floor(n * 0.9)] : 0;
+      var top3Pct = totalDl > 0 ? Math.round(sumNums(weeks.slice(-3)) / totalDl * 100) : 0;
+      var npmPrev7 = sumNums(sparkline30.slice(-14, -7));
+      var weekDeltaPct = npmPrev7 > 0 ? ((sumNums(sparkline30.slice(-7)) - npmPrev7) / npmPrev7 * 100) : 0;
+      var regWeeks = Object.keys(registryTotals).map(function (k) { return Number((registryTotals[k] || {}).week || 0); });
+      var totalWeekAll = sumNums(regWeeks);
+      var npmWeek = Number((registryTotals.npm || {}).week || 0);
+      var velocityBoard = leaderboard.slice(0, 30).map(function (r) {
+        var velocity = null;
+        var prevWeek = null;
+        var isEmerging = false;
+        var absDelta = null;
+        if (r.range30 && r.range30.length === 30) {
+          prevWeek = sumNums(r.range30.slice(-14, -7));
+          var currWeek = sumNums(r.range30.slice(-7));
+          absDelta = currWeek - prevWeek;
+          if (prevWeek < 20) isEmerging = true;
+          else velocity = Math.round((currWeek - prevWeek) / Math.sqrt(prevWeek + 10) * 10) / 10;
+        }
+        return {
+          name: String(r.name || '').replace('@mcptoolshop/', ''),
+          registry: r.registry,
+          week: r.week,
+          month: r.month,
+          trendPct: r.trendPct,
+          prevWeek: prevWeek,
+          absDelta: absDelta,
+          range30: r.range30,
+          velocity: velocity,
+          isEmerging: isEmerging
+        };
+      });
+      var inference = data.inference || null;
+      return {
+        sparkline30: sparkline30,
+        registryTotals: registryTotals,
+        perRegistryDaily: perRegistryDaily,
+        top5Daily: top5Daily,
+        anomalies: anomalies,
+        monthOverMonthPct: npmPrev7 > 0 ? Math.round(weekDeltaPct * 10) / 10 : 0,
+        gini: gini,
+        median: median,
+        p90: p90,
+        top3Pct: top3Pct,
+        insights: [],
+        attentionPkgs: [],
+        npmPctOfTotal: totalWeekAll > 0 ? Math.round(npmWeek / totalWeekAll * 100) : 0,
+        leaderboard: velocityBoard,
+        inference: inference ? {
+          forecastTotal7: inference.forecastTotal7 || [],
+          riskScore: inference.riskScore || 0,
+          portfolioMomentum: inference.portfolioMomentum || 0,
+          packages: (inference.packages || []).slice(0, 10)
+        } : null,
+        healthScores: (inference && inference.healthScores ? inference.healthScores : []).slice(0, 30),
+        history: data.history || null
+      };
+    }
+
     function renderDashboard(data) {
       if (!data || !data.totals) return;
       window.__rpCurrentData = data;
@@ -3127,19 +3233,15 @@ const chatContext = !missing && data ? JSON.stringify({
       if (!validateStats(data)) return;
       // Always seed __rpCurrentData so export works from build-time data
       if (!window.__rpCurrentData) window.__rpCurrentData = data;
-      var existing = document.getElementById('updated-at');
-      var buildTime = existing ? existing.getAttribute('data-fetched') : null;
-      if (buildTime && data.fetchedAt === buildTime) {
-        if (existing) existing.textContent = 'Updated ' + relTime(data.fetchedAt) + '.';
-        var freshness = document.getElementById('health-freshness');
-        if (freshness && data.confidence) {
-          var ok = Object.values(data.confidence).filter(function (c) { return c === 'ok'; }).length;
-          var total = Object.keys(data.confidence).length;
-          freshness.textContent = 'Freshness: updated ' + relTime(data.fetchedAt) + ' \u2022 ' + ok + '/' + total + ' registries OK';
-        }
-        return;
-      }
+      var chartEl = document.getElementById('chart-data');
+      if (chartEl) chartEl.setAttribute('data-json', JSON.stringify(chartPayloadFromStats(data)));
       renderDashboard(data);
+      window.__rpChartsDirty = true;
+      var analytics = document.getElementById('tab-analytics');
+      if (analytics && !analytics.classList.contains('hidden') && typeof window.__rpInitCharts === 'function') {
+        window.__rpInitCharts();
+        window.__rpChartsDirty = false;
+      }
     }).catch(function () {
       // Runtime fetch failed — build-time data is still displayed. Silent fallback.
     });
@@ -3342,9 +3444,11 @@ const chatContext = !missing && data ? JSON.stringify({
             if (localGroup.childNodes.length > 0) modelSelect.appendChild(localGroup);
           }
 
-          // Default to a cloud model unless the user has a saved preference that
-          // still exists in the list (respect a returning user's explicit choice).
-          if (!saved || !seen[saved]) modelSelect.value = DEFAULT_CLOUD;
+          // Start on a local model. A saved cloud tag is not reused.
+          if (!saved || !seen[saved] || isCloudModel(saved)) {
+            var localPick = localModels.filter(function (n) { return n && !isCloudModel(n); })[0];
+            if (localPick) modelSelect.value = localPick;
+          }
 
           modelSelect.disabled = false;
           chatInput.disabled = false;

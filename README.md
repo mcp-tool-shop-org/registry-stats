@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
+  <a href="README.md">English</a> | <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
 <p align="center">
@@ -378,7 +378,7 @@ dotnet build desktop/RegistryPulse.Desktop/RegistryPulse.Desktop.csproj
 dotnet publish desktop/RegistryPulse.Desktop/RegistryPulse.Desktop.csproj
 ```
 
-The signed MSIX is a CI artifact from `desktop-ci.yml`. It is not a GitHub Release download and it is not the Store upload.
+The signed MSIX is a CI artifact from `desktop-ci.yml`. It is not a GitHub Release download and it is not the Store upload. Registry Pulse, the Windows desktop app, is listed at https://apps.microsoft.com/detail/9P9TR0055JG9. The package version in this repo is 3.4.0.0. Partner Center signs the file you upload.
 
 ## Security & Data Scope
 

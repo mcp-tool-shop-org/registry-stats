@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  Five registries. One engine. Dashboard included.
+  Six registries. One engine. Dashboard included.
 </p>
 
 <p align="center">
@@ -32,47 +32,47 @@
 
 ---
 
-npm、PyPI、NuGet、VS Code Marketplace、Docker Hubに公開します。現在、「自分のパッケージの状況はどうなっているか？」という質問に答えるには、5つの異なるサイトを確認する必要があります。**registry-stats**は完全なプラットフォームです：TypeScriptエンジン（CLI + API + RESTサーバー）、リアルタイムのWebダッシュボード、およびネイティブWindowsデスクトップアプリ—すべて1つのリポジトリから提供されます。
+npm、PyPI、NuGet、VS Code Marketplace、Docker Hub、GitHub Releasesに公開します。現在、「自分のパッケージの状況はどうなっているか？」という質問に答えるには、6つの異なるサイトを確認する必要があります。**registry-stats**は、TypeScriptエンジン（CLI + API + RESTサーバー）、リアルタイムのWebダッシュボード、ネイティブのWindowsデスクトップアプリを備えた完全なプラットフォームであり、すべて1つのリポジトリから提供されます。
 
-実行時の依存関係はありません。ネイティブの`fetch()`を使用します。Node 18以上が必要です。
+実行時の依存関係はありません。ネイティブの`fetch()`を使用します。Node 18以上。
 
 ## 内容
 
 | レイヤー | 機能 |
 |-------|-------------|
-| **Engine** | TypeScriptライブラリ + CLI + RESTサーバー + AI推論。単一のインターフェースで5つのレジストリをクエリします。npmに`@mcptoolshop/registry-stats`として公開されています。 |
-| **Dashboard** | AI推論パネル（健全性スコア、予測、実行可能なアドバイス）、Pulse AIコパイロット（ストリーミング音声、Web検索、フルスクリーン、GitHubデータコネクタ）、ズーム/パン機能付きの7つのインタラクティブチャート、リアルタイムリフレッシュ、レポートのエクスポート（PDF / JSONL / Markdown）、タブ形式のヘルプガイドを備えたAstroベースのWebアプリ。CIによって毎日再構築され、必要に応じて更新できます。 |
+| **Engine** | TypeScriptライブラリ + CLI + RESTサーバー + AI推論。npm、PyPI、NuGet、VS Code Marketplace、Docker Hub、GitHub Releasesの6つのレジストリを1つのインターフェースでクエリします。プレーンなパッケージ名でnpm、PyPI、NuGet、VS Code Marketplace、Docker Hubをクエリします。GitHub Releasesは、名前がowner/repoの場合、またはレジストリがgithubという名前をリストに含める場合に含めます。npmに`@mcptoolshop/registry-stats`として公開されます。 |
+| **Dashboard** | AI推論パネル（健全性スコア、予測、実行可能なアドバイス）、Pulse AI共同パイロット（ストリーミング音声、Web検索、フルスクリーン、GitHubデータコネクタ）、7つのチャート（30日間のトレンドとポートフォリオのトレンドのみでスクロールズームとパンが可能）、リアルタイム更新、レポートのエクスポート（PDF / JSONL / Markdown）、タブ付きのヘルプガイドを備えたAstroベースのWebアプリ。毎日CIがダッシュボードデータを取得します。サイトは毎週月曜日の07:00 UTCに再ビルドされます。 |
 | **Desktop** | WinUI 3 + WebView2を使用したネイティブWindowsアプリ。ダッシュボードをオフラインでバンドルし、必要に応じてリアルタイムの統計情報を取得します。 |
 
 ## ダッシュボード
 
-自己更新型の統計ダッシュボードは[`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/)にあります。
+自己更新型の統計ダッシュボードは、[`/dashboard/`](https://mcp-tool-shop-org.github.io/registry-stats/dashboard/)にあります。
 
-- **タブインターフェース** — ホーム、分析、リーダーボード、ヘルプのタブ
-- **Pulse AIコパイロット** — Ollamaを搭載した会話型アシスタントで、ストリーミング音声合成（LLMがストリームする際に話します。4つの音声は[mcp-voice-soundboard](https://github.com/mcp-tool-shop-org/mcp-voice-soundboard)経由）、Web検索（Wikipedia +オプションのSearXNG）、自動発声、フルスクリーンモード、GitHub組織データコネクタ、モデルセレクター、および会話メモリを備えています。
-- **概要スナップショット** — 健全性スコア（0〜100）、多様性指数、週ごとの変化、すべてのレジストリにおける合計ダウンロード数
-- **7つのインタラクティブチャート** — 30日間のトレンド（集計/レジストリごと/上位5つの切り替え+クリックしてドリルダウン+スクロールによるズーム/パン）、レジストリのシェア（極座標）、ポートフォリオのリスク（ヒストグラム+GiniとP90）、上位10の勢い、スパークライン付きの速度トラッカー、30日間のヒートマップ（2σ以上のスパイク検出）、およびポートフォリオのトレンド（積み上げ棒グラフ、年間）
-- **スマート成長エンジン** — 小さな分母による歪みを、ベースラインしきい値、パーセンテージ上限、および減衰速度式を使用して処理します。
-- **AI推論パネル** — ポートフォリオの勢い（-100〜+100）、リスクスコア、7日間の予測と信頼区間、自動化された推奨事項、重大度/緊急度のレベルを備えた実行可能なアドバイス、およびパッケージの健全性スコアボード（A〜Fのグレード）
-- **実行可能なアドバイス** — 重大度タグ付きのアドバイスカード（クリティカル/警告/情報/成功）、緊急度レベル、具体的なアクションステップ、および影響を受けるパッケージリスト
-- **パッケージの健全性スコア** — 0〜100の複合スコア（アクティビティ+一貫性+成長+安定性）で、パッケージごとにグレードが割り当てられます。
-- **年間の進捗状況追跡** — 永続的な履歴レイヤーは、月ごとのパッケージおよび週ごとのポートフォリオ集計を蓄積します。レジストリごとに積み重ねたポートフォリオのトレンドチャートを表示します。
-- **Pulseパネル** — 確立された主要パッケージ（≥50ダウンロード/週）と新興パッケージを分割表示し、インラインの7日間のスパークライン、絶対値+パーセンテージの変化、ベースラインコンテキスト、および1行の概要を表示します。
-- **リアルタイムリフレッシュ** — npmおよびPyPI APIから必要に応じて最新の数値をクライアント側で取得します。結果は`sessionStorage`（5分のTTL）にキャッシュされるため、タブを切り替えても即座に表示されます。
-- **レポートのエクスポート** — リフレッシュボタンの横にあるドロップダウンメニューから、3つの形式を選択できます：**Exec PDF**（jsPDF経由）、**LLM JSONL**（AIによる取り込み用の型付きレコード）、および**Dev Markdown**（GFMテーブル）。
-- **リーダーボード** — 132個のパッケージが週ごとのダウンロード数でランク付けされ、インラインの30日間のスパークラインとスマートなトレンドバッジが表示されます。
-- **設定ページ** — バリデーションを備えたポートフォリオエディター、レジストリ同期コンパニオンセクション、およびパイプライン概要があります。
-- **リーダーボード検索** — 名前またはレジストリでパッケージをすばやく見つけるためのインスタントテキストフィルター。
-- **キーボードナビゲーション** — タブ間を移動するための矢印キー。
-- **ヘルプタブ** — すべてのタブ、主要な概念、AI推論エンジン、データパイプライン、および役立つリンクについて説明する、わかりやすいガイド。
-- **ダーク/ライトテーマ** — システム設定に従います。
+- **タブ付きインターフェース** — ホーム、分析、リーダーボード、ヘルプのタブ
+- **Pulse AI共同パイロット** — Ollamaを搭載した会話型アシスタント。ストリーミング音声合成（LLMがストリーミングする際に音声で応答、[mcp-voice-soundboard](https://github.com/mcp-tool-shop-org/mcp-voice-soundboard)経由で4つの音声）、Web検索（Wikipedia + オプションのSearXNG）、自動音声読み上げ、フルスクリーンモード、GitHub組織データコネクタ、モデルセレクター、会話履歴
+- **概要スナップショット** — 健全性スコア（0〜100）、多様性指数、週ごとの変化。週ごとおよび月ごとのダウンロード数は、npmとPyPIです。VS Code、NuGet、Docker、GitHubは、合計の2つの数値ではなく、これまでの合計数に貢献します。
+- **7つのインタラクティブチャート** — 30日間のトレンド（集計 / レジストリごと / 上位5つの切り替え + クリックして詳細を表示）、レジストリのシェア（極座標）、ポートフォリオのリスク（ヒストグラム + ジニ係数とP90）、上位10の勢い、スパークライン付きの速度トラッカー、スパイク検出（> 2σ）を備えた30日間のヒートマップ、ポートフォリオのトレンド（積み上げ棒グラフ、年間）。スクロールズームとパンは、30日間のトレンドとポートフォリオのトレンドでのみ可能です。
+- **スマート成長エンジン** — ベースラインしきい値、パーセンテージ上限、減衰速度式を使用して、小さな分母による歪みを処理します。
+- **AI推論パネル** — ポートフォリオの勢い（-100〜+100）、リスクスコア、信頼区間付きの7日間の予測、自動化された推奨事項、重大度/緊急度のレベルを備えた実行可能なアドバイス、パッケージの健全性スコアボード（A〜Fの評価）
+- **実行可能なアドバイス** — 重大度タグ付きのアドバイスカード（重大/警告/情報/成功）で、緊急度のレベル、具体的なアクションステップ、および影響を受けるパッケージのリストを表示します。
+- **パッケージの健全性スコア** — 0〜100の複合スコア（アクティビティ + 一貫性 + 成長 + 安定性）で、パッケージごとに文字評価を付与します。
+- **年間の進捗状況の追跡** — 永続的な履歴レイヤーが、パッケージごとの月次およびポートフォリオごとの週次集計を蓄積します。レジストリごとに積み重ねたポートフォリオのトレンドチャート。
+- **Pulseパネル** — 確立された主要パッケージ（≥ 50ダウンロード/週）と、新興および新規パッケージを分割表示し、インラインの7日間のスパークライン、絶対値 + パーセンテージの変化、ベースラインのコンテキスト、および1行の概要を表示します。
+- **リアルタイム更新** — ページは、同じオリジンの`data/stats.json`を再取得します。そのファイルがビルドよりも新しい場合にのみ更新されます。ブラウザからnpmまたはPyPI APIを呼び出しません。`sessionStorage`には、オプションのGitHub PATが保存され、統計キャッシュは保存されません。
+- **レポートのエクスポート** — 更新ボタンの横にあるドロップダウンメニューから、3つの形式を選択できます。**Exec PDF**（jsPDF経由）、**LLM JSONL**（AIによる取り込み用の型付きレコード）、**Dev Markdown**（GFMテーブル）。
+- **リーダーボード** — `packages.json`に追跡されている268個のID（npm 168個、PyPI 43個、VS Code 6個、NuGet 27個、GitHub 24個）。ダウンロード数でランク付けされます。npmとPyPIは週単位、VS Code、NuGet、Docker、GitHubはこれまでの合計です。30日間のスパークラインは、npmシリーズです。スマートなトレンドバッジは、ダウンロード数の少ないパッケージに対して誤解を招く可能性のあるパーセンテージを表示しないようにします。
+- **設定ページ** — 検証を備えたポートフォリオエディター、レジストリ同期コンパニオンセクション、パイプラインの概要。
+- **リーダーボード検索** — 名前またはレジストリでパッケージを検索するためのインスタントテキストフィルター。
+- **キーボードナビゲーション** — タブを切り替えるには、矢印キーを使用します。
+- **ヘルプタブ** — すべてのタブ、主要な概念、AI推論エンジン、データパイプライン、および役立つリンクを網羅した、わかりやすいガイド。
+- **ダーク/ライトテーマ** — システムの好みを適用します。
 - **モバイル対応** — 小さな画面用のハンバーガーメニュー。
 
-データは毎日CI（06:00 UTC）によって更新され、サイト全体は毎週再構築されます（月曜日06:00 UTC）。リアルタイムリフレッシュでは、必要に応じてレジストリAPIから最新の数値が直接取得されます。追跡するパッケージは`site/src/data/packages.json`で設定します。
+データは毎日CI（06:00 UTC）によって更新され、サイト全体は毎週（月曜日07:00 UTC）に再ビルドされます。ダッシュボードは、同じオリジンの`data/stats.json`を再取得します。追跡するパッケージは、`site/src/data/packages.json`で設定します。
 
 ## AI推論エンジン
 
-実行時の依存関係がなく、純粋な数学的推論であり、ビルド時に実行されます—MLランタイムや外部APIはありません。
+依存関係がなく、純粋な数学的推論であり、ビルド時に実行されます。MLランタイムや外部APIはありません。
 
 ```typescript
 import {
@@ -104,31 +104,32 @@ const progress = computeYearlyProgress('my-pkg', 'npm', monthlyHistory);
 
 // Full portfolio analysis (now includes health scores + actionable advice)
 const result = inferPortfolio(leaderboard, { gini: 0.6, npmPct: 85 });
-// → { packages, forecastTotal7, riskScore, portfolioMomentum, recommendations, healthScores, actionableAdvice }
+// → { packages, forecastTotal7, riskScore, diversityTrend, portfolioMomentum, recommendations, healthScores, actionableAdvice }
+// diversityTrend is 'improving' | 'stable' | 'declining'
 ```
 
 | 機能 | 方法 | 機能 |
 |-----------|--------|-------------|
 | **Forecast** | 重み付き線形回帰 | 指数関数的な最近性バイアス、時間の経過とともに広がる80%の信頼区間 |
-| **Anomaly detection** | 適応型ローリングzスコア | 14日間のベースラインウィンドウで、スパイクとドロップを検出します。 |
-| **Trend segmentation** | 区分線形 | 時系列における上昇/下降/平坦なセグメントを識別します。 |
-| **Seasonality** | 曜日分解 | 毎週のパターンを検出し、ピーク日を報告します。 |
-| **Momentum** | 複合スコア | 方向+加速度+一貫性+ボリューム |
-| **Health score** | 多要素複合 | アクティビティ+一貫性+成長+安定性（0〜100、A〜Fのグレード） |
-| **Yearly progress** | 月次集計 | 前年比成長率、年間予測、マイルストーン追跡 |
-| **Actionable advice** | 重大度ルールエンジン | 緊急度と具体的なアクションを備えたクリティカル/警告/情報/成功 |
-| **Recommendations** | ルールエンジン | 成長、リスク、機会、および注意のカテゴリ |
+| **Anomaly detection** | 適応型ローリングZスコア | 14日間のベースラインウィンドウ、スパイクとドロップを検出 |
+| **Trend segmentation** | 区分線形 | 時系列における上昇/下降/平坦なセグメントを識別 |
+| **Seasonality** | 曜日分解 | 毎週のパターンを検出し、ピークの曜日を報告 |
+| **Momentum** | 複合スコア | 方向 + 加速度 + 一貫性 + ボリューム |
+| **Health score** | 多要素複合 | アクティビティ + 一貫性 + 成長 + 安定性（0〜100、A〜Fの評価） |
+| **Yearly progress** | 月次集計 | 前年比成長率、年間予測、マイルストーンの追跡 |
+| **Actionable advice** | 重大度ルールエンジン | 緊急度と具体的なアクションを備えた、重大/警告/情報/成功 |
+| **Recommendations** | ルールエンジン | 成長、リスク、機会、および注目度カテゴリ |
 
 ## デスクトップアプリ
 
-ダッシュボードをローカルのWebView2シェルにラップしたネイティブWindowsアプリ。
+ローカルのWebView2シェルにダッシュボードをラップしたネイティブWindowsアプリ。
 
-* **オフライン対応:** バンドルされたHTML/CSS/JSを搭載。インターネット接続なしで動作します。
-* **ライブリフレッシュ:** 必要に応じてGitHub Pagesから`stats.json`を取得します。
-* **CSVエクスポート:** ワンクリックでリーダーボードデータをエクスポートできます。
-* **MSIXパッケージ化:** `desktop-ci.yml`を使用してCIでビルドおよび署名されます。
+- **オフライン対応** — バンドルされたHTML/CSS/JSを搭載。インターネット接続なしでも動作します。
+- **リアルタイム更新** — 保存されたポートフォリオがない場合、GitHub Pagesの`stats.json`をダウンロードします。保存されたポートフォリオがある場合、各名前をそのレジストリに送信し、ポートフォリオファイルをアップロードしません。
+- **CSVエクスポート** — ワンクリックでリーダーボードデータをエクスポートします。
+- **MSIXパッケージ化** — CIでビルドおよび署名され、`desktop-ci.yml`を使用します。
 
-デスクトップソースは`desktop/`にあります。WinUI 3をターゲットとした.NET 10 MAUIで構築されています。
+デスクトップソースは、`desktop/`にあります。WinUI 3をターゲットとした.NET 10 MAUIで構築されています。
 
 ## インストール
 
@@ -158,6 +159,7 @@ registry-stats requests -r pypi
 registry-stats Newtonsoft.Json -r nuget
 registry-stats esbenp.prettier-vscode -r vscode
 registry-stats library/node -r docker
+registry-stats mcp-tool-shop-org/registry-stats -r github
 
 # Create a config file
 registry-stats --init
@@ -184,7 +186,7 @@ registry-stats serve --port 3000
 
 ## 設定ファイル
 
-プロジェクトのルートディレクトリに`registry-stats.config.json`を作成します（または、`registry-stats --init`を実行します）。
+プロジェクトのルートに`registry-stats.config.json`を作成するか（または`registry-stats --init`を実行します）。
 
 ```json
 {
@@ -205,9 +207,9 @@ registry-stats serve --port 3000
 }
 ```
 
-引数なしで`registry-stats`を実行すると、構成されたすべてのパッケージの統計情報が取得されます。CLIは現在の作業ディレクトリから設定ファイルを見つけます。
+引数なしで`registry-stats`を実行すると、設定されているすべてのパッケージの統計情報を取得します。CLIは、現在の作業ディレクトリから上位ディレクトリをたどって、最も近い設定ファイルを見つけます。上記の`registries`配列は、デフォルトの5つのパッケージです。GitHubのリリースを含めるには、`"github"`を追加します。これらのパッケージは、`owner/repo`というスラッグを持ちます。設定ファイルがない場合、パッケージのクエリは、名前が「owner/repo」でない限り、GitHubのリリースを除いて、すべての組み込みレジストリを使用します。レジストリのリストにgithubを含めても、クエリは実行され、プレーンな名前の場合、そのレジストリからエラーが発生します。
 
-設定はプログラムでも利用できます。
+設定は、プログラムでも利用できます。
 
 ```typescript
 import { loadConfig, defaultConfig, starterConfig } from '@mcptoolshop/registry-stats';
@@ -217,7 +219,7 @@ const defaults = defaultConfig();     // returns default Config object
 const template = starterConfig();     // returns starter JSON string
 ```
 
-## プログラムによるAPI
+## プログラムによる API
 
 ```typescript
 import { stats, calc, createCache } from '@mcptoolshop/registry-stats';
@@ -229,7 +231,8 @@ const nuget = await stats('nuget', 'Newtonsoft.Json');
 const vscode = await stats('vscode', 'esbenp.prettier-vscode');
 const docker = await stats('docker', 'library/node');
 
-// All registries at once (uses Promise.allSettled — never throws)
+// All registries at once. Provider failures stay off the success list
+// and are listed on .errors. An invalid name throws RegistryError before any request.
 const all = await stats.all('express');
 
 // Bulk — multiple packages, concurrency-limited (default: 5)
@@ -264,26 +267,27 @@ await stats('npm', 'express', { cache });  // fetches
 await stats('npm', 'express', { cache });  // cache hit
 ```
 
-## レジストリサポート
+## レジストリのサポート
 
-| レジストリ | パッケージ形式 | 時系列データ | 利用可能なデータ |
+| レジストリ | パッケージ形式 | 時系列 | 利用可能なデータ |
 |----------|---------------|-------------|----------------|
-| `npm` | `express`, `@scope/pkg` | はい（549日） | lastDay、lastWeek、lastMonth |
-| `pypi` | `requests` | はい（180日） | lastDay、lastWeek、lastMonth、total |
+| `npm` | `express`, `@scope/pkg` | はい（549 日） | lastDay、lastWeek、lastMonth |
+| `pypi` | `requests` | はい（180 日） | lastDay、lastWeek、lastMonth、total |
 | `nuget` | `Newtonsoft.Json` | No | total |
 | `vscode` | `publisher.extension` | No | total（インストール数）、評価、トレンド |
 | `docker` | `namespace/repo` | No | total（プル数）、スター数 |
+| `github` | `owner/repo` | No | 合計（アセットのダウンロード数）、リリース、アセット、最新タグ |
 
 ## 組み込みの信頼性
 
-- 429/5xxエラー発生時に指数関数的なバックオフで自動再試行
-- `Retry-After`ヘッダーを尊重します。
-- `AbortSignal.timeout`を使用して30秒のリクエストタイムアウトを設定します。
-- 大量のリクエストに対する同時実行数の制限
-- オプションのTTLキャッシュ（プラグイン可能 - 独自のRedis/ファイルバックエンドを`StatsCache`インターフェース経由で提供）
-- サプライチェーンセキュリティのためのSHAピン留めされたGitHub Actions
+- 429/5xx エラーが発生した場合の指数関数的バックオフによる自動再試行
+- `Retry-After` ヘッダーを尊重します
+- 30 秒のリクエストタイムアウト（`AbortSignal.timeout` を介して）
+- バルクリクエストの同時実行数の制限
+- オプションの TTL キャッシュ（プラグイン可能 — `StatsCache` インターフェイスを介して独自の Redis/ファイルバックエンドを使用）
+- サプライチェーンのセキュリティのための SHA で固定された GitHub Actions
 
-## REST APIサーバー
+## REST API サーバー
 
 マイクロサービスとして実行するか、独自のサーバーに組み込みます。
 
@@ -291,7 +295,7 @@ await stats('npm', 'express', { cache });  // cache hit
 registry-stats serve --port 3000
 ```
 
-デフォルトでは、`serve`は`127.0.0.1`（ローカルホストのみ）にバインドし、CORSを`*`に設定します。ネットワーク上で公開するには`--host 0.0.0.0`を使用し、クロスオリジンアクセスを制限するには`--cors <origin>`を使用します。
+デフォルトでは、`serve` は `127.0.0.1`（localhost のみ）にバインドされ、CORS を `*` に設定します。ネットワーク上で公開するには `--host 0.0.0.0` を使用し、クロスオリジンアクセスを制限するには `--cors <origin>` を使用します。
 
 ```
 GET /stats/:package              # all registries
@@ -300,7 +304,7 @@ GET /compare/:package?registries=npm,pypi
 GET /range/:registry/:package?start=YYYY-MM-DD&end=YYYY-MM-DD&format=json|csv|chart
 ```
 
-カスタムサーバーまたはサーバーレス環境でのプログラムによる使用：
+カスタムサーバーまたはサーバーレスでのプログラムによる使用。
 
 ```typescript
 import { createHandler, serve } from '@mcptoolshop/registry-stats';
@@ -308,10 +312,12 @@ import { createHandler, serve } from '@mcptoolshop/registry-stats';
 // Option 1: Quick start
 serve({ port: 3000 });
 
-// Option 2: Bring your own server
+// Option 2: Bring your own server.
+// listen(port) with no host binds every interface. This sample stays on loopback.
+// createHandler defaults Access-Control-Allow-Origin to *. Pass corsOrigin to narrow it.
 import { createServer } from 'node:http';
 const handler = createHandler();
-createServer(handler).listen(3000);
+createServer(handler).listen(3000, '127.0.0.1');
 ```
 
 ## カスタムレジストリ
@@ -360,30 +366,45 @@ npm run site:dev
 npm run site:build
 ```
 
+### デスクトップアプリ
+
+.NET 10 SDKを搭載したWindows。最初に`npm run site:build`を実行して、`site/dist`が存在するようにします。プロジェクトは、それを出力の`wwwroot/registry-stats`にコピーします。
+
+```bash
+dotnet workload install maui-windows
+npm run site:build
+dotnet build desktop/RegistryPulse.Desktop/RegistryPulse.Desktop.csproj
+# or
+dotnet publish desktop/RegistryPulse.Desktop/RegistryPulse.Desktop.csproj
+```
+
+署名されたMSIXは、`desktop-ci.yml`からのCI成果物です。これはGitHubのリリースダウンロードではなく、ストアへのアップロードでもありません。WindowsデスクトップアプリであるRegistry Pulseは、https://apps.microsoft.com/detail/9P9TR0055JG9にリストされています。このリポジトリのパッケージバージョンは3.4.0.0です。パートナーセンターがアップロードするファイルを署名します。
+
 ## セキュリティとデータ範囲
 
 | 側面 | 詳細 |
 |--------|--------|
-| **Data touched** | npm、PyPI、NuGet、VS Code Marketplace、Docker Hubからのパブリックダウンロード統計。インメモリキャッシュ（オプション） |
-| **Data NOT touched** | テレメトリなし。分析なし。認証情報ストレージなし。ユーザーデータなし。ファイル書き込みなし |
-| **Permissions** | 読み取り：HTTPS経由のパブリックレジストリAPI。書き込み：stdout/stderrのみ |
-| **Network** | パブリックレジストリAPIへのHTTPSアウトバウンド。オプションのローカルホストRESTサーバー |
-| **Telemetry** | 収集または送信されるデータはありません |
+| **Data touched** | npm、PyPI、NuGet、VS Code Marketplace、Docker Hub、およびGitHubリリースのパブリックダウンロード統計。オプションのインメモリキャッシュ。`registry-stats --init`は`registry-stats.config.json`に書き込みます。デスクトップアプリは、`packages.json`と`stats.json`を`%LOCALAPPDATA%\RegistryPulse`の下に書き込みます。 |
+| **Credentials** | `--init`はトークンを書き込みません。設定ファイルにトークン（`dockerToken`または`githubToken`）を追加すると、その値はファイルに保持されます。CLIは、Docker HubにBearerトークンとして`dockerToken`を送信し、Bearerトークンとして`githubToken`を`api.github.com`にのみ送信します。このツール自体は、どちらのトークンも書き込みません。ダッシュボードは、GitHubのPATを`sessionStorage`に保持し、それを`api.github.com`に送信できます。 |
+| **Data NOT touched** | テレメトリなし。分析なし。ユーザーアカウントなし。 |
+| **Permissions** | 読み取り：HTTPS経由のパブリックレジストリAPI、およびトークンが提供された場合の認証された呼び出し。書き込み：stdout/stderr、`registry-stats.config.json`を`--init`に、およびデスクトップファイルを`%LOCALAPPDATA%\RegistryPulse`の下に。ユーザーが指定したポートでのオプションのRESTサーバー。 |
+| **Network** | `api.npmjs.org`、`registry.npmjs.org`（`--mine`）、`pypistats.org`、`azuresearch-usnc.nuget.org`、`marketplace.visualstudio.com`、`hub.docker.com`、および`api.github.com`（GitHubリリース）へのHTTPSアウトバウンド。デスクトップの更新では、`mcp-tool-shop-org.github.io`からも統計情報をダウンロードします。オプションのローカルホストRESTサーバー。 |
+| **Telemetry** | 収集または送信されるものはありません |
 
-脆弱性報告については、[SECURITY.md](SECURITY.md)を参照してください。
+脆弱性に関する報告については、[SECURITY.md](SECURITY.md) を参照してください。
 
 ## スコアカード
 
 | カテゴリ | スコア |
 |----------|-------|
 | A. セキュリティ | 10 |
-| B. エラー処理 | 10 |
+| B. エラー処理 | 8 |
 | C. 運用ドキュメント | 10 |
-| D. リリース衛生管理 | 10 |
-| E. ID（ソフト） | 10 |
-| **Overall** | **50/50** |
+| D. リリースの衛生管理 | 8 |
+| E. 識別子（ソフト） | 10 |
+| **Overall** | **46/50** |
 
-> 完全な監査：[SHIP_GATE.md](SHIP_GATE.md) · [SCORECARD.md](SCORECARD.md)
+> 完全な監査: [SHIP_GATE.md](SHIP_GATE.md) · [SCORECARD.md](SCORECARD.md)
 
 ## ライセンス
 
@@ -391,4 +412,4 @@ MIT
 
 ---
 
-<a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a>によって構築されました。
+<a href="https://mcp-tool-shop.github.io/">MCP Tool Shop</a> によって作成されました

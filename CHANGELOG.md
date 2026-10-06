@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **`signal` option** on `StatsOptions`. Aborting it stops every request, retry wait and throttle wait. `stats`, `stats.range`, and a `stats.mine` search that has not returned still reject with a `RegistryError`. `stats.bulk` keeps a name that already succeeded, records the abort on `.errors`, and rejects only when nothing usable came back. Results already in `options.cache` still come back.
 
 ### Fixed
+- The desktop package version is 3.4.0, and the Store package version is 3.4.0.0. The packaged setup page counts six registries. The package description matches the About dialog.
 - A queued GitHub request whose signal had already aborted waited out the full spacing gap (60s without a token) instead of returning at once.
 - The desktop leaderboard and CSV export show the all-time `total`. Week and month stay npm and PyPI only.
 - The site leaderboard's first paint counts GitHub with the other all-time registries.
