@@ -1,22 +1,14 @@
 # registry-stats: how it works
 
-Mapped at 2026-10-06 from commit 0ae338a by Atlas 1.24.0.
+Mapped at 2026-10-14 from commit 2c5eb35 by Atlas 1.24.0.
 
 ## What this is
 
 8 parts, mostly TypeScript (45 files), C# (10), JavaScript (9), Astro (6), HTML (4) and CSS (3). Work enters through 7 doors; Daily Refresh and Desktop CI (MSIX) each reach 3 parts, and Daily Refresh is followed because it commits into the repository. It publishes to npm. It deploys a site to GitHub Pages. People run registry-stats. People import @mcptoolshop/registry-stats.
 
-## What changed since 2026-10-03 (5642837)
+## What changed since 2026-10-06 (0ae338a)
 
-- CI now also runs src/backend-fixes.test.ts and src/bulk-settle.test.ts.
-- Daily Refresh now also runs src/backend-fixes.test.ts and src/bulk-settle.test.ts.
-- Desktop CI (MSIX) now also runs site/scripts/audit.mjs.
-- And 1 more change to a door.
-- README.md is now also read by test/published-surfaces.test.ts.
-- SECURITY.md is now read by test/published-surfaces.test.ts.
-- desktop/RegistryPulse.Desktop/MainPage.xaml.cs is now read by test/desktop-bridge.test.ts.
-- And 5 more new writers and readers of places.
-- 12 files added and 66 changed content, across 6 parts.
+Nothing structural changed since 2026-10-06; 4 files changed content.
 
 ## What comes in
 

@@ -48,91 +48,31 @@
   ],
   "changes": {
     "fileCounts": {
-      "added": 12,
-      "changed": 66,
+      "added": 0,
+      "changed": 4,
       "moved": 0,
-      "parts": 6,
+      "parts": 2,
       "removed": 0
     },
     "items": [
       {
-        "kind": "door",
-        "sentence": "CI now also runs src/backend-fixes.test.ts and src/bulk-settle.test.ts.",
-        "subjects": [
-          ".github/workflows/ci.yml",
-          "src/backend-fixes.test.ts",
-          "src/bulk-settle.test.ts"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "Daily Refresh now also runs src/backend-fixes.test.ts and src/bulk-settle.test.ts.",
-        "subjects": [
-          ".github/workflows/daily-refresh.yml",
-          "src/backend-fixes.test.ts",
-          "src/bulk-settle.test.ts"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "Desktop CI (MSIX) now also runs site/scripts/audit.mjs.",
-        "subjects": [
-          ".github/workflows/desktop-ci.yml",
-          "site/scripts/audit.mjs"
-        ]
-      },
-      {
-        "kind": "door",
-        "sentence": "And 1 more change to a door.",
-        "subjects": []
-      },
-      {
-        "kind": "landing",
-        "sentence": "README.md is now also read by test/published-surfaces.test.ts.",
-        "subjects": [
-          "README.md",
-          "test/published-surfaces.test.ts"
-        ]
-      },
-      {
-        "kind": "landing",
-        "sentence": "SECURITY.md is now read by test/published-surfaces.test.ts.",
-        "subjects": [
-          "SECURITY.md",
-          "test/published-surfaces.test.ts"
-        ]
-      },
-      {
-        "kind": "landing",
-        "sentence": "desktop/RegistryPulse.Desktop/MainPage.xaml.cs is now read by test/desktop-bridge.test.ts.",
-        "subjects": [
-          "desktop/RegistryPulse.Desktop/MainPage.xaml.cs",
-          "test/desktop-bridge.test.ts"
-        ]
-      },
-      {
-        "kind": "landing",
-        "sentence": "And 5 more new writers and readers of places.",
-        "subjects": []
-      },
-      {
         "kind": "counts",
-        "sentence": "12 files added and 66 changed content, across 6 parts.",
+        "sentence": "Nothing structural changed since 2026-10-06; 4 files changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "56428378e4a1f927b2b553a04c2084c158ea86da",
-      "generatedAt": "2026-10-03T20:31:49.036Z"
+      "commit": "0ae338a5bf136e01909af9605f21f8980a630d28",
+      "generatedAt": "2026-10-06T00:29:34.150Z"
     },
-    "unchanged": false
+    "unchanged": true
   },
   "changesTogether": [],
   "changesTogetherNote": [
     "Window: 180 days; a pair counts from 3 shared commits, since 0 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 0,
-  "commit": "0ae338a5bf136e01909af9605f21f8980a630d28",
+  "commit": "2c5eb35ea3cce5f0a5147d72146c571b5f75d3b6",
   "defaultBranch": "main",
   "derived": "8 parts, mostly TypeScript (45 files), C# (10), JavaScript (9), Astro (6), HTML (4) and CSS (3). Work enters through 7 doors; Daily Refresh and Desktop CI (MSIX) each reach 3 parts, and Daily Refresh is followed because it commits into the repository. It publishes to npm. It deploys a site to GitHub Pages. People run registry-stats. People import @mcptoolshop/registry-stats.",
   "doors": [
@@ -541,7 +481,7 @@
       ]
     }
   ],
-  "generatedAt": "2026-10-06T00:29:34.150Z",
+  "generatedAt": "2026-10-14T22:47:51.405Z",
   "limits": [
     "4 imports could not be resolved: `desktop/RegistryPulse.Desktop/Resources/Raw/wwwroot/registry-stats/vendor/chartjs-plugin-zoom.min.js` imports `chart.js`, which is not declared; `desktop/RegistryPulse.Desktop/Resources/Raw/wwwroot/registry-stats/vendor/chartjs-plugin-zoom.min.js` imports `chart.js/helpers`, which is not declared; `desktop/RegistryPulse.Desktop/Resources/Raw/wwwroot/registry-stats/vendor/chartjs-plugin-zoom.min.js` imports `hammerjs`, which is not declared; and 1 more.",
     "45 reads go to a path their caller passes, not to this repository.",
