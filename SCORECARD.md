@@ -2,7 +2,7 @@
 
 **Repo:** registry-stats
 **Date:** 2026-06-24
-**Version:** 3.4.0
+**Version:** 3.5.0
 **Type tags:** `[npm]` `[cli]` `[dashboard]` `[desktop]`
 
 ## Current Assessment
