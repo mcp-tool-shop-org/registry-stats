@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-10-14
+
 ### Added
 - **`signal` option** on `StatsOptions`. Aborting it stops every request, retry wait and throttle wait. `stats`, `stats.range`, and a `stats.mine` search that has not returned still reject with a `RegistryError`. `stats.bulk` keeps a name that already succeeded, records the abort on `.errors`, and rejects only when nothing usable came back. Results already in `options.cache` still come back.
 
