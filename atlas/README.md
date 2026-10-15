@@ -1,12 +1,12 @@
 # registry-stats: how it works
 
-Mapped at 2026-10-14 from commit 1d7d92f by Atlas 1.24.0.
+Mapped at 2026-10-14 from commit c3d8be0 by Atlas 1.24.0.
 
 ## What this is
 
 8 parts, mostly TypeScript (45 files), C# (10), JavaScript (9), Astro (6), HTML (4) and CSS (3). Work enters through 7 doors; Daily Refresh and Desktop CI (MSIX) each reach 3 parts, and Daily Refresh is followed because it commits into the repository. It publishes to npm. It deploys a site to GitHub Pages. People run registry-stats. People import @mcptoolshop/registry-stats.
 
-## What changed since 2026-10-14 (8fa5547)
+## What changed since 2026-10-14 (1d7d92f)
 
 Nothing structural changed since 2026-10-14; 1 file changed content.
 
