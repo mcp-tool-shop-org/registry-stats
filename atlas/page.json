@@ -49,21 +49,21 @@
   "changes": {
     "fileCounts": {
       "added": 0,
-      "changed": 1,
+      "changed": 3,
       "moved": 0,
-      "parts": 1,
+      "parts": 2,
       "removed": 0
     },
     "items": [
       {
         "kind": "counts",
-        "sentence": "Nothing structural changed since 2026-10-14; 1 file changed content.",
+        "sentence": "Nothing structural changed since 2026-11-11; 3 files changed content.",
         "subjects": []
       }
     ],
     "since": {
-      "commit": "1d7d92fa2b7eeaf1b5495635748795a6a76f752f",
-      "generatedAt": "2026-10-14T22:55:42.404Z"
+      "commit": "cc551b92cbe17b89da50793ab060e9e7d356f89c",
+      "generatedAt": "2026-11-11T22:32:32.040Z"
     },
     "unchanged": true
   },
@@ -72,7 +72,7 @@
     "Window: 180 days; a pair counts from 3 shared commits, since 0 source files reach 10 revisions; the floor rises to 10 when 25 do."
   ],
   "changesTogetherWithTests": 0,
-  "commit": "c3d8be05f2d210a8d27824e54e1fec36fc87dcf4",
+  "commit": "6dd488bb611b4d600b9b18b5ca3cebf8f5ef01cb",
   "defaultBranch": "main",
   "derived": "8 parts, mostly TypeScript (45 files), C# (10), JavaScript (9), Astro (6), HTML (4) and CSS (3). Work enters through 7 doors; Daily Refresh and Desktop CI (MSIX) each reach 3 parts, and Daily Refresh is followed because it commits into the repository. It publishes to npm. It deploys a site to GitHub Pages. People run registry-stats. People import @mcptoolshop/registry-stats.",
   "doors": [
@@ -438,7 +438,7 @@
       "to": "src"
     }
   ],
-  "engine": "1.24.0",
+  "engine": "1.26.0",
   "generated": [
     {
       "place": "site/public/data/packages.json",
@@ -481,7 +481,7 @@
       ]
     }
   ],
-  "generatedAt": "2026-10-14T23:59:23.187Z",
+  "generatedAt": "2026-11-12T00:41:06.992Z",
   "limits": [
     "4 imports could not be resolved: `desktop/RegistryPulse.Desktop/Resources/Raw/wwwroot/registry-stats/vendor/chartjs-plugin-zoom.min.js` imports `chart.js`, which is not declared; `desktop/RegistryPulse.Desktop/Resources/Raw/wwwroot/registry-stats/vendor/chartjs-plugin-zoom.min.js` imports `chart.js/helpers`, which is not declared; `desktop/RegistryPulse.Desktop/Resources/Raw/wwwroot/registry-stats/vendor/chartjs-plugin-zoom.min.js` imports `hammerjs`, which is not declared; and 1 more.",
     "45 reads go to a path their caller passes, not to this repository.",
@@ -535,6 +535,7 @@
     "desktop": 0,
     "src": 24
   },
+  "testedCodeParts": 2,
   "unnamedWrites": 0,
   "unread": [
     {
